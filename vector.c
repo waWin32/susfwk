@@ -45,8 +45,8 @@ VOID SUSAPI susBufferReserve(
 	SUS_BUFFER buff = *pBuff;
 	if (buff->capacity >= buff->size + required) return;
 	buff->capacity = (!buff->capacity
-		? (max(required * SUS_GROWTH_FACTOR, SUS_BASIC_BUFFER_SIZE))
-		: (max(buff->capacity * SUS_GROWTH_FACTOR, buff->size + required * SUS_GROWTH_FACTOR))
+		? (max(required * SUS_BUFFER_GROWTH_FACTOR, SUS_BASIC_BUFFER_SIZE))
+		: (max(buff->capacity * SUS_BUFFER_GROWTH_FACTOR, buff->size + required * SUS_BUFFER_GROWTH_FACTOR))
 		);
 	SIZE_T offset = buff->offset;
 	*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
@@ -56,8 +56,8 @@ VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
 {
 	SUS_ASSERT(pBuff && *pBuff);
 	SUS_BUFFER buff = *pBuff;
-	if (buff->capacity > SUS_SIZE_OF_LARGE && buff->size * SUS_GROWTH_FACTOR * SUS_GROWTH_FACTOR < buff->capacity) {
-		buff->capacity = buff->size * SUS_GROWTH_FACTOR;
+	if (buff->capacity > SUS_SIZE_OF_LARGE && buff->size * SUS_BUFFER_GROWTH_FACTOR * SUS_BUFFER_GROWTH_FACTOR < buff->capacity) {
+		buff->capacity = buff->size * SUS_BUFFER_GROWTH_FACTOR;
 		SIZE_T offset = buff->offset;
 		*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
 	}

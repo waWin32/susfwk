@@ -7,7 +7,7 @@
 extern "C" {
 #endif // !__cplusplus
 
-// Number of attempts to allocate memory
+	// Number of attempts to allocate memory
 #define SUS_NUMBER_ATTEMPTS_ALLOCATE_MEMORY 0xff
 
 // Dynamic data type
@@ -17,6 +17,11 @@ typedef LPVOID SUS_LPMEMORY;
 
 typedef SUS_FILE SUS_HEAP, *SUS_PHEAP, *SUS_LPHEAP;
 typedef SUS_FILE SUS_MEMORY;
+
+typedef struct sus_data_view {
+	CONST LPBYTE data;
+	SIZE_T size;
+} SUS_DATAVIEW, *SUS_PDATAVIEW, *SUS_LPDATAVIEW;
 
 //////////////////////////////////////////////////////////////////
 //					Basic memory operations						//
@@ -86,12 +91,12 @@ SUS_LPMEMORY SUSAPI sus_realloc(
 	_In_ SUS_LPMEMORY block,
 	_In_ SIZE_T newSize
 );
-// Free a block of memory in the heap
+	// Free a block of memory in the heap
 SUS_LPMEMORY SUSAPI sus_free(
 	_In_ SUS_LPMEMORY block
 );
 
-// Fast memory allocation
+	// Fast memory allocation
 #define sus_fmalloc(size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), 0, size)
 // Fast allocating a memory array
 #define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size * count)
@@ -124,5 +129,9 @@ SUS_LPMEMORY SUSAPI sus_vmallocEx(
 );
 
 #define sus_vfree(block) VirtualFree(block, 0, MEM_RELEASE)
+
+#ifdef __cplusplus
+}
+#endif // !__cplusplus
 
 #endif /* !_SUS_MEMORY_ */

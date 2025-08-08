@@ -16,9 +16,9 @@ typedef struct sus_wstring_buffer {
 // -----------------------------------------------------------------------------
 
 // Checking whether a character is a space
-SUS_INLINE BOOLEAN SUSAPI sus_isspaceA(CHAR c) { return (c == ' ' || c == '\t' || c == '\n'); }
+SUS_INLINE BOOLEAN SUSAPI sus_isspaceA(CHAR c) { return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'); }
 // Checking whether a character is a space
-SUS_INLINE BOOLEAN SUSAPI sus_isspaceW(WCHAR c) { return (c == L' ' || c == L'\t' || c == L'\n'); }
+SUS_INLINE BOOLEAN SUSAPI sus_isspaceW(WCHAR c) { return (c == L' ' || c == L'\t' || c == L'\n' || c == L'\r' || c == L'\f' || c == L'\v'); }
 // Checking whether a character is a letter
 SUS_INLINE BOOLEAN SUSAPI sus_isalphaA(CHAR c) { return(c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }
 // Checking whether a character is a letter
@@ -28,14 +28,21 @@ SUS_INLINE BOOLEAN SUSAPI sus_isdigitA(CHAR c) { return (c >= '0' && c <= '9'); 
 // is a number
 SUS_INLINE BOOLEAN SUSAPI sus_isdigitW(WCHAR c) { return (c >= L'0' && c <= L'9'); }
 
+// Is it a number or a word
+SUS_INLINE BOOLEAN SUSAPI sus_isalnumA(CHAR c) { return sus_isalphaA(c) || sus_isdigitA(c); }
+// Is it a number or a word
+SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_isdigitW(c); }
+
 #ifdef UNICODE
 #define sus_isspace sus_isspaceW
 #define sus_isalpha sus_isalphaW
 #define sus_isdigit sus_isdigitW
+#define sus_isalnum	sus_isalnumW
 #else
 #define sus_isspace sus_isspaceA
 #define sus_isalpha sus_isalphaA
 #define sus_isdigit sus_isdigitA
+#define sus_isalnum	sus_isalnumA
 #endif // !UNICODE
 
 // Get the length of the string

@@ -32,9 +32,12 @@ Abstract:
 #include "susfwk/debug.h"
 #include "susfwk/iostream.h"
 
+#include "susfwk/memory.h"
+#include "susfwk/vector.h"
+#include "susfwk/linkedlist.h"
+#include "susfwk/hashmap.h"
 
 #ifndef SUSMINIMAL
-    #include "susfwk/memory.h"
     #include "susfwk/regapi.h"
     #ifndef SUSNOTCRYPTO
     #include "susfwk/crypto.h"

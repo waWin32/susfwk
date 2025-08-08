@@ -28,7 +28,9 @@
     <ClInclude Include="include\susfwk\deftypes.h" />
     <ClInclude Include="include\susfwk\fileio.h" />
     <ClInclude Include="include\susfwk\format.h" />
+    <ClInclude Include="include\susfwk\hashmap.h" />
     <ClInclude Include="include\susfwk\iostream.h" />
+    <ClInclude Include="include\susfwk\linkedlist.h" />
     <ClInclude Include="include\susfwk\math.h" />
     <ClInclude Include="include\susfwk\mathcore.h" />
     <ClInclude Include="include\susfwk\mathdef.h" />
@@ -47,7 +49,9 @@
     <ClCompile Include="crypto.c" />
     <ClCompile Include="fileio.c" />
     <ClCompile Include="format.c" />
+    <ClCompile Include="hashmap.c" />
     <ClCompile Include="iostream.c" />
+    <ClCompile Include="linkedlist.c" />
     <ClCompile Include="mathcore.c" />
     <ClCompile Include="memory.c" />
     <ClCompile Include="network.c" />

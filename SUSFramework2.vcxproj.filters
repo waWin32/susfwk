@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Файлы заголовков\api">
-      <UniqueIdentifier>{2399885f-3958-448b-90e0-d975b95952d2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Файлы заголовков\core">
       <UniqueIdentifier>{bd5ee21d-709b-4ca2-9717-c764dbf9a2e7}</UniqueIdentifier>
     </Filter>
@@ -31,20 +28,23 @@
     <Filter Include="Исходные файлы\io">
       <UniqueIdentifier>{3e3d68df-2a1c-4737-a94c-0235b48d1019}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\api">
-      <UniqueIdentifier>{1ac7d5e6-8410-4da4-9e7e-6598e05e639d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Исходные файлы\math">
       <UniqueIdentifier>{c987e561-2adb-4223-868a-4816ddfd820e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Исходные файлы\strings">
       <UniqueIdentifier>{63555884-b886-445a-ac5a-a7d5cf6b5727}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\api\memory">
+    <Filter Include="Исходные файлы\collections">
       <UniqueIdentifier>{9925989b-0444-4096-b83d-2be593d089c0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Файлы заголовков\api\memory">
+    <Filter Include="Исходные файлы\system">
+      <UniqueIdentifier>{408ed113-0691-4adc-9727-c39772de9f45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\collections">
       <UniqueIdentifier>{e6c76836-44a4-49f3-a2b0-1ffeb733110a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\system">
+      <UniqueIdentifier>{aef1af48-2a19-4c50-88a2-28dc8cab2a0e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -81,38 +81,44 @@
     <ClInclude Include="include\susfwk\mathdef.h">
       <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\network.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\regapi.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\resapi.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\string.h">
       <Filter>Файлы заголовков\strings</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk.h">
       <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\thrprocessapi.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\tmath.h">
       <Filter>Файлы заголовков\math</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\windowapi.h">
-      <Filter>Файлы заголовков\api</Filter>
     </ClInclude>
     <ClInclude Include="coreframe.h">
       <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\memory.h">
-      <Filter>Файлы заголовков\api\memory</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\vector.h">
-      <Filter>Файлы заголовков\api\memory</Filter>
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\network.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\regapi.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\resapi.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\thrprocessapi.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\windowapi.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\linkedlist.h">
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\hashmap.h">
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\memory.h">
+      <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -134,29 +140,35 @@
     <ClCompile Include="mathcore.c">
       <Filter>Исходные файлы\math</Filter>
     </ClCompile>
-    <ClCompile Include="network.c">
-      <Filter>Исходные файлы\api</Filter>
-    </ClCompile>
-    <ClCompile Include="regapi.c">
-      <Filter>Исходные файлы\api</Filter>
-    </ClCompile>
-    <ClCompile Include="resapi.c">
-      <Filter>Исходные файлы\api</Filter>
-    </ClCompile>
     <ClCompile Include="string.c">
       <Filter>Исходные файлы\strings</Filter>
     </ClCompile>
+    <ClCompile Include="vector.c">
+      <Filter>Исходные файлы\collections</Filter>
+    </ClCompile>
+    <ClCompile Include="network.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="regapi.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="resapi.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
     <ClCompile Include="thrprocessapi.c">
-      <Filter>Исходные файлы\api</Filter>
+      <Filter>Исходные файлы\system</Filter>
     </ClCompile>
     <ClCompile Include="windowapi.c">
-      <Filter>Исходные файлы\api</Filter>
+      <Filter>Исходные файлы\system</Filter>
     </ClCompile>
-    <ClCompile Include="vector.c">
-      <Filter>Исходные файлы\api\memory</Filter>
+    <ClCompile Include="linkedlist.c">
+      <Filter>Исходные файлы\collections</Filter>
+    </ClCompile>
+    <ClCompile Include="hashmap.c">
+      <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
     <ClCompile Include="memory.c">
-      <Filter>Исходные файлы\api\memory</Filter>
+      <Filter>Исходные файлы\system</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

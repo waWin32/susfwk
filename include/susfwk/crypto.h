@@ -56,4 +56,14 @@ VOID susStringEncryption(
 #define susSetKey susSetKeyA
 #endif // !UNICODE
 
+// ---------------------------------------------------
+
+// Hashing algorithm
+typedef enum sus_hash_algorithm {
+	SUS_HASH_MD5 = 16,		// 16 bytes
+	SUS_HASH_SHA1 = 20,		// 20 bytes
+	SUS_HASH_SHA256 = 32,	// 32 bytes
+	SUS_HASH_SHA512 = 64	// 64 bytes
+} SUS_HASH_ALGORITHM;
+
 #endif /* !_SUS_CRYPTO_ */

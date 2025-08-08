@@ -18,7 +18,7 @@ extern "C" {
 
 // -----------------------------------------------------------
 
-#define SUS_GROWTH_FACTOR 2
+#define SUS_BUFFER_GROWTH_FACTOR 2
 #define SUS_SIZE_OF_LARGE 256
 #define SUS_BASIC_BUFFER_SIZE 64
 
@@ -214,6 +214,8 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 	SUS_ASSERT(array);
 	susBufferClear(susVectorBuffer(array));
 }
+
+#define susVecForeach(i, vec) for (DWORD i = 0; i < susVectorCount(vec); i++)
 
 // -------------------------------------
 

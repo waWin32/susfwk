@@ -50,14 +50,14 @@ LPVOID susLoadResourceW(
  */
 
 // Upload a resource to a file
-BOOL susSaveResourceToFileA(
+BOOL susLoadResourceToFileA(
 	_In_ LPCSTR lpName,
 	_In_ LPCSTR lpType,
 	_In_ LPCSTR lpFileName,
 	_In_ DWORD attributes
 );
 // Upload a resource to a file
-BOOL susSaveResourceToFileW(
+BOOL susLoadResourceToFileW(
 	_In_ LPCWSTR lpName,
 	_In_ LPCWSTR lpType,
 	_In_ LPCWSTR lpFileName,
@@ -65,9 +65,9 @@ BOOL susSaveResourceToFileW(
 );
 
 #ifdef UNICODE
-#define susSaveResourceToFile susSaveResourceToFileW
+#define susLoadResourceToFile susLoadResourceToFileW
 #else
-#define susSaveResourceToFile susSaveResourceToFileA
+#define susLoadResourceToFile susLoadResourceToFileA
 #endif // !UNICODE
 
 // Upload a resource to a temporary file

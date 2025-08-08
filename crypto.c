@@ -4,6 +4,7 @@
 #include "include/susfwk/core.h"
 #include "include/susfwk/string.h"
 #include "include/susfwk/memory.h"
+#include "include/susfwk/vector.h"
 #include "include/susfwk/crypto.h"
 
 // Creating an encryption key
@@ -55,7 +56,7 @@ BOOL SUSAPI susSetEncryptionKey(
 	_In_ SIZE_T size)
 {
 	SUS_PRINTDL("Creating an encryption key");
-	SUS_ASSERT(ekey && size > 0 && key);
+	SUS_ASSERT(ekey && key);
 	ekey->key = sus_realloc(ekey->key, size);
 	if (!ekey->key) {
 		SUS_PRINTDE("Couldn't set a encryption key");
@@ -81,3 +82,5 @@ VOID SUSAPI susStringEncryption(
 		data[i] ^= key.key[i % key.keySize];
 	}
 }
+
+// ---------------------------------------------------
