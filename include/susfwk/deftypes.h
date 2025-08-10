@@ -63,10 +63,11 @@ typedef sus_f80 sus_exdouble;
 
 // Types for flags :
 
-typedef sus_u8 SUS_FLAG8;
-typedef sus_u16 SUS_FLAG16;
-typedef sus_u32 SUS_FLAG32;
-typedef sus_u64 SUS_FLAG64;
+typedef sus_u8 SUS_FLAG8, SUS_BITMASK8;
+typedef sus_u16 SUS_FLAG16, SUS_BITMASK16;
+typedef sus_u32 SUS_FLAG32, SUS_BITMASK32;
+typedef sus_u64 SUS_FLAG64, SUS_BITMASK64;
+typedef SUS_BITMASK32 SUS_BITMASK;
 
 // custom data types :
 

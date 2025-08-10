@@ -20,7 +20,7 @@ typedef SUS_FILE SUS_MEMORY;
 
 typedef struct sus_data_view {
 	CONST LPBYTE data;
-	SIZE_T size;
+	CONST SIZE_T size;
 } SUS_DATAVIEW, *SUS_PDATAVIEW, *SUS_LPDATAVIEW;
 
 //////////////////////////////////////////////////////////////////

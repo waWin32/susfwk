@@ -215,7 +215,7 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 	susBufferClear(susVectorBuffer(array));
 }
 
-#define susVecForeach(i, vec) for (DWORD i = 0; i < susVectorCount(vec); i++)
+#define susVecForeach(i, c, vec) for (DWORD i = 0, c = susVectorCount(vec); i < c; i++)
 
 // -------------------------------------
 

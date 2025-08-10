@@ -3,21 +3,18 @@
 #ifndef _SUS_ECS_
 #define _SUS_ECS_
 
-typedef sus_u32 ECS_ENTITY;
-typedef sus_u32 ECS_COMPONENT_TYPE;
+typedef sus_u32 SUS_ENTITY;
+typedef SUS_BITMASK64 SUS_COMPONENTMASK;
+typedef sus_u32 SUS_COMPONENT_TYPE;
+typedef VOID(SUSAPI* SUS_SYSTEMS_CALLBACK)(SUS_ENTITY entity);
 
-typedef struct ecs_component {
-	ECS_ENTITY entity;
-	BYTE data[];
-} ECS_COMPONENT, *ECS_LPCOMPONENT;
+typedef struct sus_world {
+	SUS_HASHMAP	entities;		// SUS_ENTITY -> SUS_COMPONENTMASK
+	SUS_HASHMAP	componentPools[64];
+	SUS_ENTITY	nextId;
+} SUS_WORLD, *SUS_PWORLD, *SUS_LPWORLD;
 
-typedef struct ecs_component_pool {
-	SUS_ARRAY components;
-} ECS_COMPONENT_POOL, *ECS_LPCOMPONENT_POOL;
-
-typedef struct ecs_world {
-	SUS_ARRAY componentTypes; // ECS_COMPONENT_POOL
-	ECS_ENTITY next;
-} ECS_WORLD, *ECS_PWORLD, *ECS_LPWORLD;
+// Create a new world of entities, components, and systems
+SUS_LPWORLD SUSAPI susNewWorld();
 
 #endif /* !_SUS_ECS_ */

@@ -46,7 +46,11 @@ SUS_INLINE VOID SUSAPI SUS_CONSOLE_DEBUGGING() { AllocConsole(); hDebugOut = Get
 SUS_INLINE VOID SUSAPI SUS_LOGFILE_DEBUGGING(SUS_FILE logFile) { hDebugOut = logFile; }
 SUS_INLINE VOID SUSAPI SUS_CLOSE_LOGFILE() { CloseHandle(hDebugOut); }
 
+#ifndef SUS_DEBUGONLYERRORS
 #define SUS_PRINTDL(info, ...)		_SUS_DEBUG_PRINTLOG("[" __FILE__ ":" TOSTRING(__LINE__) "] [info] " info "\n", __VA_ARGS__)
+#else
+#define SUS_PRINTDL(debug, ...)
+#endif // !SUS_DEBUGONLYERRORS
 #define SUS_PRINTDE(error, ...)		_SUS_DEBUG_PRINTERR("[" __FILE__ ":" TOSTRING(__LINE__) "] [error] " error "\n", __VA_ARGS__)
 #define SUS_PRINTDW(warning, ...)	_SUS_DEBUG_PRINTWAR("[" __FILE__ ":" TOSTRING(__LINE__) "] [warning] " warning "\n", __VA_ARGS__)
 #define SUS_PRINTDC(code)			SUS_PRINTDE("Error code %p", (LONGLONG)code)
