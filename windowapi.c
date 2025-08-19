@@ -94,7 +94,7 @@ static const CREATESTRUCTW susDefWidgetStructW = {
 };
 
 // Basic initialization of the window
-SUS_WINDOWA SUSAPI susWindowSetupA(_In_ LPCSTR lpTitle, _In_opt_ LPVOID lParam)
+SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lParam)
 {
 	SUS_PRINTDL("Setting up the window");
 	SUS_WINDOWA window = { 0 };
@@ -117,7 +117,7 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_ LPCSTR lpTitle, _In_opt_ LPVOID lParam)
 	return window;
 }
 // Basic initialization of the window
-SUS_WINDOWW SUSAPI susWindowSetupW(_In_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam)
+SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam)
 {
 	SUS_PRINTDL("Setting up the window");
 	SUS_WINDOWW window = { 0 };
@@ -344,7 +344,7 @@ BOOL SUSAPI susBuildWidgetA(_In_ HWND hWnd, _In_ SUS_LPWIDGETA widget)
 		widget->wStruct.hwndParent,
 		widget->wStruct.hMenu,
 		widget->wStruct.hInstance,
-		(LPVOID)susGetWindowUserData(hWnd)
+		(LPVOID)susLoadWindowData(hWnd)
 	);
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");
@@ -373,7 +373,7 @@ BOOL SUSAPI susBuildWidgetW(_In_ HWND hWnd, _In_ SUS_LPWIDGETW widget)
 		widget->wStruct.hwndParent,
 		widget->wStruct.hMenu,
 		widget->wStruct.hInstance,
-		(LPVOID)susGetWindowUserData(hWnd)
+		(LPVOID)susLoadWindowData(hWnd)
 	);
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");

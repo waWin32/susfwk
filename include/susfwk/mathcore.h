@@ -6,9 +6,8 @@
 #include "core.h"
 #include "mathdef.h"
 
-extern unsigned int usm_random_seed;
-extern const float USM_SIN_TABLE[USM_TABLE_SIZE];
-extern const float USM_COS_TABLE[USM_TABLE_SIZE];
+extern sus_u32 usm_random_seed;
+extern const sus_float USM_COS_TABLE[];
 
 // -----------------------------------------------------------------------------------------------------
 //
@@ -65,11 +64,21 @@ SUS_INLINE sus_f32 SUSAPI sus_fmod(sus_f32 a, sus_f32 b) {
 }
 // Tabular sine
 SUS_INLINE sus_f32 SUSAPI sus_sin(sus_i32 degrees) {
-    return USM_SIN_TABLE[degrees % USM_TABLE_SIZE];
+    degrees %= 360;
+    if (degrees < 0) degrees += 360;
+    if (degrees <= 90) return USM_COS_TABLE[90 - degrees];
+    if (degrees <= 180) return USM_COS_TABLE[degrees - 90];
+    if (degrees <= 270) return -USM_COS_TABLE[270 - degrees];
+    return -USM_COS_TABLE[degrees - 270];
 }
 // Tabular cosine
 SUS_INLINE sus_f32 SUSAPI sus_cos(sus_i32 degrees) {
-    return USM_COS_TABLE[degrees % USM_TABLE_SIZE];
+    degrees %= 360;
+    if (degrees < 0) degrees += 360;
+    if (degrees <= 90) return USM_COS_TABLE[degrees];
+    if (degrees <= 180) return -USM_COS_TABLE[180 - degrees];
+    if (degrees <= 270) return -USM_COS_TABLE[degrees - 180];
+    return USM_COS_TABLE[360 - degrees];
 }
 
 // Get the square root of a number

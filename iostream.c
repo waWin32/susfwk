@@ -9,9 +9,7 @@
 #include "include/susfwk/conio.h"
 #include "include/susfwk/iostream.h"
 
-//////////////////////////////////////////////////////////////
-//					The Input\Output module					//
-//////////////////////////////////////////////////////////////
+// --------------------------------------------------------
 
 // Formatted output to the file
 INT SUSAPI sus_vfprintfA(
@@ -42,6 +40,8 @@ INT SUSAPI sus_vfprintfW(
 	return len;
 }
 
+// --------------------------------------------------------
+
 // Formatted input to the file
 INT SUSAPI sus_vfscanfA(
 	_In_ SUS_FILE hIn,
@@ -53,7 +53,6 @@ INT SUSAPI sus_vfscanfA(
 	buff[sus_readA(hIn, buff, (sizeof(buff) - 1) / sizeof(CHAR))] = '\0';
 	return sus_vparsingA(buff, format, args);
 }
-
 // Formatted input to the file
 INT SUSAPI sus_vfscanfW(
 	_In_ SUS_FILE hIn,
@@ -65,3 +64,5 @@ INT SUSAPI sus_vfscanfW(
 	buff[sus_readW(hIn, buff, (sizeof(buff) - 1) / sizeof(WCHAR))] = L'\0';
 	return sus_vparsingW(buff, format, args);
 }
+
+// --------------------------------------------------------

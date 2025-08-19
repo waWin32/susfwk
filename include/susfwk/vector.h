@@ -74,14 +74,14 @@ VOID SUSAPI susBufferReserve(
 VOID SUSAPI susBufferCompress(
 	_Inout_ SUS_LPBUFFER pBuff
 );
-
-// -------------------------------------
-
 // Guaranteed buffer size
 VOID SUSAPI susBufferResize(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T size
 );
+
+// -------------------------------------
+
 // Insert data into the buffer with a shift
 SUS_LPMEMORY SUSAPI susBufferInsert(
 	_Inout_ SUS_LPBUFFER pBuff,
@@ -117,6 +117,8 @@ VOID SUSAPI susBufferClear(
 //						Dynamic array							//
 //////////////////////////////////////////////////////////////////
 
+// -------------------------------------
+
 // Dynamic array
 typedef struct sus_vector {
 	SIZE_T	isize;		// The size of the type in the array
@@ -126,24 +128,26 @@ typedef struct sus_vector {
 // -------------------------------------
 
 // Get the array size
-#define susVectorSize(array) ((array)->size)
-// Get the array size
 #define susVectorData(array, type) ((type*)((array)->data))
 // Get the array size
 #define susVectorTypeSize(array) ((array)->isize)
 // Get the array count
-#define susVectorCount(array) (DWORD)(susVectorSize(array) / susVectorTypeSize(array))
+#define susVectorCount(array) (DWORD)((array)->size / susVectorTypeSize(array))
 // Get the array buffer
 #define susVectorBuffer(array) ((SUS_BUFFER)((LPBYTE)(array) + array->offset))
 // Get the array buffer
 #define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
+// Go through all the elements of the array
+#define susVecForeach(i, vec) for (UINT i = 0, _count = susVectorCount(vec); i < _count; i++)
 
 // -------------------------------------
 
 // Create a dynamic array
 SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset);
 // Create a dynamic array
-#define susNewVector(type) susNewVectorEx(sizeof(type), 0)
+#define susNewVectorSized(typeSize) susNewVectorEx(typeSize, 0)
+// Create a dynamic array
+#define susNewVector(type) susNewVectorSized(sizeof(type))
 // Destroy the dynamic array
 SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
 	SUS_PRINTDL("Deleting an array");
@@ -155,14 +159,13 @@ SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
 // -------------------------------------
 
 // Accessing an array element
-SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR array, _In_ UINT index) {
+SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR array, _In_ UINT index) {
 	SUS_PRINTDL("Accessing the %dth element of an array", index);
 	SUS_ASSERT(array && array->size);
-	DWORD count = susVectorCount(array);
-	return index >= count ? (SUS_OBJECT)NULL : (SUS_OBJECT)(susVectorData(array, BYTE) + index * array->isize);
+	return index >= susVectorCount(array) ? (SUS_OBJECT)NULL : (SUS_OBJECT)(susVectorData(array, BYTE) + index * array->isize);
 }
 // Accessing an array element
-SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR array, _In_ INT index) {
+SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR array, _In_ INT index) {
 	SUS_PRINTDL("Accessing the %dth element of an array", index);
 	SUS_ASSERT(array && array->size);
 	DWORD count = susVectorCount(array);
@@ -179,7 +182,7 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorFront(_Inout_ SUS_VECTOR array) {
 SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR array) {
 	SUS_PRINTDL("Getting the last element of the array");
 	SUS_ASSERT(array);
-	return susVectorGet(array, -1);
+	return susVectorAt(array, -1);
 }
 
 // -------------------------------------
@@ -199,11 +202,11 @@ SUS_OBJECT SUSAPI susVectorInsert(
 // -------------------------------------
 
 // Delete the last element of the array
-SUS_INLINE VOID SUSAPI susVectorPopBack(
+VOID SUSAPI susVectorPopBack(
 	_Inout_ SUS_LPVECTOR pVector
 );
 // Remove an element from a dynamic array
-SUS_INLINE VOID SUSAPI susVectorErase(
+VOID SUSAPI susVectorErase(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_ DWORD i
 );
@@ -214,8 +217,6 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 	SUS_ASSERT(array);
 	susBufferClear(susVectorBuffer(array));
 }
-
-#define susVecForeach(i, c, vec) for (DWORD i = 0, c = susVectorCount(vec); i < c; i++)
 
 // -------------------------------------
 

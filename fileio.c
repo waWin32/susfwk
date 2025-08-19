@@ -5,6 +5,8 @@
 #include "include/susfwk/string.h"
 #include "include/susfwk/fileio.h"
 
+// --------------------------------------------------------
+
 // Opening a file
 SUS_FILE SUSAPI susCreateFileA(
 	_In_ LPCSTR lpFileName,
@@ -59,38 +61,14 @@ SUS_FILE SUSAPI susCreateFileW(
 	SUS_PRINTDL("The file has been opened successfully");
 	return hFile;
 }
-// Delete a file
-BOOL SUSAPI susDeleteFileA(_In_ LPCSTR lpFileName)
-{
-	SUS_PRINTDL("Deleting a file");
-	SUS_ASSERT(lpFileName);
-	if (!DeleteFileA(lpFileName)) {
-		SUS_PRINTDL("Couldn't delete the file");
-		SUS_PRINTDC(GetLastError());
-		return FALSE;
-	}
-	SUS_PRINTDL("The file was deleted successfully");
-	return TRUE;
-}
-// Delete a file
-BOOL SUSAPI susDeleteFileW(_In_ LPCWSTR lpFileName)
-{
-	SUS_PRINTDL("Deleting a file");
-	SUS_ASSERT(lpFileName);
-	if (!DeleteFileW(lpFileName)) {
-		SUS_PRINTDL("Couldn't delete the file");
-		SUS_PRINTDC(GetLastError());
-		return FALSE;
-	}
-	SUS_PRINTDL("The file was deleted successfully");
-	return TRUE;
-}
+
+// --------------------------------------------------------
 
 // Create a temporary file
 SUS_FILE SUSAPI susCreateTempFileA(
 	_In_opt_ LPCSTR lpPrefixString,
 	_In_opt_ LPCSTR lpFileExtension,
-	_In_ SUS_FLAG16 flags,
+	_In_ sus_flag32 flags,
 	_Out_writes_opt_(MAX_PATH) LPSTR lpTempFileName)
 {
 	SUS_PRINTDL("Creating a temporary file");
@@ -120,13 +98,7 @@ SUS_FILE SUSAPI susCreateTempFileA(
 	SUS_FILE hFile = susCreateFileA(
 		_tempFileName, GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_TEMPORARY | 
-		(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE ? FILE_FLAG_DELETE_ON_CLOSE : 0) |
-		(flags & SUS_TEMP_FILE_RANDOM_ACCESS ? FILE_FLAG_RANDOM_ACCESS : 0) |
-		(flags & SUS_TEMP_FILE_SEQUENTIAL_SCAN ? FILE_FLAG_SEQUENTIAL_SCAN : 0) |
-		(flags & SUS_TEMP_FILE_DISABLE_BUFFERING ? FILE_FLAG_NO_BUFFERING : 0) |
-		(flags & SUS_TEMP_FILE_HIDDEN ? FILE_ATTRIBUTE_HIDDEN : 0) |
-		(flags & SUS_TEMP_FILE_WRITE_THROUGH ? FILE_FLAG_WRITE_THROUGH : 0)
+		FILE_ATTRIBUTE_TEMPORARY | flags
 	);
 	if (!hFile) {
 		SUS_PRINTDE("Couldn't create a temporary file");
@@ -141,7 +113,7 @@ SUS_FILE SUSAPI susCreateTempFileA(
 SUS_FILE SUSAPI susCreateTempFileW(
 	_In_opt_ LPCWSTR lpPrefixString,
 	_In_opt_ LPCWSTR lpFileExtension,
-	_In_ SUS_FLAG16 flags,
+	_In_ sus_flag32 flags,
 	_Out_writes_opt_(MAX_PATH) LPWSTR lpTempFileName)
 {
 	SUS_PRINTDL("Creating a temporary file");
@@ -171,13 +143,7 @@ SUS_FILE SUSAPI susCreateTempFileW(
 	SUS_FILE hFile = susCreateFileW(
 		_tempFileName, GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_TEMPORARY |
-		(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE ? FILE_FLAG_DELETE_ON_CLOSE : 0) |
-		(flags & SUS_TEMP_FILE_RANDOM_ACCESS ? FILE_FLAG_RANDOM_ACCESS : 0) |
-		(flags & SUS_TEMP_FILE_SEQUENTIAL_SCAN ? FILE_FLAG_SEQUENTIAL_SCAN : 0) |
-		(flags & SUS_TEMP_FILE_DISABLE_BUFFERING ? FILE_FLAG_NO_BUFFERING : 0) |
-		(flags & SUS_TEMP_FILE_HIDDEN ? FILE_ATTRIBUTE_HIDDEN : 0) |
-		(flags & SUS_TEMP_FILE_WRITE_THROUGH ? FILE_FLAG_WRITE_THROUGH : 0)
+		FILE_ATTRIBUTE_TEMPORARY | flags
 	);
 	if (!hFile) {
 		SUS_PRINTDE("Couldn't create a temporary file");
@@ -187,6 +153,35 @@ SUS_FILE SUSAPI susCreateTempFileW(
 	if (lpTempFileName) lstrcpyW(lpTempFileName, _tempFileName);
 	SUS_PRINTDL("The temporary file has been created successfully!");
 	return hFile;
+}
+
+// --------------------------------------------------------
+
+// Delete a file
+BOOL SUSAPI susDeleteFileA(_In_ LPCSTR lpFileName)
+{
+	SUS_PRINTDL("Deleting a file");
+	SUS_ASSERT(lpFileName);
+	if (!DeleteFileA(lpFileName)) {
+		SUS_PRINTDL("Couldn't delete the file");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	SUS_PRINTDL("The file was deleted successfully");
+	return TRUE;
+}
+// Delete a file
+BOOL SUSAPI susDeleteFileW(_In_ LPCWSTR lpFileName)
+{
+	SUS_PRINTDL("Deleting a file");
+	SUS_ASSERT(lpFileName);
+	if (!DeleteFileW(lpFileName)) {
+		SUS_PRINTDL("Couldn't delete the file");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	SUS_PRINTDL("The file was deleted successfully");
+	return TRUE;
 }
 
 // --------------------------------------------------------
@@ -238,6 +233,8 @@ DWORD SUSAPI susWriteFile(
 	return bytesWritten;
 }
 
+// --------------------------------------------------------
+
 // Get the file size
 LONGLONG SUSAPI susGetFileSize(_In_ SUS_FILE hFile)
 {
@@ -288,7 +285,6 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName)
 		.dwFileSize = (ULONGLONG)(((ULONGLONG)attrData.nFileSizeHigh << 32) | attrData.nFileSizeLow)
 	};
 }
-
 
 // --------------------------------------------------------
 

@@ -6,10 +6,6 @@
 #include "fileio.h"
 #include "conio.h"
 
-//////////////////////////////////////////////////////////////
-//					The Input\Output module					//
-//////////////////////////////////////////////////////////////
-
 // --------------------------------------------------------
 
 // Write data to a file
@@ -60,6 +56,8 @@ SUS_INLINE INT SUSAPI sus_readW(_In_ SUS_FILE hIn, LPWSTR buff, INT len)
 #define sus_read	sus_readA
 #endif // !UNICODE
 
+// --------------------------------------------------------
+
 // Formatted output to the file
 INT SUSAPI sus_vfprintfA(
 	_In_ SUS_FILE hFile,
@@ -104,6 +102,8 @@ SUS_INLINE INT SUSAPIV sus_fprintfW(
 #define sus_vfprintf	sus_vfprintfA
 #define sus_fprintf		sus_fprintfA
 #endif // !UNICODE
+
+// --------------------------------------------------------
 
 // Formatted input to the file
 INT SUSAPI sus_vfscanfA(
@@ -237,5 +237,7 @@ SUS_INLINE INT SUSAPIV sus_scanfW(
 #define sus_vscanf		sus_vscanfA
 #define sus_scanf		sus_scanfA
 #endif // !UNICODE
+
+// --------------------------------------------------------
 
 #endif /* !_SUS_IO_STREAM_H_ */

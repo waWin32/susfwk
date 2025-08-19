@@ -3,13 +3,15 @@
 #ifndef _SUS_FILE_IO_
 #define _SUS_FILE_IO_
 
+// --------------------------------------------------------
+
 // Opening a file
 SUS_FILE SUSAPI susCreateFileA(
 	_In_ LPCSTR lpFileName,
-	_In_ DWORD DesiredAccess,
-	_In_ DWORD ShareMode,
-	_In_ DWORD CreationDisposition,
-	_In_ DWORD FlagsAndAttributes
+	_In_ DWORD dwDesiredAccess,
+	_In_ DWORD dwShareMode,
+	_In_ DWORD dwCreationDisposition,
+	_In_ DWORD dwFlagsAndAttributes
 );
 // Creating a file
 SUS_FILE SUSAPI susCreateFileW(
@@ -43,6 +45,8 @@ SUS_FILE SUSAPI susCreateFileW(
 #define sus_fcreate			sus_fcreateA
 #endif // !UNICODE
 
+// --------------------------------------------------------
+
 // Delete a file
 BOOL SUSAPI susDeleteFileA(
 	_In_ LPCSTR lpFileName
@@ -58,31 +62,33 @@ BOOL SUSAPI susDeleteFileW(
 #define susDeleteFile	susDeleteFileA
 #endif // !UNICODE
 
+// --------------------------------------------------------
+
 // Flag - delete the file after closing (No file deletion required)
-#define SUS_TEMP_FILE_DELETE_ON_CLOSE		1 << 0
+#define SUS_TEMP_FILE_DELETE_ON_CLOSE		FILE_FLAG_DELETE_ON_CLOSE
 // Flag - optimize for random access
-#define SUS_TEMP_FILE_RANDOM_ACCESS			1 << 1
+#define SUS_TEMP_FILE_RANDOM_ACCESS			FILE_FLAG_RANDOM_ACCESS
 // Flag - optimize for sequential read/write
-#define SUS_TEMP_FILE_SEQUENTIAL_SCAN		1 << 2
+#define SUS_TEMP_FILE_SEQUENTIAL_SCAN		FILE_FLAG_SEQUENTIAL_SCAN
 // The flag is to disable hashing
-#define SUS_TEMP_FILE_DISABLE_BUFFERING		1 << 3
+#define SUS_TEMP_FILE_DISABLE_BUFFERING		FILE_FLAG_NO_BUFFERING
 // Flag - synchronous recording to disk
-#define SUS_TEMP_FILE_WRITE_THROUGH			1 << 4
+#define SUS_TEMP_FILE_WRITE_THROUGH			FILE_FLAG_WRITE_THROUGH
 // The file attribute is hidden
-#define SUS_TEMP_FILE_HIDDEN				1 << 5
+#define SUS_TEMP_FILE_HIDDEN				FILE_ATTRIBUTE_HIDDEN
 
 // Create a temporary file
 SUS_FILE SUSAPI susCreateTempFileA(
 	_In_opt_ LPCSTR lpPrefixString,
 	_In_opt_ LPCSTR lpFileExtension,
-	_In_ SUS_FLAG16 flags,
+	_In_ sus_flag32 flags,
 	_Out_writes_opt_(MAX_PATH) LPSTR lpTempFileName
 );
 // Create a temporary file
 SUS_FILE SUSAPI susCreateTempFileW(
 	_In_opt_ LPCWSTR lpPrefixString,
 	_In_opt_ LPCWSTR lpFileExtension,
-	_In_ SUS_FLAG16 flags,
+	_In_ sus_flag32 flags,
 	_Out_writes_opt_(MAX_PATH) LPWSTR lpTempFileName
 );
 
@@ -100,7 +106,6 @@ DWORD SUSAPI susReadFile(
 	_Out_ LPBYTE lpBuffer,
 	_In_ DWORD dwReadBufferSize
 );
-
 // Reading data from a file
 #define sus_fread(file, lpBuffer, dwReadBufferSize)	susReadFile(file, lpBuffer, dwReadBufferSize)
 
@@ -110,9 +115,13 @@ DWORD SUSAPI susWriteFile(
 	_In_ CONST LPBYTE lpData,
 	_In_ DWORD dwNumberOfBytesWrite
 );
-
 // Writing to a file
 #define sus_fwrite(file, lpData, dwNumberOfBytesWrite)	susWriteFile(file, lpData, dwNumberOfBytesWrite <= 0 ? lstrlenA(lpData) : dwNumberOfBytesWrite)
+
+// Move the pointer to the specified blend
+#define sus_fseek(hFile, offset, origin)	SetFilePointerEx(hFile, (LARGE_INTEGER) { .QuadPart = offset }, NULL origin)
+
+// --------------------------------------------------------
 
 // Get the file size
 LONGLONG SUSAPI susGetFileSize(
@@ -144,9 +153,6 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName);
 #define susGetFileAttributes	susGetFileAttributesA
 #define sus_fstate				sus_fstateA
 #endif // !UNICODE
-
-// Move the pointer to the specified blend
-#define sus_fseek(hFile, offset, origin)	SetFilePointerEx(hFile, (LARGE_INTEGER) { .QuadPart = offset }, NULL origin)
 
 // --------------------------------------------------------
 

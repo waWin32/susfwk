@@ -3,11 +3,17 @@
 #ifndef _SUS_DEFINE_TYPES_
 #define _SUS_DEFINE_TYPES_
 
-#ifdef _M_X64 
+#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
+#define _SUS_X64_
+#else
+#define _SUS_X86_
+#endif // !x64
+
+#ifdef _SUS_X64_ 
 #define SUS_SYSTEM_BITDEPTH 64
 #else
 #define SUS_SYSTEM_BITDEPTH 32
-#endif // !_M_X64 
+#endif // !_SUS_X64_ 
 
 
 // =========================================================
@@ -30,32 +36,17 @@ typedef float sus_f32;
 typedef double sus_f64;
 typedef long double sus_f80;
 
-typedef void* sus_ptr;
+typedef VOID* sus_ptr;
 #ifdef _WIN64
 typedef sus_u64 sus_size_t;
 #else
 typedef sus_u32 sus_size_t;
 #endif // !_WIN64
 
-// Assembler data types :
-
-typedef sus_u8 sus_byte;
-typedef sus_u16 sus_word;
-typedef sus_u32 sus_dword;
-typedef sus_u64 sus_qword;
-typedef sus_f32 sus_float;
-typedef sus_f64 sus_double;
-typedef sus_f80 sus_exdouble;
-
-#ifndef TRUE
-#define TRUE 1
-#endif // !TRUE
-#ifndef FALSE
-#define FALSE 0
-#endif // !FALSE
-#ifndef NULL
-#define NULL ((sus_ptr)0)
-#endif // !NULL
+typedef int sus_int, *sus_pint;
+typedef unsigned int sus_uint, *sus_puint;
+typedef long sus_long, *sus_plong;
+typedef float sus_float, *sus_pfloat;
 
 // =========================================================
 // Wrapper data types
@@ -63,31 +54,30 @@ typedef sus_f80 sus_exdouble;
 
 // Types for flags :
 
-typedef sus_u8 SUS_FLAG8, SUS_BITMASK8;
-typedef sus_u16 SUS_FLAG16, SUS_BITMASK16;
-typedef sus_u32 SUS_FLAG32, SUS_BITMASK32;
-typedef sus_u64 SUS_FLAG64, SUS_BITMASK64;
-typedef SUS_BITMASK32 SUS_BITMASK;
+typedef sus_u8 sus_flag8;
+typedef sus_u16 sus_flag16;
+typedef sus_u32 sus_flag32;
+typedef sus_u64 sus_flag64;
 
 // custom data types :
 
-typedef sus_i32 SUS_STATUS;
-typedef sus_i32 SUS_RESULT;
+typedef sus_u8 sus_bool;
+typedef sus_i32 sus_status;
+typedef sus_i32 sus_result;
 
 // =========================================================
-
-#ifndef VOID
-#define VOID void
-#endif // !VOID
-#ifndef CONST
-#define CONST const
-#endif // !CONST
 
 #define MAXPTR sizeof(sus_ptr)
 #define MAXSIZE MAXPTR
 
+#ifdef _WIN32
 typedef HANDLE SUS_FILE;
+#else
+typedef int SUS_FILE;
+#endif // !_WIN32
 
 #define sus_fclose(hFile)	CloseHandle(hFile)
+
+// =========================================================
 
 #endif /* !_SUS_DEF_TYPES_ */

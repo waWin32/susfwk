@@ -17,9 +17,34 @@ INT SUSAPI sus_vformattingW(
 );
 
 #ifdef UNICODE
-#define _sus_formatting	_sus_formattingW
+#define sus_vformatting	sus_vformattingW
 #else
-#define _sus_formatting	_sus_formattingA
+#define sus_vformatting	sus_vformattingA
+#endif // !UNICODE
+
+// Get a dynamically formatted string
+SUS_INLINE LPSTR SUSAPI sus_dvformattingA(	_In_ _Printf_format_string_ LPCSTR format,
+											_In_ sus_va_list args) {
+	INT len = sus_vformattingA(NULL, format, args);
+	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingA(lpFormattedString, format, args);
+	return lpFormattedString;
+}
+// Get a dynamically formatted string
+SUS_INLINE LPWSTR SUSAPI sus_dvformattingW(	_In_ _Printf_format_string_ LPCWSTR format,
+											_In_ sus_va_list args) {
+	INT len = sus_vformattingW(NULL, format, args);
+	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingW(lpFormattedString, format, args);
+	return lpFormattedString;
+}
+
+#ifdef UNICODE
+#define sus_dvformatting	sus_dvformattingW
+#else
+#define sus_dvformatting	sus_dvformattingA
 #endif // !UNICODE
 
 // text formatting
@@ -39,6 +64,37 @@ INT SUSAPIV sus_formattingW(
 #define sus_formatting	sus_formattingW
 #else
 #define sus_formatting	sus_formattingA
+#endif // !UNICODE
+
+// Get a dynamically formatted string
+SUS_INLINE LPSTR SUSAPI sus_dformattingA(	_In_ _Printf_format_string_ LPCSTR format,
+											_In_ ...) {
+	sus_va_list args;
+	sus_va_start(args, format);
+	INT len = sus_vformattingA(NULL, format, args);
+	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingA(lpFormattedString, format, args);
+	sus_va_end(args);
+	return lpFormattedString;
+}
+// Get a dynamically formatted string
+SUS_INLINE LPWSTR SUSAPI sus_dformattingW(	_In_ _Printf_format_string_ LPCWSTR format,
+											_In_ ...) {
+	sus_va_list args;
+	sus_va_start(args, format);
+	INT len = sus_vformattingW(NULL, format, args);
+	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingW(lpFormattedString, format, args);
+	sus_va_end(args);
+	return lpFormattedString;
+}
+
+#ifdef UNICODE
+#define sus_dformatting	sus_dformattingW
+#else
+#define sus_dformatting	sus_dformattingA
 #endif // !UNICODE
 
 // Parsing text into variables

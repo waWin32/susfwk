@@ -78,7 +78,7 @@ typedef struct sus_graphics {
 	HDC			hdc;	// Double buffer
 	HBITMAP		hbmMem;	// current bitmap
 	HBITMAP		hbmOld;	// the old bitmap
-	SUS_FLAG8	flags;	// Graphics flags
+	sus_flag8	flags;	// Graphics flags
 #define SUS_GFLAG_DONT_USE_DOUBLE_BUFFERING 1 << 0
 } SUS_GRAPHICS_STRUCT, *SUS_PGRAPHICS_STRUCT, *SUS_LPGRAPHICS_STRUCT;
 
@@ -113,9 +113,9 @@ typedef SUS_WINDOW_STRUCT SUS_WINDOW, *SUS_PWINDOW, *SUS_LPWINDOW;
 typedef SUS_GRAPHICS_STRUCT SUS_GRAPHICS, *SUS_PGRAPHICS, *SUS_LPGRAPHICS;
 
 // Basic initialization of the window
-SUS_WINDOWA SUSAPI susWindowSetupA(_In_ LPCSTR lpTitle, _In_opt_ LPVOID lParam);
+SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lParam);
 // Basic initialization of the window
-SUS_WINDOWW SUSAPI susWindowSetupW(_In_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam);
+SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam);
 // Build a window
 BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window);
 // Build a window
@@ -153,15 +153,10 @@ SUS_INLINE VOID SUSAPI susSetWindowBounds(SUS_LPWINDOW window, RECT bounds) {
 	susSetWindowSize(window, (SIZE) { bounds.right, bounds.bottom });
 }
 // Set the window frame in the center of the screen
-SUS_INLINE VOID SUSAPI susSetWindowBoundsInCenter(SUS_LPWINDOW window, SIZE size) {
+SUS_INLINE VOID SUSAPI susSetWindowBoundsCenter(SUS_LPWINDOW window, SIZE size) {
 	susSetWindowSize(window, size);
 	susSetWindowPos(window, susGetCenterPos(size, susGetScreenSize()));
 }
-// Set menu for window
-SUS_INLINE VOID SUSAPI susSetWindowMenu(SUS_LPWINDOW window, HMENU hMenu) {
-	window->wStruct.hMenu = hMenu;
-}
-
 // Set styles for the window
 SUS_INLINE VOID SUSAPI susSetWindowStyle(SUS_LPWINDOW window, DWORD style) {
 	window->wStruct.style = style;
@@ -197,8 +192,17 @@ SUS_INLINE VOID SUSAPI susSetWindowTitleW(SUS_LPWINDOWW window, LPCWSTR title) {
 	window->wStruct.lpszName = title;
 }
 
+#ifdef UNICODE
+#define susSetWindowTitle	susSetWindowTitleW
+#else // ELSE UNICODE
+#define susSetWindowTitle	susSetWindowTitleA
+#endif // !UNICODE
+
 // ===============================================
 
+SUS_INLINE VOID susSetWindowMenu(SUS_LPWINDOW window, LPCSTR lpszMenuName) {
+	window->wcEx.lpszMenuName = lpszMenuName;
+}
 SUS_INLINE VOID susSetWindowHandler(SUS_LPWINDOW window, WNDPROC wndProc) {
 	window->wcEx.lpfnWndProc = wndProc;
 }
@@ -237,18 +241,18 @@ SUS_INLINE LONG SUSAPI susGetGraphicsHeight(PAINTSTRUCT* gr) {
 // ===============================================
 
 // Save data to a window
-SUS_INLINE SUS_OBJECT susSaveDataToWindow(HWND hWnd, LONG_PTR dwNewLong) {
+SUS_INLINE SUS_OBJECT susWriteDataToWindow(HWND hWnd, LONG_PTR dwNewLong) {
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, dwNewLong);
 	return (SUS_OBJECT)dwNewLong;
 }
 // Write the window's incoming data to its internal memory
 SUS_INLINE SUS_OBJECT susWriteIncomingWindowData(HWND hWnd, LPARAM lParam) {
 	CONST LPCREATESTRUCT pCreate = (CONST LPCREATESTRUCT)lParam;
-	susSaveDataToWindow(hWnd, (LONG_PTR)pCreate->lpCreateParams);
+	susWriteDataToWindow(hWnd, (LONG_PTR)pCreate->lpCreateParams);
 	return (SUS_OBJECT)pCreate->lpCreateParams;
 }
 // Get a window from a window procedure
-SUS_INLINE SUS_OBJECT susGetWindowUserData(HWND hWnd) {
+SUS_INLINE SUS_OBJECT susLoadWindowData(HWND hWnd) {
 	return (SUS_OBJECT)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 }
 

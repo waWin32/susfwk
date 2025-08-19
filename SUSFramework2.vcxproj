@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="coreframe.h" />
     <ClInclude Include="include\susfwk.h" />
+    <ClInclude Include="include\susfwk\bitset.h" />
     <ClInclude Include="include\susfwk\conio.h" />
     <ClInclude Include="include\susfwk\core.h" />
     <ClInclude Include="include\susfwk\crypto.h" />
@@ -28,7 +29,7 @@
     <ClInclude Include="include\susfwk\deftypes.h" />
     <ClInclude Include="include\susfwk\fileio.h" />
     <ClInclude Include="include\susfwk\format.h" />
-    <ClInclude Include="include\susfwk\hashmap.h" />
+    <ClInclude Include="include\susfwk\hashtable.h" />
     <ClInclude Include="include\susfwk\iostream.h" />
     <ClInclude Include="include\susfwk\linkedlist.h" />
     <ClInclude Include="include\susfwk\math.h" />
@@ -49,7 +50,7 @@
     <ClCompile Include="crypto.c" />
     <ClCompile Include="fileio.c" />
     <ClCompile Include="format.c" />
-    <ClCompile Include="hashmap.c" />
+    <ClCompile Include="hashtable.c" />
     <ClCompile Include="iostream.c" />
     <ClCompile Include="linkedlist.c" />
     <ClCompile Include="mathcore.c" />
@@ -146,7 +147,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;SUS_DEBUGONLYERRORS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;SUS_DEBUGONLYERRORS;_CONSOLE;%(PreprocessorDefinitions);SUS_DEBUGONLYERRORS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
@@ -230,7 +231,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;SUS_DEBUGONLYERRORS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SUS_DEBUGONLYERRORS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>

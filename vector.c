@@ -62,9 +62,6 @@ VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
 		*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
 	}
 }
-
-// -------------------------------------
-
 // Guaranteed buffer size
 VOID SUSAPI susBufferResize(
 	_Inout_ SUS_LPBUFFER pBuff,
@@ -80,6 +77,9 @@ VOID SUSAPI susBufferResize(
 	susBufferReserve(pBuff, size - buff->size);
 	buff->size = size;
 }
+
+// -------------------------------------
+
 // Insert data into the buffer with a shift
 SUS_LPMEMORY SUSAPI susBufferInsert(
 	_Inout_ SUS_LPBUFFER pBuff,
@@ -127,6 +127,7 @@ SUS_LPMEMORY SUSAPI susBufferAppend(
 	buff = *pBuff;
 	LPBYTE mem = buff->data + buff->size;
 	if (data) sus_memcpy(mem, data, size);
+	else sus_zeromem(mem, size);
 	buff->size += size;
 	return mem;
 }
@@ -203,7 +204,7 @@ SUS_OBJECT SUSAPI susVectorInsert(
 // -------------------------------------
 
 // Delete the last element of the array
-SUS_INLINE VOID SUSAPI susVectorPopBack(
+VOID SUSAPI susVectorPopBack(
 	_Inout_ SUS_LPVECTOR pVector)
 {
 	SUS_PRINTDL("Deleting the last element from a dynamic array");
@@ -213,9 +214,10 @@ SUS_INLINE VOID SUSAPI susVectorPopBack(
 	SIZE_T offset = buff->offset;
 	susBufferTruncate(&buff, array->isize);
 	susVectorSyncBuffer(buff, offset, pVector);
+
 }
 // Remove an element from a dynamic array
-SUS_INLINE VOID SUSAPI susVectorErase(
+VOID SUSAPI susVectorErase(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_ DWORD i)
 {

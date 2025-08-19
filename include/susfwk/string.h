@@ -3,16 +3,6 @@
 #ifndef _SUS_STRING_
 #define _SUS_STRING_
 
-typedef struct sus_string_buffer {
-	LPSTR string;
-	DWORD len;
-} SUS_STRING_BUFFER;
-
-typedef struct sus_wstring_buffer {
-	LPSTR string;
-	DWORD len;
-} SUS_WSTRING_BUFFER;
-
 // -----------------------------------------------------------------------------
 
 // Checking whether a character is a space
@@ -46,18 +36,36 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #endif // !UNICODE
 
 // Get the length of the string
-SUS_INLINE INT SUSAPI sus_strlenA(LPCSTR lpString) {
-	return lstrlenA(lpString);
-}
+#define sus_strlenA(lpString) lstrlenA((LPCSTR)lpString)
 // Get the length of the string
-SUS_INLINE INT SUSAPI sus_strlenW(LPCWSTR lpString) {
-	return lstrlenW(lpString);
-}
+#define sus_strlenW(lpString) lstrlenW((LPCWSTR)lpString)
 
 #ifdef UNICODE
 #define sus_strlen	sus_strlenW
 #else
 #define sus_strlen	sus_strlenA
+#endif // !UNICODE
+
+// Get the length of the string
+#define sus_strcpyA(lpString1, lpString2) (LPSTR)lstrcpyA((LPSTR)lpString1, (LPCSTR)lpString2)
+// Get the length of the string
+#define sus_strcpyW(lpString1, lpString2) (LPWSTR)lstrcpyW((LPWSTR)lpString1, (LPCWSTR)lpString2)
+
+#ifdef UNICODE
+#define sus_strcpy	sus_strcpyW
+#else
+#define sus_strcpy	sus_strcpyA
+#endif // !UNICODE
+
+// Get the length of the string
+#define sus_strcpynA(lpString1, lpString2, iMaxLength) (LPSTR)lstrcpynA((LPSTR)lpString1, (LPCSTR)lpString2, iMaxLength)
+// Get the length of the string
+#define sus_strcpynW(lpString1, lpString2, iMaxLength) (LPWSTR)lstrcpynW((LPWSTR)lpString1, (LPCWSTR)lpString2, iMaxLength)
+
+#ifdef UNICODE
+#define sus_strcpyn	sus_strcpynW
+#else
+#define sus_strcpyn	sus_strcpynA
 #endif // !UNICODE
 
 // Flipping the string

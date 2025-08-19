@@ -263,7 +263,7 @@ SUS_THREAD SUSAPI susCreateThread(_In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt
 {
 	SUS_PRINTDL("Creating a new thread");
 	SUS_ASSERT(lpThrFunc);
-	HANDLE hThr = CreateThread(NULL, 0, lpThrFunc, lpParam, 0, NULL);
+	SUS_FILE hThr = CreateThread(NULL, 0, lpThrFunc, lpParam, 0, NULL);
 	if (!hThr) {
 		SUS_PRINTDE("Failed to create a new thread");
 		SUS_PRINTDC(GetLastError());
@@ -277,7 +277,7 @@ SUS_THREAD SUSAPI susCreateRemoteThread(_In_ SUS_PROCESS hProcess, _In_ LPTHREAD
 {
 	SUS_PRINTDL("Create a new thread in another process");
 	SUS_ASSERT(lpThrFunc);
-	HANDLE hThr = CreateRemoteThread(hProcess, NULL, 0, lpThrFunc, lpParam, 0, NULL);
+	SUS_FILE hThr = CreateRemoteThread(hProcess, NULL, 0, lpThrFunc, lpParam, 0, NULL);
 	if (!hThr) {
 		SUS_PRINTDE("Failed to create a new thread");
 		SUS_PRINTDC(GetLastError());

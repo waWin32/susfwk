@@ -105,9 +105,6 @@ SUS_LPMEMORY SUSAPI sus_free(
 // Releasing memory with pointer cleanup
 #define sus_sfree(block) do { sus_free(block); block = NULL; } while (0)
 
-// Get a bitmask by shift
-#define sus_bitmask(shift) (1ULL << (shift))
-
 //////////////////////////////////////////////////////////////////
 //					Dynamic virtual memory						//
 //////////////////////////////////////////////////////////////////

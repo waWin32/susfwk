@@ -23,11 +23,13 @@ Abstract:
 * SUSMINIMAL
 * SUSNOTCONSOLEAPI
 * SUSNOTSTRING
+* SUSNOTECS
 * SUSNOTCRYPTO
 * SUSNOTTHRPROCESSAPI
 */
 
 #include "susfwk/core.h"
+#include "susfwk/bitset.h"
 #include "susfwk/string.h"
 #include "susfwk/debug.h"
 #include "susfwk/iostream.h"
@@ -35,7 +37,7 @@ Abstract:
 #include "susfwk/memory.h"
 #include "susfwk/vector.h"
 #include "susfwk/linkedlist.h"
-#include "susfwk/hashmap.h"
+#include "susfwk/hashtable.h"
 
 #ifndef SUSMINIMAL
     #include "susfwk/regapi.h"
@@ -52,6 +54,9 @@ Abstract:
     #ifndef SUSNOTMATH
     #include "susfwk/math.h"
     #endif // !SUSNOTMATH
+    #ifndef SUSNOTECS
+    #include "susfwk/ecs.h"
+    #endif // !SUSNOTECS
 #endif // !SUSMINIMAL
 
 #endif /* !_SUS_FRAMEWORK_ */

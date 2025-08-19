@@ -114,11 +114,14 @@
     <ClInclude Include="include\susfwk\linkedlist.h">
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\hashmap.h">
+    <ClInclude Include="include\susfwk\hashtable.h">
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\memory.h">
       <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\bitset.h">
+      <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -164,7 +167,7 @@
     <ClCompile Include="linkedlist.c">
       <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
-    <ClCompile Include="hashmap.c">
+    <ClCompile Include="hashtable.c">
       <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
     <ClCompile Include="memory.c">

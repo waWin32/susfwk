@@ -3,6 +3,8 @@
 #ifndef _SUS_CON_IO_
 #define _SUS_CON_IO_
 
+// -------------------------------------
+
 // Set the console color
 SUS_INLINE BOOL SUSAPI susSetConsoleColor(WORD bgColor, WORD textColor) {
 	return SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), textColor | (bgColor << 4));
@@ -19,6 +21,8 @@ SUS_INLINE BOOL SUSAPI susSetConsoleCursorPos(WORD x, WORD y) {
 SUS_INLINE BOOL SUSAPI susAllocConsole() {
 	return AllocConsole();
 }
+
+// -------------------------------------
 
 // Write text to the console
 INT SUSAPI susWriteConsoleA(
@@ -39,6 +43,8 @@ INT SUSAPI susWriteConsoleW(
 #define susWriteConsole susWriteConsoleA
 #endif // !UNICODE
 
+// -------------------------------------
+
 // Read the text from the console
 INT SUSAPI susReadConsoleA(
 	_In_ SUS_FILE hConsoleInput,
@@ -57,5 +63,7 @@ INT SUSAPI susReadConsoleW(
 #else
 #define susReadConsole susReadConsoleA
 #endif // !UNICODE
+
+// -------------------------------------
 
 #endif /* !_SUS_CON_IO_ */

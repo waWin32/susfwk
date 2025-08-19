@@ -83,12 +83,6 @@ and when used, access it via super.
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-#define SUS_OFFSET_OF(type, member)	((SIZE_T)&(((type*)0)->member))
-
-#define SUS_TO_FARRAY(toArray) ((float*)(&(toArray)))	// Convert data to a float type array
-#define SUS_TO_IARRAY(toArray) ((int*)(&(toArray)))		// Convert data to a int type array
-#define SUS_TO_DARRAY(toArray) ((double*)(&(toArray)))	// Convert data to a double type array
-
 // Example of using SUS_TO_XARRAY:
 /******************************************************************
 	struct my_vector {
@@ -112,6 +106,9 @@ and when used, access it via super.
 
 #include "deftypes.h"
 
+#define SUS_OFFSET_OF(type, member)	((sus_size_t)&(((type*)0)->member))
+#define SUS_INIT_FLTUSED int _fltused = 1
+
 // =======================================================================================//
 //						API for an indefinite number of arguments						  //
 // =======================================================================================//
@@ -131,9 +128,9 @@ and when used, access it via super.
 	#define sus_va_end(ap)         __builtin_va_end(ap)
 #endif // !_WIN32
 
-#include "debug.h"
 #include "string.h"
 #include "format.h"
+#include "debug.h"
 #include "memory.h"
 #include "iostream.h"
 

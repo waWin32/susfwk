@@ -4,6 +4,8 @@
 #include "include/susfwk/core.h"
 #include "include/susfwk/conio.h"
 
+// -------------------------------------
+
 // Write text to the console
 INT SUSAPI susWriteConsoleA(
 	_In_ SUS_FILE hConsoleOutput,
@@ -34,6 +36,9 @@ INT SUSAPI susWriteConsoleW(
 	}
 	return numberOfCharsWritten;
 }
+
+// -------------------------------------
+
 // Read the text from the console
 INT SUSAPI susReadConsoleA(
 	_In_ SUS_FILE hConsoleInput,
@@ -70,3 +75,5 @@ INT SUSAPI susReadConsoleW(
 	SUS_PRINTDL("The data from the console has been read!");
 	return numberOfCharsRead;
 }
+
+// -------------------------------------
