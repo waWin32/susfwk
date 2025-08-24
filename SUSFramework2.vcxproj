@@ -27,6 +27,7 @@
     <ClInclude Include="include\susfwk\crypto.h" />
     <ClInclude Include="include\susfwk\debug.h" />
     <ClInclude Include="include\susfwk\deftypes.h" />
+    <ClInclude Include="include\susfwk\ecs.h" />
     <ClInclude Include="include\susfwk\fileio.h" />
     <ClInclude Include="include\susfwk\format.h" />
     <ClInclude Include="include\susfwk\hashtable.h" />
@@ -48,6 +49,7 @@
   <ItemGroup>
     <ClCompile Include="conio.c" />
     <ClCompile Include="crypto.c" />
+    <ClCompile Include="ecs.c" />
     <ClCompile Include="fileio.c" />
     <ClCompile Include="format.c" />
     <ClCompile Include="hashtable.c" />

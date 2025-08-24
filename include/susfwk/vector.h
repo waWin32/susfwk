@@ -22,15 +22,11 @@ extern "C" {
 #define SUS_SIZE_OF_LARGE 256
 #define SUS_BASIC_BUFFER_SIZE 64
 
-// Buffer header
-typedef struct sus_buffer_header {
-	SIZE_T		offset;		// Buffer header size
-	SIZE_T		capacity;	// Maximum buffer capacity
-	SIZE_T		size;		// The size of the memory used
-} SUS_BUFFER_HEADER;
 // Dynamic Byte buffer
 typedef struct sus_buffer{
-	SUS_BUFFER_HEADER;	// Buffer header
+	SIZE_T	offset;		// Buffer header size
+	SIZE_T	capacity;	// Maximum buffer capacity
+	SIZE_T	size;		// The size of the memory used
 	BYTE	data[];		// Buffer Data
 } SUS_BUFFER_STRUCT, *SUS_BUFFER, **SUS_LPBUFFER;
 
@@ -66,15 +62,6 @@ SUS_INLINE VOID SUSAPI susBufferZero(_Inout_ SUS_BUFFER buff) {
 // -------------------------------------
 
 // Guaranteed buffer size
-VOID SUSAPI susBufferReserve(
-	_Inout_ SUS_LPBUFFER pBuff,
-	_In_ SIZE_T required
-);
-// Shrink the buffer to the minimum size
-VOID SUSAPI susBufferCompress(
-	_Inout_ SUS_LPBUFFER pBuff
-);
-// Guaranteed buffer size
 VOID SUSAPI susBufferResize(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T size
@@ -87,6 +74,13 @@ SUS_LPMEMORY SUSAPI susBufferInsert(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T pos,
 	_In_reads_bytes_opt_(size) CONST LPBYTE data,
+	_In_ SIZE_T size
+);
+// Swap bytes
+VOID SUSAPI susBufferSwap(
+	_Inout_ SUS_LPBUFFER pBuff,
+	_In_ SIZE_T fromPos,
+	_In_ SIZE_T toPos,
 	_In_ SIZE_T size
 );
 // Delete data from the buffer
@@ -138,7 +132,7 @@ typedef struct sus_vector {
 // Get the array buffer
 #define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
 // Go through all the elements of the array
-#define susVecForeach(i, vec) for (UINT i = 0, _count = susVectorCount(vec); i < _count; i++)
+#define susVecForeach(start, i, count, vec) for (UINT i = (start), count = susVectorCount(vec); i < count; i++)
 
 // -------------------------------------
 
@@ -187,6 +181,12 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR array) {
 
 // -------------------------------------
 
+// Swap bytes
+VOID SUSAPI susVectorSwap(
+	_Inout_ SUS_LPVECTOR pVector,
+	_In_ DWORD from,
+	_In_ DWORD to
+);
 // Add an element to the end of the array
 SUS_OBJECT SUSAPI susVectorPushBack(
 	_Inout_ SUS_LPVECTOR pVector,
@@ -199,6 +199,7 @@ SUS_OBJECT SUSAPI susVectorInsert(
 	_In_ SUS_OBJECT object
 );
 
+
 // -------------------------------------
 
 // Delete the last element of the array
@@ -210,6 +211,12 @@ VOID SUSAPI susVectorErase(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_ DWORD i
 );
+// Swap places and Delete
+SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR array, _In_ DWORD i) {
+	susVectorSwap(array, i, susVectorCount(*array) - 1);
+	susVectorPopBack(array);
+	return susVectorGet(*array, i);
+}
 // Delete all elements of the array
 SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 {

@@ -31,7 +31,7 @@ SUS_HASHMAP SUSAPI susMapCopy(_In_ SUS_HASHMAP source, _In_ DWORD initCount)
 	SUS_ASSERT(source);
 	SUS_HASHMAP map = susNewMapEx(source->keySize, source->valueSize, source->getHash, initCount);
 	if (!map) return NULL;
-	susMapForeach(source, entry) {
+	susMapForeach(source, _count, entry) {
 		susMapAdd(&map, susMapKey(source, entry), susMapValue(source, entry));
 	}
 	return map;
@@ -61,12 +61,12 @@ VOID SUSAPI susMapCompress(_Inout_ SUS_LPHASHMAP lpMap)
 // -------------------------------------------------------------------
 
 // Get an item by key
-LPBYTE SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) LPBYTE key)
+SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key)
 {
 	SUS_PRINTDL("Getting a node from a hash table");
 	SUS_ASSERT(map && key);
 	SUS_VECTOR bucket = map->buckets[susMapGetIndex(map, key)];
-	susVecForeach(i, bucket) {
+	susVecForeach(0, i, _count, bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(bucket, i);
 		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
 			return susMapValue(map, entry);
@@ -78,7 +78,7 @@ LPBYTE SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) LPB
 // -------------------------------------------------------------------
 
 // Add a new key-value pair to the hash table
-LPBYTE SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) LPBYTE key, _In_opt_bytecount_((*lpMap)->valueSize) LPBYTE value)
+SUS_OBJECT SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key, _In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value)
 {
 	SUS_PRINTDL("Adding a new key-value pair to a hash table");
 	SUS_ASSERT(lpMap && *lpMap && key && !susMapGet(*lpMap, key));
@@ -94,13 +94,13 @@ LPBYTE SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->ke
 	return susMapValue(map, entry);
 }
 // Delete a key-value pair from a hash table
-VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) LPBYTE key)
+VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key)
 {
 	SUS_PRINTDL("Deleting an item from a table");
 	SUS_ASSERT(lpMap && *lpMap && key);
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
-	susVecForeach(i, *bucket) {
+	susVecForeach(0, i, _count , *bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(*bucket, i);
 		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
 			susVectorErase(bucket, i);

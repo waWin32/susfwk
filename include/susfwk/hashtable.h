@@ -14,16 +14,18 @@ extern "C" {
 
 // ================================================================================================
 
+// Hash type
+typedef DWORD SUS_HASH_T;
 // Callback function for data hashing
-typedef DWORD(SUSAPI* SUS_GET_HASH)(SUS_DATAVIEW key);
+typedef SUS_HASH_T(SUSAPI* SUS_GET_HASH)(SUS_DATAVIEW key);
 
-#define	SUS_FNV_OFFSET 2166136261u
-#define	SUS_FNV_PRIME 16777619u
+#define	SUS_FNV_OFFSET (SUS_HASH_T)2166136261u
+#define	SUS_FNV_PRIME (SUS_HASH_T)16777619u
 
 // Get a hash by key
-SUS_INLINE DWORD SUSAPI susDefGetHash(SUS_DATAVIEW key) {
+SUS_INLINE SUS_HASH_T SUSAPI susDefGetHash(SUS_DATAVIEW key) {
 	SUS_ASSERT(key.data);
-	DWORD hash = SUS_FNV_OFFSET;
+	SUS_HASH_T hash = SUS_FNV_OFFSET;
 	DWORD i = 0;
 	for (; i + 4 <= key.size; i += 4) {
 		hash ^= key.data[i]; hash *= SUS_FNV_PRIME;
@@ -38,9 +40,9 @@ SUS_INLINE DWORD SUSAPI susDefGetHash(SUS_DATAVIEW key) {
 	return hash;
 }
 // Get a hash by key
-SUS_INLINE DWORD SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
+SUS_INLINE SUS_HASH_T SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
 	SUS_ASSERT(key.data);
-	return *(DWORD*)key.data;
+	return *(SUS_HASH_T*)key.data;
 }
 
 #define SUS_HASHTABLE_INIT_COUNT 7
@@ -108,32 +110,32 @@ SUS_INLINE DWORD SUSAPI susMapGetIndex(SUS_HASHMAP map, LPBYTE key) {
 	return map->getHash((SUS_DATAVIEW) { .data = key, map->keySize }) % map->capacity;
 }
 // Get an item by key
-LPBYTE SUSAPI susMapGet(
+SUS_OBJECT SUSAPI susMapGet(
 	_In_ SUS_HASHMAP map,
-	_In_bytecount_(map->valueSize) LPBYTE key
+	_In_bytecount_(map->valueSize) SUS_OBJECT key
 );
 // Get the entry from the hash table node
-#define susMapEntry(bucket, i) (LPBYTE)susVectorGet(bucket, i)
+#define susMapEntry(bucket, i) (SUS_OBJECT)susVectorGet(bucket, i)
 // Get the key from the hash table node
 #define susMapKey(map, entry) (entry)
 // Get the value from the hash table node
-#define susMapValue(map, entry) ((entry) + ((SUS_HASHMAP)(map))->keySize)
+#define susMapValue(map, entry) ((SUS_OBJECT)((entry) + ((SUS_HASHMAP)(map))->keySize))
 // Iterate over all elements of the hash table
-#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
+#define susMapForeach(map, tag, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(0, __j, tag, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
 // -------------------------------------------------------------------
 
 // Add a new key-value pair to the hash table
-LPBYTE SUSAPI susMapAdd(
+SUS_OBJECT SUSAPI susMapAdd(
 	_Inout_ SUS_LPHASHMAP lpMap,
-	_In_bytecount_((*lpMap)->keySize) LPBYTE key,
-	_In_opt_bytecount_((*lpMap)->valueSize) LPBYTE value
+	_In_bytecount_((*lpMap)->keySize) SUS_OBJECT key,
+	_In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value
 );
 
 // Delete a key-value pair from a hash table
 VOID SUSAPI susMapRemove(
 	_Inout_ SUS_LPHASHMAP lpMap,
-	_In_bytecount_((*lpMap)->keySize) LPBYTE key
+	_In_bytecount_((*lpMap)->keySize) SUS_OBJECT key
 );
 // Clearing all hash table elements
 VOID SUSAPI susMapClear(
@@ -148,8 +150,8 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 	for (DWORD i = 0; i < map->capacity; i++) {
 		SUS_VECTOR bucket = map->buckets[i];
 		SUS_PRINTDL("bucket [%d]:", i);
-		susVecForeach(j, bucket) {
-			LPBYTE entry = susMapEntry(bucket, j);
+		susVecForeach(0, j, _count, bucket) {
+			LPBYTE entry = (LPBYTE)susMapEntry(bucket, j);
 			SUS_PRINTDL("\tkey: '%s' -> '%s'", susMapKey(map, entry), susMapValue(map, entry));
 		}
 	}

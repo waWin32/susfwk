@@ -107,7 +107,7 @@ and when used, access it via super.
 #include "deftypes.h"
 
 #define SUS_OFFSET_OF(type, member)	((sus_size_t)&(((type*)0)->member))
-#define SUS_INIT_FLTUSED int _fltused = 1
+#define SUS_INITFLT int _fltused = 1
 
 // =======================================================================================//
 //						API for an indefinite number of arguments						  //

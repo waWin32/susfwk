@@ -15,7 +15,7 @@
 SUS_BUFFER SUSAPI susNewBuffer(_In_ SIZE_T capacity, _In_ SIZE_T offset)
 {
 	capacity = max(capacity, SUS_BASIC_BUFFER_SIZE);
-	SUS_BUFFER buffer = (SUS_BUFFER)sus_malloc(sizeof(SUS_BUFFER_HEADER) + capacity + offset);
+	SUS_BUFFER buffer = (SUS_BUFFER)sus_malloc(sizeof(SUS_BUFFER_STRUCT) + capacity + offset);
 	if (!buffer) return NULL;
 	buffer = (SUS_BUFFER)((LPBYTE)buffer + offset);
 	buffer->offset = offset;
@@ -37,7 +37,7 @@ SUS_BUFFER SUSAPI susBufferCopy(_In_ SUS_BUFFER src, _In_ SIZE_T offset)
 // -------------------------------------
 
 // Guaranteed buffer size
-VOID SUSAPI susBufferReserve(
+SUS_INLINE SUS_STATIC VOID SUSAPI susBufferReserve(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T required)
 {
@@ -52,7 +52,7 @@ VOID SUSAPI susBufferReserve(
 	*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
 }
 // Shrink the buffer to the minimum size
-VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
+SUS_INLINE SUS_STATIC VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
 {
 	SUS_ASSERT(pBuff && *pBuff);
 	SUS_BUFFER buff = *pBuff;
@@ -98,6 +98,25 @@ SUS_LPMEMORY SUSAPI susBufferInsert(
 	if (data) sus_memcpy(mem, data, size);
 	buff->size += size;
 	return mem;
+}
+// Swap bytes
+VOID SUSAPI susBufferSwap(
+	_Inout_ SUS_LPBUFFER pBuff,
+	_In_ SIZE_T fromPos,
+	_In_ SIZE_T toPos,
+	_In_ SIZE_T size)
+{
+	SUS_PRINTDL("Swapping the byte buffer");
+	SUS_ASSERT(pBuff && *pBuff && size);
+	SUS_BUFFER buff = *pBuff;
+	SUS_ASSERT(!(fromPos + size > (*pBuff)->size) && !(toPos + size > (*pBuff)->size));
+	SUS_ASSERT(!(fromPos == toPos || (toPos >= fromPos && toPos < fromPos + size) || (fromPos >= toPos && fromPos < toPos + size)));
+	LPBYTE tmp = (LPBYTE)sus_malloc(size);
+	if (!tmp) return;
+	sus_memcpy(tmp, buff->data + fromPos, size);
+	sus_memcpy(buff->data + fromPos, buff->data + toPos, size);
+	sus_memcpy(buff->data + toPos, tmp, size);
+	sus_free(tmp);
 }
 // Delete data from the buffer
 VOID SUSAPI susBufferErase(
@@ -171,6 +190,20 @@ SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset) {
 
 // -------------------------------------
 
+// Swap bytes
+VOID SUSAPI susVectorSwap(
+	_Inout_ SUS_LPVECTOR pVector,
+	_In_ DWORD from,
+	_In_ DWORD to)
+{
+	SUS_PRINTDL("Replacing a vector array");
+	SUS_ASSERT(pVector && *pVector);
+	SUS_VECTOR array = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(array);
+	SIZE_T offset = buff->offset;
+	susBufferSwap(&buff, from * array->isize, to * array->isize, array->isize);
+	susVectorSyncBuffer(buff, offset, pVector);
+}
 // Add an element to the end of the array
 SUS_OBJECT SUSAPI susVectorPushBack(
 	_Inout_ SUS_LPVECTOR pVector,

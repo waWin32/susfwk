@@ -172,4 +172,10 @@ DWORD SUSAPI susDirectorySearchW(
 	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc
 );
 
+#ifdef UNICODE
+#define susDirectorySearch	susDirectorySearchW
+#else
+#define susDirectorySearch	susDirectorySearchA
+#endif // !UNICODE
+
 #endif /* !_SUS_FILE_IO_ */

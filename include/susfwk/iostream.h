@@ -109,13 +109,13 @@ SUS_INLINE INT SUSAPIV sus_fprintfW(
 INT SUSAPI sus_vfscanfA(
 	_In_ SUS_FILE hIn,
 	_In_ LPCSTR format,
-	_In_ sus_va_list args
+	_Out_ sus_va_list args
 );
 // Formatted output to the file
 SUS_INLINE INT SUSAPIV sus_fscanfA(
 	_In_ SUS_FILE hIn,
 	_In_ LPCSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -127,13 +127,13 @@ SUS_INLINE INT SUSAPIV sus_fscanfA(
 INT SUSAPI sus_vfscanfW(
 	_In_ SUS_FILE hIn,
 	_In_ LPCWSTR format,
-	_In_ sus_va_list args
+	_Out_ sus_va_list args
 );
 // Formatted output to the file
 SUS_INLINE INT SUSAPIV sus_fscanfW(
 	_In_ SUS_FILE hIn,
 	_In_ LPCWSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -155,13 +155,13 @@ SUS_INLINE INT SUSAPIV sus_fscanfW(
 // Formatted output to the console
 SUS_INLINE INT SUSAPI sus_vprintfA(
 	_In_ LPCSTR format,
-	_In_ sus_va_list args) {
+	_Out_ sus_va_list args) {
 	return sus_vfprintfA(GetStdHandle(STD_OUTPUT_HANDLE), format, args);
 }
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_printfA(
 	_In_ LPCSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -172,13 +172,13 @@ SUS_INLINE INT SUSAPIV sus_printfA(
 // Formatted output to the console
 SUS_INLINE INT SUSAPI sus_vprintfW(
 	_In_ LPCWSTR format,
-	_In_ sus_va_list args) {
+	_Out_ sus_va_list args) {
 	return sus_vfprintfW(GetStdHandle(STD_OUTPUT_HANDLE), format, args);
 }
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_printfW(
 	_In_ LPCWSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -198,13 +198,13 @@ SUS_INLINE INT SUSAPIV sus_printfW(
 // Formatted input to the console
 SUS_INLINE INT SUSAPI sus_vscanfA(
 	_In_ LPCSTR format,
-	_In_ sus_va_list args) {
+	_Out_ sus_va_list args) {
 	return sus_vfscanfA(GetStdHandle(STD_INPUT_HANDLE), format, args);
 }
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_scanfA(
 	_In_ LPCSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -215,13 +215,13 @@ SUS_INLINE INT SUSAPIV sus_scanfA(
 // Formatted input to the console
 SUS_INLINE INT SUSAPI sus_vscanfW(
 	_In_ LPCWSTR format,
-	_In_ sus_va_list args) {
+	_Out_ sus_va_list args) {
 	return sus_vfscanfW(GetStdHandle(STD_INPUT_HANDLE), format, args);
 }
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_scanfW(
 	_In_ LPCWSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);

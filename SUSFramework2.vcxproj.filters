@@ -123,6 +123,9 @@
     <ClInclude Include="include\susfwk\bitset.h">
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\ecs.h">
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="conio.c">
@@ -172,6 +175,9 @@
     </ClCompile>
     <ClCompile Include="memory.c">
       <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="ecs.c">
+      <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
