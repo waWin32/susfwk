@@ -16,3 +16,5 @@
 #include <TlHelp32.h>
 #include <CommCtrl.h>
 #include <wincrypt.h>
+
+// #define SUS_DEBUGONLYERRORS

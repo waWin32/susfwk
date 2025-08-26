@@ -46,7 +46,7 @@ INT SUSAPI sus_vfprintfW(
 INT SUSAPI sus_vfscanfA(
 	_In_ SUS_FILE hIn,
 	_In_ LPCSTR format,
-	_In_ sus_va_list args)
+	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(hIn && format && args);
 	CHAR buff[1024];
@@ -57,7 +57,7 @@ INT SUSAPI sus_vfscanfA(
 INT SUSAPI sus_vfscanfW(
 	_In_ SUS_FILE hIn,
 	_In_ LPCWSTR format,
-	_In_ sus_va_list args)
+	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(hIn && format && args);
 	WCHAR buff[1024];

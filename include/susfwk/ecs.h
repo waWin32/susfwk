@@ -3,17 +3,49 @@
 #ifndef _SUS_ECS_
 #define _SUS_ECS_
 
+// --------------------------------------------------------------------------------------
+
+#pragma warning(push)
+#pragma warning(disable: 28159)
+
+// The structure of the time delta
+typedef struct sus_delta_time {
+	DWORD lastTime;
+} SUS_DELTA_TIME, * SUS_LPDELTA_TIME;
+// Initialize the time delta
+SUS_INLINE SUS_DELTA_TIME SUSAPI susInitDeltaTime() {
+	return (SUS_DELTA_TIME) { .lastTime = GetTickCount() };
+}
+// Update the delta from time to time
+SUS_INLINE FLOAT SUSAPI susGetDeltaTime(SUS_LPDELTA_TIME timer) {
+	DWORD time = GetTickCount() - timer->lastTime;
+	if (!time) return 0.0f;
+	timer->lastTime += time;
+	return time / 1000.0f;
+}
+
+#pragma warning(pop)
+
+// --------------------------------------------------------------------------------------
+
 typedef SUS_BITMASK256 SUS_COMPONENTMASK, *SUS_LPCOMPONENTMASK;
-typedef sus_u32 SUS_COMPONENT_TYPE;
+typedef sus_u32 SUS_COMPONENT_TYPE, *SUS_LPCOMPONENT_TYPE;
 typedef sus_u32 SUS_ENTITY;
 typedef sus_u32 SUS_SYSTEM_ID;
 // The system's callback function
-typedef VOID(SUSAPI* SUS_SYSTEM_CALLBACK)(SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
-
+typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
+// The system's callback function
+typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
+// Maximum number of possible registered components (SUS_BITMASK256 limit - 256 bits)
 #define SUS_MAX_COMPONENTS	256
 
 // --------------------------------------------------------------------------------------
 
+// Type of system
+typedef enum sus_system_type {
+	SUS_SYSTEM_TYPE_ENTITY,
+	SUS_SYSTEM_TYPE_FREE
+} SUS_SYSTEM_TYPE;
 // The archetype of entities
 typedef struct sus_archetype {
 	SUS_COMPONENTMASK mask;		// The mask of the archetype components
@@ -27,10 +59,18 @@ typedef struct sus_entity_location {
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
 // ECS system structure
 typedef struct sus_system {
-	SUS_SYSTEM_CALLBACK callback;	// System function
-	SUS_COMPONENTMASK	mask;		// System Mask
-	BOOL				enabled;	// System status - TRUE/FALSE
-	SUS_OBJECT			userData;	// User data
+
+#pragma warning(push)
+#pragma warning(disable: 4201)
+	union sus_system_callback_union {
+		SUS_SYSTEM_ENTITY_CALLBACK	callbackEntity;	// System function
+		SUS_SYSTEM_FREE_CALLBACK	callbackFree;	// System function
+	};
+#pragma warning(pop)
+	SUS_COMPONENTMASK			mask;		// System Mask
+	BOOL						enabled;	// System status - TRUE/FALSE
+	SUS_SYSTEM_TYPE				type;		// Type of system
+	SUS_OBJECT					userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
 // Registered components in the world
 typedef struct sus_registered_component {
@@ -46,8 +86,6 @@ typedef struct sus_world {
 	SUS_VECTOR freeEntities;			// SUS_ENTITY
 	SUS_ENTITY next;					// The following entity id
 } SUS_WORLD_STRUCT, *SUS_WORLD;
-// Create a component
-#define SUS_DECLARE_COMPONENT(componentName, data) SUS_COMPONENT_TYPE componentName##ComponentType; struct componentName##Component { data } componentName##Constructor
 
 // --------------------------------------------------------------------------------------
 
@@ -63,18 +101,29 @@ VOID SUSAPI susWorldUpdate(
 	_In_ FLOAT deltaTime
 );
 // Register a new component
-SUS_COMPONENT_TYPE SUSAPI susWorldRegisterComponentEx(
+VOID SUSAPI susWorldRegisterComponent(
 	_Inout_ SUS_WORLD world,
 	_In_ sus_size_t componentSize,
-	_In_opt_ SUS_OBJECT constructor
+	_In_opt_ SUS_OBJECT constructor,
+	_Out_ SUS_LPCOMPONENT_TYPE type
 );
-#define susWorldRegisterComponent(world, componentName, constructor) componentName##ComponentType = susWorldRegisterComponentEx(world, sizeof(componentName##Component), constructor)
-// Register the system
-SUS_SYSTEM_ID SUSAPI susWorldRegisterSystem(
+// Register an entity processing system
+SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(
 	_Inout_ SUS_WORLD world,
-	_In_ SUS_SYSTEM_CALLBACK callback,
+	_In_ SUS_SYSTEM_ENTITY_CALLBACK callback,
 	_In_ SUS_COMPONENTMASK mask,
 	_In_opt_ SUS_OBJECT userData
+);
+// Register a free system
+SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(
+	_Inout_ SUS_WORLD world,
+	_In_ SUS_SYSTEM_FREE_CALLBACK callback,
+	_In_opt_ SUS_OBJECT userData
+);
+// Get all entities with a mask
+SUS_VECTOR SUSAPI susWorldGetEntitiesWith(
+	_Inout_ SUS_WORLD world,
+	_In_ SUS_COMPONENTMASK mask
 );
 
 // --------------------------------------------------------------------------------------
@@ -122,9 +171,16 @@ SUS_INLINE BOOL SUSAPI susEntityHasComponent(_Inout_ SUS_WORLD world, _In_ SUS_E
 }
 // Replace the component
 SUS_INLINE SUS_OBJECT SUSAPI susEntityGetComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type) {
-	SUS_ASSERT(world && world->entities && susEntityHasComponent(world, entity, type));
+	SUS_ASSERT(world && world->entities);
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
-	return susVectorGet(*(SUS_LPVECTOR)susMapGet(location.archetype->componentPools, &type), location.index);
+	SUS_LPVECTOR pool = (SUS_LPVECTOR)susMapGet(location.archetype->componentPools, &type);
+	return pool ? susVectorGet(*pool, location.index) : NULL;
+}
+// Get an entity mask
+SUS_INLINE SUS_COMPONENTMASK SUSAPI susEntityGetMask(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity) {
+	SUS_ASSERT(world && susEntityExists(world, entity));
+	SUS_LPENTITY_LOCATION location = (SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
+	return location->archetype->mask;
 }
 
 // --------------------------------------------------------------------------------------
@@ -155,5 +211,7 @@ SUS_INLINE VOID SUSAPI susSystemSetUserdata(_Inout_ SUS_WORLD world, _In_ SUS_SY
 	SUS_ASSERT(world && susSystemExists(world, index));
 	susWorldGetSystem(world, index)->userData = userData;
 }
+
+// -------------------------------------------------------------------
 
 #endif /* !_SUS_ECS_ */

@@ -337,7 +337,7 @@ SUS_INLINE VOID SUSAPI susWidgetSetSize(SUS_LPWIDGET widget, SIZE size) {
 #ifndef SUSNOTCOMMCTRL
 // Install an event handler for the widget
 SUS_INLINE VOID SUSAPI susWidgetSetHandler(SUS_LPWIDGET widget, SUBCLASSPROC widgetProc) {
-	WindowSetSubclass(widget->hWnd, widgetProc, (UINT_PTR)widget->wStruct.hMenu, (DWORD_PTR)0);
+	SetWindowSubclass(widget->hWnd, widgetProc, (UINT_PTR)widget->wStruct.hMenu, (DWORD_PTR)0);
 }
 // Delete a widget Handler
 SUS_INLINE VOID SUSAPI susRemoveWidgetHandler(HWND hWnd, SUBCLASSPROC widgetProc, UINT_PTR uIdSubclass) {

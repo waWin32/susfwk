@@ -58,6 +58,7 @@ typedef sus_u8 sus_flag8;
 typedef sus_u16 sus_flag16;
 typedef sus_u32 sus_flag32;
 typedef sus_u64 sus_flag64;
+typedef sus_flag32 sus_flag;
 
 // custom data types :
 

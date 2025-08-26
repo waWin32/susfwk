@@ -220,7 +220,6 @@ INT SUSAPI susWindowMainLoopA(_In_ SUS_LPWINDOW_STRUCTA window)
 		TranslateMessage(&msg);
 		DispatchMessageA(&msg);
 	}
-	susCleanupGraphics(&window->graphics);
 	if ((LPVOID)window->wStruct.lpszClass != (LPVOID)SUS_DEFWNDNAMEW) {
 		UnregisterClassA(window->wcEx.lpszClassName, window->wcEx.hInstance);
 		sus_free((LPVOID)window->wStruct.lpszClass);
@@ -238,7 +237,6 @@ INT SUSAPI susWindowMainLoopW(_In_ SUS_LPWINDOW_STRUCTW window)
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);
 	}
-	susCleanupGraphics(&window->graphics);
 	if ((LPVOID)window->wStruct.lpszClass != (LPVOID)SUS_DEFWNDNAMEW) {
 		UnregisterClassW(window->wcEx.lpszClassName, window->wcEx.hInstance);
 		sus_free((LPVOID)window->wStruct.lpszClass);

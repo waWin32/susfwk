@@ -26,6 +26,7 @@ Abstract:
 * SUSNOTECS
 * SUSNOTCRYPTO
 * SUSNOTTHRPROCESSAPI
+* SUSNOTNETWORK
 */
 
 #include "susfwk/core.h"
@@ -57,6 +58,9 @@ Abstract:
     #ifndef SUSNOTECS
     #include "susfwk/ecs.h"
     #endif // !SUSNOTECS
+    #ifndef SUSNOTNETWORK
+    #include "susfwk/network.h"
+    #endif // !SUSNOTNETWORK
 #endif // !SUSMINIMAL
 
 #endif /* !_SUS_FRAMEWORK_ */

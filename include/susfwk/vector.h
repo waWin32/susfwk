@@ -33,10 +33,11 @@ typedef struct sus_buffer{
 // -------------------------------------
 
 // Create a new buffer
-SUS_BUFFER SUSAPI susNewBuffer(
+SUS_BUFFER SUSAPI susNewBufferEx(
 	_In_ SIZE_T capacity,
 	_In_ SIZE_T offset
 );
+#define susNewBuffer(capacity) susNewBufferEx(capacity, 0)
 // Create copy a buffer
 SUS_BUFFER SUSAPI susBufferCopy(
 	_In_ SUS_BUFFER src,
@@ -104,6 +105,16 @@ VOID SUSAPI susBufferTruncate(
 VOID SUSAPI susBufferClear(
 	_Inout_ SUS_BUFFER buff
 );
+
+// -------------------------------------
+
+#ifdef _DEBUG
+SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
+	SUS_PRINTDL("Buffer output: %s", buff->data);
+}
+#else
+#define susBufferPrint(buff)
+#endif // !_DEBUG
 
 // -------------------------------------
 
@@ -192,6 +203,12 @@ SUS_OBJECT SUSAPI susVectorPushBack(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_opt_ SUS_OBJECT object
 );
+// Add an element to the end of the array
+SUS_OBJECT SUSAPI susVectorAppend(
+	_Inout_ SUS_LPVECTOR pVector,
+	_In_opt_ SUS_OBJECT data,
+	_In_ SIZE_T size
+);
 // Insert an element into an array
 SUS_OBJECT SUSAPI susVectorInsert(
 	_Inout_ SUS_LPVECTOR pVector,
@@ -224,6 +241,20 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 	SUS_ASSERT(array);
 	susBufferClear(susVectorBuffer(array));
 }
+
+// -------------------------------------
+
+#ifdef _DEBUG
+SUS_INLINE VOID SUSAPI susVectorPrint(_In_ SUS_VECTOR vec) {
+	SUS_PRINTDL("Vector output {");
+	susVecForeach(0, i, count, vec) {
+		SUS_PRINTDL("'%s'", susVectorGet(vec, i));
+	}
+	SUS_PRINTDL("}");
+}
+#else
+#define susVectorPrint(vec)
+#endif // !_DEBUG
 
 // -------------------------------------
 

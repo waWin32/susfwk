@@ -136,6 +136,4 @@ SUS_INLINE SUS_BITMASK512 SUSAPI susBitmask512(UINT count, ...) {
 	return mask;
 }
 
-
-
 #endif /* !_SUS_BITSET_ */

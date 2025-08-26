@@ -300,7 +300,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleA_c(_In_ BOOLEAN skipAssignment, _In
 INT sus_vparsingA(
 	_In_ LPCSTR str,
 	_In_ _Printf_format_string_ LPCSTR format,
-	_In_ sus_va_list args)
+	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(str && format);
 	INT count = 0;
@@ -368,7 +368,7 @@ INT sus_vparsingA(
 INT sus_parsingA(
 	_In_ LPCSTR str,
 	_In_ _Printf_format_string_ LPCSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);
@@ -437,7 +437,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleW_c(_In_ BOOLEAN skipAssignment, _In
 INT sus_vparsingW(
 	_In_ LPCWSTR str,
 	_In_ _Printf_format_string_ LPCWSTR format,
-	_In_ sus_va_list args)
+	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(str && format);
 	INT count = 0;
@@ -505,7 +505,7 @@ INT sus_vparsingW(
 INT sus_parsingW(
 	_In_ LPCWSTR str,
 	_In_ _Printf_format_string_ LPCWSTR format,
-	_In_ ...)
+	_Out_ ...)
 {
 	sus_va_list args;
 	sus_va_start(args, format);

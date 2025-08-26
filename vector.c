@@ -12,7 +12,7 @@
 // -------------------------------------
 
 // Create a new buffer
-SUS_BUFFER SUSAPI susNewBuffer(_In_ SIZE_T capacity, _In_ SIZE_T offset)
+SUS_BUFFER SUSAPI susNewBufferEx(_In_ SIZE_T capacity, _In_ SIZE_T offset)
 {
 	capacity = max(capacity, SUS_BASIC_BUFFER_SIZE);
 	SUS_BUFFER buffer = (SUS_BUFFER)sus_malloc(sizeof(SUS_BUFFER_STRUCT) + capacity + offset);
@@ -27,7 +27,7 @@ SUS_BUFFER SUSAPI susNewBuffer(_In_ SIZE_T capacity, _In_ SIZE_T offset)
 SUS_BUFFER SUSAPI susBufferCopy(_In_ SUS_BUFFER src, _In_ SIZE_T offset)
 {
 	SUS_ASSERT(src);
-	SUS_BUFFER buff = susNewBuffer(src->size, offset);
+	SUS_BUFFER buff = susNewBufferEx(src->size, offset);
 	if (!buff) return NULL;
 	sus_memcpy(buff->data, src->data, src->size);
 	buff->size = src->size;
@@ -181,7 +181,7 @@ VOID SUSAPI susBufferClear(_Inout_ SUS_BUFFER buff)
 SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset) {
 	SUS_PRINTDL("Creating a new array");
 	offset = SUS_OFFSET_OF(SUS_VECTOR_STRUCT, offset) + offset;
-	SUS_BUFFER buff = susNewBuffer(isize * 4, offset);
+	SUS_BUFFER buff = susNewBufferEx(isize * 4, offset);
 	if (!buff) return NULL;
 	SUS_VECTOR array = (SUS_VECTOR)((LPBYTE)buff - offset);
 	array->isize = isize;
@@ -215,6 +215,21 @@ SUS_OBJECT SUSAPI susVectorPushBack(
 	SUS_BUFFER buff = susVectorBuffer(array);
 	SIZE_T offset = buff->offset;
 	SUS_OBJECT obj = (SUS_OBJECT)susBufferAppend(&buff, object, array->isize);
+	susVectorSyncBuffer(buff, offset, pVector);
+	return obj;
+}
+// Add an element to the end of the array
+SUS_OBJECT SUSAPI susVectorAppend(
+	_Inout_ SUS_LPVECTOR pVector,
+	_In_opt_ SUS_OBJECT data,
+	_In_ SIZE_T size)
+{
+	SUS_PRINTDL("Adding an element to the end of an array");
+	SUS_ASSERT(pVector && *pVector);
+	SUS_VECTOR array = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(array);
+	SIZE_T offset = buff->offset;
+	SUS_OBJECT obj = (SUS_OBJECT)susBufferAppend(&buff, data, size);
 	susVectorSyncBuffer(buff, offset, pVector);
 	return obj;
 }
