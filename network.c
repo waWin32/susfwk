@@ -30,23 +30,24 @@ VOID SUSAPI susNetworkCleanup()
 }
 
 // Build a socket
-SUS_SOCKET SUSAPI susBuildSocket(_In_ SUS_SOCKET_HANDLER handler, _In_opt_ LPVOID userData)
+BOOL SUSAPI susBuildSocket(_In_ SUS_LPSOCKET sock)
 {
 	SUS_PRINTDL("Building a socket");
-	SUS_ASSERT(handler);
-	SUS_SOCKET sock = susInitSocket(handler);
-	sock.handler(&sock, SUS_SOCK_NCCREATE, (LPARAM)userData, IPPROTO_TCP);
-	sock.sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sock.sock == INVALID_SOCKET) {
-		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+	SUS_ASSERT(sock && sock->handler);
+	sock->handler(sock, SUS_SOCK_NCCREATE, (LPARAM)sock->userData, IPPROTO_TCP);
+	sock->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sock->sock == INVALID_SOCKET) {
+		sock->handler(sock, SUS_SOCK_ERROR, WSAGetLastError(), SUS_SOCK_CREATE);
 		SUS_PRINTDE("Couldn't build socket");
 		SUS_PRINTDC(WSAGetLastError());
-		return sock;
+		return FALSE;
 	}
-	susSetSocketNonBlocking(sock.sock, TRUE);
-	sock.handler(&sock, SUS_SOCK_CREATE, (LPARAM)userData, IPPROTO_TCP);
+	WSAEventSelect(sock->sock, sock->event, FD_READ | FD_WRITE | FD_CLOSE | FD_CONNECT);
+	susSetSocketNonBlocking(sock->sock, TRUE);
+	susSetSocketTimeout(sock->sock, 5000);
+	sock->handler(sock, SUS_SOCK_CREATE, (LPARAM)sock->userData, IPPROTO_TCP);
 	SUS_PRINTDL("The socket has been successfully installed!");
-	return sock;
+	return TRUE;
 }
 // Closing a network socket
 BOOL SUSAPI susSocketClose(_In_ SUS_LPSOCKET sock)
@@ -55,29 +56,29 @@ BOOL SUSAPI susSocketClose(_In_ SUS_LPSOCKET sock)
 	SUS_ASSERT(sock->sock);
 	sock->handler(&sock, SUS_SOCK_CLOSE, 0, 0);
 	if (closesocket(sock->sock) == SOCKET_ERROR) {
-		sock->handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+		sock->handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), SUS_SOCK_END);
 		SUS_PRINTDE("Couldn't close network socket");
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
 	}
 	sock->sock = INVALID_SOCKET;
-	sock->handler(&sock, SUS_SOCK_END, (LPARAM)sock, 0);
+	sock->handler(&sock, SUS_SOCK_END, 0, 0);
 	SUS_PRINTDL("The network socket has been successfully closed");
 	return TRUE;
 }
 // Binding an address to a socket
-BOOL SUSAPI susSocketBind(_In_ SUS_SOCKET sock, _In_ USHORT port)
+BOOL SUSAPI susSocketBind(_In_ SUS_LPSOCKET sock, _In_ USHORT port)
 {
 	SUS_PRINTDL("Binding an address to a socket");
-	SUS_ASSERT(sock.sock);
-	susSetSocketLinger(sock.sock, TRUE, 10);
+	SUS_ASSERT(sock->sock);
+	susSetSocketLinger(sock->sock, TRUE, 10);
 	SOCKADDR_IN sockAddr = {
 		.sin_addr.s_addr = INADDR_ANY,
 		.sin_family = AF_INET,
 		.sin_port = htons(port)
 	};
-	if (bind(sock.sock, (SOCKADDR*)&sockAddr, (int)sizeof(sockAddr)) == SOCKET_ERROR) {
-		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+	if (bind(sock->sock, (SOCKADDR*)&sockAddr, (int)sizeof(sockAddr)) == SOCKET_ERROR) {
+		sock->handler(sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
 		SUS_PRINTDE("Failed to bind the socket to an address");
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
@@ -86,38 +87,40 @@ BOOL SUSAPI susSocketBind(_In_ SUS_SOCKET sock, _In_ USHORT port)
 	return TRUE;
 }
 // Install Socket listening
-BOOL SUSAPI susSocketListen(_In_ SUS_SOCKET sock)
+BOOL SUSAPI susSocketListen(_In_ SUS_LPSOCKET sock)
 {
 	SUS_PRINTDL("Installing Socket listening");
-	SUS_ASSERT(sock.sock);
-	if (listen(sock.sock, SOMAXCONN) == SOCKET_ERROR) {
-		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+	SUS_ASSERT(sock->sock);
+	if (listen(sock->sock, SOMAXCONN) == SOCKET_ERROR) {
+		sock->handler(sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
 		SUS_PRINTDE("Socket listening could not be set");
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
 	}
+	sock->flags &= SUS_SOCKFLAG_LISTENING;
 	SUS_PRINTDL("The server listens for incoming connections");
 	return TRUE;
 }
 // Accept connection
-SUS_SOCKET SUSAPI susSocketAccept(_In_ SUS_SOCKET server, _In_ SUS_SOCKET_HANDLER handler, _Out_opt_ PSOCKADDR_IN addr, _In_opt_ LPVOID userData)
+SUS_SOCKET SUSAPI susSocketAccept(_In_ SUS_SOCKET server, _In_ SUS_SOCKET_HANDLER handler, _Out_opt_ PSOCKADDR_IN addr)
 {
 	SUS_PRINTDL("Accepting the connection");
 	SUS_ASSERT(server.sock);
-	SUS_SOCKET sock = susInitSocket(handler);
+	SUS_SOCKET sock = susInitSocket(handler, server.userData);
 	INT size = sizeof(*addr);
-	sock.handler(&sock, SUS_SOCK_NCCREATE, (LPARAM)userData, (WPARAM)server.sock);
+	sock.handler(&sock, SUS_SOCK_NCCREATE, (LPARAM)server.userData, (WPARAM)server.sock);
 	sock.sock = accept(server.sock, (SOCKADDR*)addr, &size);
 	if (sock.sock == INVALID_SOCKET) {
-		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), SUS_SOCK_CREATE);
 		SUS_PRINTDE("Couldn't accept connection");
 		SUS_PRINTDC(WSAGetLastError());
 		return sock;
 	}
+	WSAEventSelect(sock.sock, sock.event, FD_READ | FD_WRITE | FD_CLOSE | FD_CONNECT);
 	susSetSocketNonBlocking(sock.sock, TRUE);
-	susSetSocketTimeout(sock.sock, 5);
-	sock.handler(&sock, SUS_SOCK_CREATE, (LPARAM)userData, (WPARAM)server.sock);
-	sock.handler(&server, SUS_SOCK_ACCEPT, (LPARAM)addr, (WPARAM)sock.sock);
+	susSetSocketTimeout(sock.sock, 5000);
+	sock.handler(&sock, SUS_SOCK_CREATE, (LPARAM)server.userData, (WPARAM)server.sock);
+	sock.handler(&server, SUS_SOCK_START, (LPARAM)&sock, (WPARAM)addr);
 	SUS_PRINTDL("Connection accepted");
 	return sock;
 }
@@ -132,13 +135,13 @@ SOCKADDR_IN SUSAPI susConnectToServer(_In_ SUS_SOCKET sock, _In_ LPCSTR addr, _I
 		.sin_port = htons(port)
 	};
 	if (connect(sock.sock, (SOCKADDR*)&sockAddr, (int)sizeof(sockAddr)) == SOCKET_ERROR) {
-		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), 0);
+		sock.handler(&sock, SUS_SOCK_ERROR, WSAGetLastError(), SUS_SOCK_START);
 		SUS_PRINTDE("Couldn't connect to the server");
 		SUS_PRINTDC(WSAGetLastError());
 		return (SOCKADDR_IN) { 0 };
 	}
-	SUS_PRINTDL("Successful connection to the server");
 	sock.handler(&sock, SUS_SOCK_START, (LPARAM)addr, port);
+	SUS_PRINTDL("Successful connection to the server");
 	return sockAddr;
 }
 
@@ -147,23 +150,22 @@ SUS_SOCKET SUSAPI susCreateServer(SUS_SOCKET_HANDLER handler, _In_opt_ LPVOID us
 {
 	SUS_PRINTDL("Creating a server");
 	SUS_ASSERT(handler);
-	SUS_SOCKET sock = susBuildSocket(handler, userData);
-	if (!sock.sock) {
+	SUS_SOCKET sock = susInitSocket(handler, userData);
+	if (!susBuildSocket(&sock)) {
 		SUS_PRINTDE("Failed to create a server");
 		return (SUS_SOCKET) { .sock = INVALID_SOCKET, .handler = NULL };
 	}
 	susSetSocketReuseAddr(sock.sock, TRUE);
-	susSetSocketTimeout(sock.sock, 5);
 	susSetSocketNoDelay(sock.sock, TRUE);
 	SUS_PRINTDL("The server has been successfully created!");
 	return sock;
 }
 // Start the server
-BOOL SUSAPI susServerListen(_Inout_ SUS_SOCKET sock, _In_ USHORT port)
+BOOL SUSAPI susServerListen(_Inout_ SUS_LPSOCKET sock, _In_ USHORT port)
 {
 	SUS_PRINTDL("Starting the server");
-	if (sock.sock == INVALID_SOCKET) return FALSE;
-	if (!susSetSocketLinger(sock.sock, TRUE, 5)) {
+	if (sock->sock == INVALID_SOCKET) return FALSE;
+	if (!susSetSocketLinger(sock->sock, TRUE, 5)) {
 		SUS_PRINTDE("Couldn't start the server");
 		return FALSE;
 	}
@@ -176,10 +178,14 @@ BOOL SUSAPI susServerListen(_Inout_ SUS_SOCKET sock, _In_ USHORT port)
 		return FALSE;
 	}
 	SUS_PRINTDL("The server has been successfully launched on port %d!", port);
-	sock.handler(&sock, SUS_SOCK_START, 0, port);
 	return TRUE;
 }
-
+//// Socket thread
+//SUS_STATIC DWORD WINAPI susSocketThread(SUS_LPSOCKET sock) {
+//	while (susSocketPollEvents(sock));
+//	susSocketCleanup(*sock);
+//	sus_free(sock);
+//}
 // Polling socket events
 BOOL SUSAPI susSocketPollEvents(_Inout_ SUS_LPSOCKET sock)
 {
@@ -187,7 +193,7 @@ BOOL SUSAPI susSocketPollEvents(_Inout_ SUS_LPSOCKET sock)
 	if (sock->sock == INVALID_SOCKET) return FALSE;
 	WSAPOLLFD pollFd = {
 		.fd = sock->sock,
-		.events = POLLRDNORM | POLLERR | POLLHUP,
+		.events = POLLRDNORM,
 		.revents = 0
 	};
 	if (sock->writeBuffer->size) pollFd.events |= POLLWRNORM;
@@ -197,7 +203,7 @@ BOOL SUSAPI susSocketPollEvents(_Inout_ SUS_LPSOCKET sock)
 		return FALSE;
 	case 0:
 		sock->handler(&sock, SUS_SOCK_TIMEOUT, 0, 0);
-		return FALSE;
+		return TRUE;
 	}
 	if (pollFd.revents & (POLLERR | POLLHUP)) {
 		sock->handler(&sock, SUS_SOCK_ERROR, (LPARAM)susGetSocketError(sock->sock), 0);
@@ -205,8 +211,11 @@ BOOL SUSAPI susSocketPollEvents(_Inout_ SUS_LPSOCKET sock)
 	}
 	if (pollFd.revents & POLLRDNORM) {
 		if (!susSocketRead(sock)) return FALSE;
+		if (sock->flags & SUS_SOCKFLAG_LISTENING) {
+
+		}
 	}
-	if ((pollFd.revents & POLLWRBAND) && sock->writeBuffer->size) {
+	if ((pollFd.revents & POLLWRBAND)) {
 		susSocketFlush(sock);
 	}
 	return TRUE;

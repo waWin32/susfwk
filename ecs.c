@@ -11,12 +11,12 @@
 // --------------------------------------------------------------------------------------
 
 // Find the archetype
-SUS_STATIC SUS_INLINE SUS_ARCHETYPE SUSAPI susFindArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
+static inline SUS_ARCHETYPE SUSAPI susFindArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
 	SUS_ASSERT(world && world->archetypes);
 	return (SUS_ARCHETYPE)susMapGet(world->archetypes, &mask);
 }
 // Create a new archetype
-SUS_STATIC SUS_INLINE SUS_ARCHETYPE SUSAPI susNewArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
+static inline SUS_ARCHETYPE SUSAPI susNewArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
 	SUS_ASSERT(world && world->archetypes && !susFindArchetype(world, mask));
 	SUS_ARCHETYPE_STRUCT archetype = {
 		.componentPools = susNewMap(SUS_COMPONENT_TYPE, SUS_VECTOR),
@@ -33,65 +33,59 @@ SUS_STATIC SUS_INLINE SUS_ARCHETYPE SUSAPI susNewArchetype(_Inout_ SUS_WORLD wor
 	return (SUS_ARCHETYPE)susMapAdd(&world->archetypes, &mask, &archetype);
 }
 // Create an archetype
-SUS_STATIC SUS_INLINE SUS_ARCHETYPE SUSAPI susCreateArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
+static inline SUS_ARCHETYPE SUSAPI susCreateArchetype(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask) {
 	SUS_ASSERT(world && world->archetypes);
 	SUS_ARCHETYPE archetype = susFindArchetype(world, mask);
 	return archetype ? archetype : susNewArchetype(world, mask);
 }
-// Destroy the archetype
-SUS_STATIC SUS_INLINE VOID SUSAPI susArchetypeDestroy(_Inout_ SUS_WORLD world, _In_ SUS_ARCHETYPE archetype) {
-	SUS_ASSERT(world && world->archetypes && archetype);
-	if (susVectorCount(archetype->entities)) {
-		susMapForeach(archetype->componentPools, _count, entry) {
-			susVectorDestroy(*(SUS_LPVECTOR)susMapValue(archetype->componentPools, entry));
-		}
-	}
-	susVectorDestroy(archetype->entities);
-	susMapDestroy(archetype->componentPools);
-	susMapRemove(&world->archetypes, &archetype->mask);
-}
 // Destroy the archetype in the absence of connections
-SUS_STATIC SUS_INLINE VOID SUSAPI susArchetypeCull(_Inout_ SUS_WORLD world, _In_ SUS_ARCHETYPE archetype) {
+static inline VOID SUSAPI susArchetypeCull(_Inout_ SUS_WORLD world, _In_ SUS_ARCHETYPE archetype) {
 	SUS_ASSERT(world && world->archetypes && archetype);
-	if (!susVectorCount(archetype->entities)) susArchetypeDestroy(world, archetype);
+	if (!susVectorCount(archetype->entities)) {
+		susVectorDestroy(archetype->entities);
+		susMapDestroy(archetype->componentPools);
+		susMapRemove(&world->archetypes, &archetype->mask);
+	}
 }
 // Remove an entity component from an archetype
-SUS_STATIC SUS_INLINE VOID SUSAPI susArchetypeRemoveEntity(_In_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION location) {
+static inline VOID SUSAPI susArchetypeRemoveEntity(_In_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION location) {
 	SUS_ASSERT(world && location.archetype && world->registeredComponents && location.archetype->componentPools);
 	((SUS_LPENTITY_LOCATION)susMapGet(world->entities, (SUS_ENTITY*)susVectorSwapErase(&location.archetype->entities, location.index)))->index = location.index;
 	susVecForeach(0, i, _count, world->registeredComponents) {
 		if (susBitmask256Test(location.archetype->mask, i)) {
 			SUS_LPVECTOR pool = susMapGet(location.archetype->componentPools, &i);
+			if (((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor) ((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor(susVectorGet(*pool, location.index));
 			susVectorSwapErase(pool, location.index);
 		}
 	}
 	susArchetypeCull(world, location.archetype);
 }
 // Add an entity to an archetype
-SUS_STATIC SUS_INLINE sus_u32 SUSAPI susArchetypeAddEntityEx(_In_ SUS_WORLD world, _Inout_ SUS_ARCHETYPE archetype, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY_LOCATION constructor) {
+static inline sus_u32 SUSAPI susArchetypeAddEntityEx(_In_ SUS_WORLD world, _Inout_ SUS_ARCHETYPE archetype, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY_LOCATION constructor) {
 	SUS_ASSERT(world && archetype);
 	susVectorPushBack(&archetype->entities, &entity);
 	SUS_COMPONENTMASK mask = archetype->mask;
 	SUS_COMPONENTMASK intersection = constructor.archetype ? susBitmask256op(mask, &, constructor.archetype->mask) : (SUS_COMPONENTMASK) { 0 };
+	SUS_OBJECT lpComponent;
 	susVecForeach(0, i, _count, world->registeredComponents) {
-		if (susBitmask256Test(intersection, i)) {
-			SUS_ASSERT(constructor.archetype);
-			susVectorPushBack((SUS_LPVECTOR)susMapGet(archetype->componentPools, &i), susVectorGet(*(SUS_LPVECTOR)susMapGet(constructor.archetype->componentPools, &i), constructor.index));
+		if (constructor.archetype && susBitmask256Test(intersection, i)) {
+			lpComponent = susVectorPushBack((SUS_LPVECTOR)susMapGet(archetype->componentPools, &i), susVectorGet(*(SUS_LPVECTOR)susMapGet(constructor.archetype->componentPools, &i), constructor.index));
 		}
 		else if (susBitmask256Test(mask, i)) {
-			susVectorPushBack((SUS_LPVECTOR)susMapGet(archetype->componentPools, &i), (((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->constructor));
+			lpComponent = susVectorPushBack((SUS_LPVECTOR)susMapGet(archetype->componentPools, &i), NULL);
+			if (((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->constructor) ((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->constructor(lpComponent);
 		}
 	}
 	return susVectorCount(archetype->entities) - 1;
 }
 // Add an entity to an archetype
-SUS_STATIC SUS_INLINE SUS_ENTITY_LOCATION SUSAPI susArchetypeAddEntity(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENTMASK mask) {
+static inline SUS_ENTITY_LOCATION SUSAPI susArchetypeAddEntity(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENTMASK mask) {
 	SUS_ENTITY_LOCATION location = { .archetype = susCreateArchetype(world, mask) };
 	location.index = susArchetypeAddEntityEx(world, location.archetype, entity, (SUS_ENTITY_LOCATION) { 0 });
 	return location;
 }
 // Move an entity from one archetype to another
-SUS_STATIC SUS_INLINE VOID SUSAPI susArchetypeMoveEntityEx(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION oldLoc, SUS_ARCHETYPE newArchetype) {
+static inline VOID SUSAPI susArchetypeMoveEntityEx(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION oldLoc, SUS_ARCHETYPE newArchetype) {
 	SUS_ASSERT(world && world->archetypes && susVectorGet(oldLoc.archetype->entities, oldLoc.index));
 	SUS_ENTITY* entity = (SUS_ENTITY*)susVectorGet(oldLoc.archetype->entities, oldLoc.index);
 	susArchetypeAddEntityEx(world, newArchetype, *entity, oldLoc);
@@ -99,7 +93,7 @@ SUS_STATIC SUS_INLINE VOID SUSAPI susArchetypeMoveEntityEx(_Inout_ SUS_WORLD wor
 	susArchetypeRemoveEntity(world, oldLoc);
 }
 // Move an entity from one archetype to another
-SUS_STATIC SUS_INLINE SUS_ARCHETYPE SUSAPI susArchetypeMoveEntity(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION oldLoc, SUS_COMPONENTMASK newMask) {
+static inline SUS_ARCHETYPE SUSAPI susArchetypeMoveEntity(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION oldLoc, SUS_COMPONENTMASK newMask) {
 	SUS_ASSERT(world && world->archetypes && susVectorGet(oldLoc.archetype->entities, oldLoc.index));
 	SUS_ARCHETYPE newArchetype = susCreateArchetype(world, newMask);
 	susArchetypeMoveEntityEx(world, oldLoc, newArchetype);
@@ -119,6 +113,7 @@ SUS_WORLD SUSAPI susNewWorld()
 	world->freeEntities = susNewVector(SUS_ENTITY);
 	world->registeredComponents = susNewVector(SUS_REGISTERED_COMPONENT);
 	world->systems = susNewVector(SUS_SYSTEM);
+	world->next = 0;
 	return world;
 }
 // Destroy the world
@@ -127,8 +122,8 @@ VOID SUSAPI susWorldDestroy(_Inout_ SUS_WORLD world)
 	SUS_PRINTDL("The destruction of the world");
 	SUS_ASSERT(world);
 	susVectorDestroy(world->systems);
-	susMapForeach(world->archetypes, _count, entry) {
-		susArchetypeDestroy(world, susMapValue(world->archetypes, entry));
+	susMapForeach(world->entities, _count, entry) {
+		susEntityDestroy(world, *(SUS_ENTITY*)susMapKey(world->entities, entry));
 	}
 	susMapDestroy(world->archetypes);
 	susMapDestroy(world->entities);
@@ -144,11 +139,11 @@ VOID SUSAPI susWorldUpdate(_In_ SUS_WORLD world, _In_ FLOAT deltaTime)
 	}
 }
 // Register a new component
-VOID SUSAPI susWorldRegisterComponent(_Inout_ SUS_WORLD world, _In_ sus_size_t componentSize, _In_opt_ SUS_OBJECT constructor, _Out_ SUS_LPCOMPONENT_TYPE type)
+VOID SUSAPI susWorldRegisterComponent(_Inout_ SUS_WORLD world, _In_ sus_size_t componentSize, _In_opt_ SUS_COMPONENT_CONSTRUCTOR constructor, _In_opt_ SUS_COMPONENT_DESTRUCTOR destructor, _Out_ SUS_LPCOMPONENT_TYPE type)
 {
 	SUS_PRINTDL("Component registration");
 	SUS_ASSERT(world && world->registeredComponents && susVectorCount(world->registeredComponents) < SUS_MAX_COMPONENTS);
-	SUS_REGISTERED_COMPONENT component = { .size = componentSize, .constructor = constructor };
+	SUS_REGISTERED_COMPONENT component = { .size = componentSize, .constructor = constructor, .destructor = destructor };
 	*type = susVectorCount(world->registeredComponents);
 	susVectorPushBack(&world->registeredComponents, &component);
 }
@@ -273,7 +268,7 @@ VOID SUSAPI susSystemRun(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index, _In_
 		if (susBitmask256Contains(mask, system->mask)) {
 			SUS_ARCHETYPE archetype = (SUS_ARCHETYPE)susMapValue(world->archetypes, entry);
 			susVecForeach(0, i, entityCount, archetype->entities) {
-				system->callbackEntity(*(SUS_ENTITY*)susVectorGet(archetype->entities, i), deltaTime, system->userData);
+				system->callbackEntity(world, *(SUS_ENTITY*)susVectorGet(archetype->entities, i), deltaTime, system->userData);
 			}
 		}
 	}

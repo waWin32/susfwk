@@ -55,6 +55,7 @@ and when used, access it via super.
 #define SUSAPIV __cdecl
 #define SUS_INLINE inline
 #define SUS_STATIC static
+#define SUS_STRUCT struct
 
 #ifdef _WIN32
 	// Import a function from a library
@@ -78,7 +79,7 @@ and when used, access it via super.
 // -----------------------------------------------
 
 // The return value for exiting recursion
-#define GETTING_OUT_RECURSION 0xffffff
+#define GETTING_OUT_RECURSION (DWORD)-1
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)

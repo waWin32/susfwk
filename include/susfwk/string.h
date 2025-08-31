@@ -46,9 +46,9 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_strlen	sus_strlenA
 #endif // !UNICODE
 
-// Get the length of the string
+// Copy the text
 #define sus_strcpyA(lpString1, lpString2) (LPSTR)lstrcpyA((LPSTR)lpString1, (LPCSTR)lpString2)
-// Get the length of the string
+// Copy the text
 #define sus_strcpyW(lpString1, lpString2) (LPWSTR)lstrcpyW((LPWSTR)lpString1, (LPCWSTR)lpString2)
 
 #ifdef UNICODE
@@ -57,9 +57,9 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_strcpy	sus_strcpyA
 #endif // !UNICODE
 
-// Get the length of the string
+// Copy the text
 #define sus_strcpynA(lpString1, lpString2, iMaxLength) (LPSTR)lstrcpynA((LPSTR)lpString1, (LPCSTR)lpString2, iMaxLength)
-// Get the length of the string
+// Copy the text
 #define sus_strcpynW(lpString1, lpString2, iMaxLength) (LPWSTR)lstrcpynW((LPWSTR)lpString1, (LPCWSTR)lpString2, iMaxLength)
 
 #ifdef UNICODE
@@ -68,6 +68,16 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_strcpyn	sus_strcpynA
 #endif // !UNICODE
 
+// Compare lines
+#define sus_strcmpA(lpString1, lpString2) (INT)lstrcmpA((LPCSTR)lpString1, (LPCSTR)lpString2)
+// Compare lines
+#define sus_strcmpW(lpString1, lpString2) (INT)lstrcmpA((LPCWSTR)lpString1, (LPCWSTR)lpString2)
+
+#ifdef UNICODE
+#define sus_strcmp	sus_strcmpW
+#else
+#define sus_strcmp	sus_strcmpA
+#endif // !UNICODE
 // Flipping the string
 VOID SUSAPI sus_strrevA(_Inout_ LPSTR str);
 // Flipping the string

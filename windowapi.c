@@ -247,9 +247,9 @@ INT SUSAPI susWindowMainLoopW(_In_ SUS_LPWINDOW_STRUCTW window)
 // ===============================================
 
 // Setup a button
-SUS_WGBUTTONA SUSAPI susWgButtonSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
+SUS_WGBUTTONA SUSAPI susWgButtonSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
+	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETA wgBtn = { 0 };
 	sus_memcpy((LPBYTE)&wgBtn.wStruct, (CONST LPBYTE) & susDefWidgetStructA, sizeof(CREATESTRUCTA));
 	wgBtn.wStruct.style |= WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER | BS_FLAT;
@@ -259,9 +259,9 @@ SUS_WGBUTTONA SUSAPI susWgButtonSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
 	return wgBtn;
 }
 // Setup a button
-SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
+SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
+	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETW wgBtn = { 0 };
 	sus_memcpy((LPBYTE)&wgBtn.wStruct, (CONST LPBYTE) & susDefWidgetStructW, sizeof(CREATESTRUCTW));
 	wgBtn.wStruct.style |= WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER | BS_FLAT;
@@ -272,9 +272,9 @@ SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
 }
 
 // Setup a edit widget
-SUS_WGEDITA SUSAPI susWgEditSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
+SUS_WGEDITA SUSAPI susWgEditSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
+	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETA wgEdit = { 0 };
 	sus_memcpy((LPBYTE)&wgEdit.wStruct, (CONST LPBYTE) & susDefWidgetStructA, sizeof(CREATESTRUCTA));
 	wgEdit.wStruct.dwExStyle = WS_EX_CLIENTEDGE;
@@ -285,9 +285,9 @@ SUS_WGEDITA SUSAPI susWgEditSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
 	return wgEdit;
 }
 // Setup a edit widget
-SUS_WGEDITW SUSAPI susWgEditSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
+SUS_WGEDITW SUSAPI susWgEditSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
+	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETW wgEdit = { 0 };
 	sus_memcpy((LPBYTE)&wgEdit.wStruct, (CONST LPBYTE) & susDefWidgetStructW, sizeof(CREATESTRUCTW));
 	wgEdit.wStruct.dwExStyle = WS_EX_CLIENTEDGE;
@@ -298,10 +298,10 @@ SUS_WGEDITW SUSAPI susWgEditSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
 	return wgEdit;
 }
 // Setup a static widget
-SUS_WGSTATICA SUSAPI susWgStaticSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
+SUS_WGPANELA SUSAPI susWgPanelSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
-	SUS_WGSTATICA wgStatic = { 0 };
+	SUS_PRINTDL("Setting up the widget");
+	SUS_WGPANELA wgStatic = { 0 };
 	sus_memcpy((LPBYTE)&wgStatic.wStruct, (CONST LPBYTE) & susDefWidgetStructA, sizeof(CREATESTRUCTA));
 	wgStatic.wStruct.style |= WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOTIFY | WS_EX_TRANSPARENT;
 	wgStatic.wStruct.lpszName = lpTitle;
@@ -310,9 +310,9 @@ SUS_WGSTATICA SUSAPI susWgStaticSetupA(_In_ LPCSTR lpTitle, _In_ INT id)
 	return wgStatic;
 }
 // Setup a static widget
-SUS_WGSTATICW SUSAPI susWgStaticSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
+SUS_WGPANELW SUSAPI susWgPanelSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id)
 {
-	SUS_PRINTDL("Setting up the window");
+	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETW wgStatic = { 0 };
 	sus_memcpy((LPBYTE)&wgStatic.wStruct, (CONST LPBYTE) & susDefWidgetStructW, sizeof(CREATESTRUCTW));
 	wgStatic.wStruct.style |= WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOTIFY | WS_EX_TRANSPARENT;
@@ -321,7 +321,6 @@ SUS_WGSTATICW SUSAPI susWgStaticSetupW(_In_ LPCWSTR lpTitle, _In_ INT id)
 	wgStatic.wStruct.hMenu = (HMENU)(INT_PTR)id;
 	return wgStatic;
 }
-
 
 // Build a widget
 BOOL SUSAPI susBuildWidgetA(_In_ HWND hWnd, _In_ SUS_LPWIDGETA widget)

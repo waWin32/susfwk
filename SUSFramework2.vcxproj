@@ -166,6 +166,7 @@
       <OmitDefaultLibName>true</OmitDefaultLibName>
       <BasicRuntimeChecks />
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -211,6 +212,7 @@
       <CallingConvention>FastCall</CallingConvention>
       <BasicRuntimeChecks />
       <Optimization>Custom</Optimization>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -251,6 +253,7 @@
       <OmitDefaultLibName>true</OmitDefaultLibName>
       <BasicRuntimeChecks />
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -296,6 +299,7 @@
       <CallingConvention>FastCall</CallingConvention>
       <BasicRuntimeChecks />
       <Optimization>Custom</Optimization>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

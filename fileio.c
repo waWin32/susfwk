@@ -253,7 +253,7 @@ LONGLONG SUSAPI susGetFileSize(_In_ SUS_FILE hFile)
 SUS_FSTAT SUSAPI susGetFileAttributesA(_In_ LPCSTR lpFileName)
 {
 	SUS_PRINTDL("Getting file attributes");
-	WIN32_FILE_ATTRIBUTE_DATA attrData;
+	WIN32_FILE_ATTRIBUTE_DATA attrData = { 0 };
 	if (!GetFileAttributesExA(lpFileName, GetFileExInfoStandard, &attrData)) {
 		SUS_PRINTDE("Couldn't get file attributes");
 		SUS_PRINTDC(GetLastError());
@@ -271,7 +271,7 @@ SUS_FSTAT SUSAPI susGetFileAttributesA(_In_ LPCSTR lpFileName)
 SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName)
 {
 	SUS_PRINTDL("Getting file attributes");
-	WIN32_FILE_ATTRIBUTE_DATA attrData;
+	WIN32_FILE_ATTRIBUTE_DATA attrData = { 0 };
 	if (!GetFileAttributesExW(lpFileName, GetFileExInfoStandard, &attrData)) {
 		SUS_PRINTDE("Couldn't get file attributes");
 		SUS_PRINTDC(GetLastError());
@@ -289,108 +289,163 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName)
 // --------------------------------------------------------
 
 // Recursive traversal of hard disk files
-DWORD SUSAPI susDirectorySearchA(
-	_In_ LPSTR directory,
+DWORD SUSAPI susTraverseFileTreeA(
+	_In_ LPCSTR directory,
 	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAA lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAA));
 	if (!lpFindFileData) return 1;
-	LPSTR searchPath = sus_fcalloc(sus_strlenA(directory) + 3, sizeof(CHAR));
+	LPSTR searchPath = sus_fcalloc(sus_strlenA(directory) + 2, sizeof(CHAR));
 	if (!searchPath) {
 		sus_free(lpFindFileData);
 		return 1;
 	}
 	lstrcpyA(searchPath, directory);
-	lstrcatA(searchPath, "\\*");
+	lstrcatA(searchPath, "*");
 	SUS_FILE hFind = FindFirstFileA(searchPath, lpFindFileData);
 	sus_free(searchPath);
 	if (hFind == INVALID_HANDLE_VALUE) {
+		sus_free(lpFindFileData);
 		SUS_PRINTDE("Couldn't get the first file");
 		SUS_PRINTDC(GetLastError());
-		sus_free(lpFindFileData);
 		return 2;
 	}
 	do {
 		if (lstrcmpA(lpFindFileData->cFileName, ".") == 0 || lstrcmpA(lpFindFileData->cFileName, "..") == 0) continue;
-		LPSTR filePath = sus_fcalloc(sus_strlenA(directory) + sus_strlenA(lpFindFileData->cFileName) + 3, sizeof(CHAR));
+		LPSTR filePath = sus_fcalloc(sus_strlenA(directory) + sus_strlenA(lpFindFileData->cFileName) + 2, sizeof(CHAR));
 		if (!filePath) continue;
 		lstrcpyA(filePath, directory);
-		lstrcatA(filePath, "\\");
 		lstrcatA(filePath, lpFindFileData->cFileName);
 		if (lpFindFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-			if (susDirectorySearchA(filePath, lpFileSearchProc) == GETTING_OUT_RECURSION) {
+			lstrcatA(filePath, "\\");
+			if (susTraverseFileTreeA(filePath, lpFileSearchProc) == INFINITE) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
-				return GETTING_OUT_RECURSION;
+				return INFINITE;
 			}
 		}
 		else {
-			if (lpFileSearchProc(filePath) == GETTING_OUT_RECURSION) {
-				SUS_PRINTDL("Completion of recursion");
+			if (lpFileSearchProc(filePath)) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
-				return GETTING_OUT_RECURSION;
+				SUS_PRINTDL("Completion of recursion");
+				return INFINITE;
 			}
 		}
 		sus_free(filePath);
-	} while (FindNextFileA(hFind, lpFindFileData) != 0);
+	} while (FindNextFileA(hFind, lpFindFileData));
 	sus_free(lpFindFileData);
 	FindClose(hFind);
 	return 0;
 }
+// Navigate through the folders and files in directory
+BOOL SUSAPI susEnumDirectoryA(
+	_In_ LPCSTR directory,
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc)
+{
+	SUS_ASSERT(directory && lpFileSearchProc);
+	WIN32_FIND_DATAA findFileData = { 0 };
+	LPSTR searchPath = sus_fcalloc(sus_strlenA(directory) + 2, sizeof(CHAR));
+	if (!searchPath) return FALSE;
+	lstrcpyA(searchPath, directory);
+	lstrcatA(searchPath, "*");
+	SUS_FILE hFind = FindFirstFileA(searchPath, &findFileData);
+	sus_free(searchPath);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		SUS_PRINTDE("Couldn't get the first file");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	do {
+		if (lpFileSearchProc(findFileData.cFileName)) {
+			FindClose(hFind);
+			return 2;
+		}
+	} while (FindNextFileA(hFind, &findFileData));
+	FindClose(hFind);
+	return 1;
+}
+
 // Recursive traversal of hard disk files
-DWORD SUSAPI susDirectorySearchW(
-	_In_ LPWSTR directory,
+DWORD SUSAPI susTraverseFileTreeW(
+	_In_ LPCWSTR directory,
 	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAW lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAW));
 	if (!lpFindFileData) return 1;
-	LPWSTR searchPath = sus_fcalloc(sus_strlenW(directory) + 3, sizeof(WCHAR));
+	LPWSTR searchPath = sus_fcalloc(sus_strlenW(directory) + 2, sizeof(WCHAR));
 	if (!searchPath) {
 		sus_free(lpFindFileData);
 		return 1;
 	}
 	lstrcpyW(searchPath, directory);
-	lstrcatW(searchPath, L"\\*");
+	lstrcatW(searchPath, L"*");
 	SUS_FILE hFind = FindFirstFileW(searchPath, lpFindFileData);
 	sus_free(searchPath);
 	if (hFind == INVALID_HANDLE_VALUE) {
+		sus_free(lpFindFileData);
 		SUS_PRINTDE("Couldn't get the first file");
 		SUS_PRINTDC(GetLastError());
-		sus_free(lpFindFileData);
 		return 2;
 	}
 	do {
 		if (lstrcmpW(lpFindFileData->cFileName, L".") == 0 || lstrcmpW(lpFindFileData->cFileName, L"..") == 0) continue;
-		LPWSTR filePath = sus_fcalloc(sus_strlenW(directory) + sus_strlenW(lpFindFileData->cFileName) + 3, sizeof(WCHAR));
+		LPWSTR filePath = sus_fcalloc(sus_strlenW(directory) + sus_strlenW(lpFindFileData->cFileName) + 2, sizeof(WCHAR));
 		if (!filePath) continue;
 		lstrcpyW(filePath, directory);
-		lstrcatW(filePath, L"\\");
 		lstrcatW(filePath, lpFindFileData->cFileName);
 		if (lpFindFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-			if (susDirectorySearchW(filePath, lpFileSearchProc) == GETTING_OUT_RECURSION) {
+			lstrcatW(filePath, L"\\");
+			if (susTraverseFileTreeW(filePath, lpFileSearchProc) == INFINITE) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
-				return GETTING_OUT_RECURSION;
+				return INFINITE;
 			}
 		}
 		else {
-			if (!lpFileSearchProc(filePath)) {
+			if (lpFileSearchProc(filePath)) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
 				SUS_PRINTDL("Completion of recursion");
-				return GETTING_OUT_RECURSION;
+				return INFINITE;
 			}
 		}
 		sus_free(filePath);
-	} while (FindNextFileW(hFind, lpFindFileData) != 0);
+	} while (FindNextFileW(hFind, lpFindFileData));
 	sus_free(lpFindFileData);
 	FindClose(hFind);
 	return 0;
+}
+// Navigate through the folders and files in directory
+BOOL SUSAPI susEnumDirectoryW(
+	_In_ LPCWSTR directory,
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc)
+{
+	SUS_ASSERT(directory && lpFileSearchProc);
+	WIN32_FIND_DATAW findFileData = { 0 };
+	LPWSTR searchPath = sus_fcalloc(sus_strlenW(directory) + 2, sizeof(WCHAR));
+	if (!searchPath) return FALSE;
+	lstrcpyW(searchPath, directory);
+	lstrcatW(searchPath, L"*");
+	SUS_FILE hFind = FindFirstFileW(searchPath, &findFileData);
+	sus_free(searchPath);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		SUS_PRINTDE("Couldn't get the first file");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	do {
+		if (lpFileSearchProc(findFileData.cFileName)) {
+			FindClose(hFind);
+			return 2;
+		}
+	} while (FindNextFileW(hFind, &findFileData));
+	FindClose(hFind);
+	return 1;
 }

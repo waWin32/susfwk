@@ -16,8 +16,12 @@
 #pragma comment(lib, "comctl32.lib")
 
 // Initialize the comctl32.lib library
-SUS_INLINE VOID SUSAPI susInitCommonControls() {
-	InitCommonControls();
+SUS_INLINE VOID SUSAPI susInitCommonControls(DWORD dwIcc) {
+	INITCOMMONCONTROLSEX icex = {
+		.dwSize = sizeof(INITCOMMONCONTROLSEX),
+		.dwICC = dwIcc
+	};
+	InitCommonControlsEx(&icex);
 }
 
 #endif // !SUSNOTCOMMCTRL
@@ -161,7 +165,7 @@ SUS_INLINE VOID SUSAPI susWindowSetTitleW(SUS_LPWINDOWW window, LPCWSTR title) {
 
 // ===============================================
 
-SUS_INLINE VOID susWindowSetMenu(SUS_LPWINDOW window, LPCSTR lpszMenuName) {
+SUS_INLINE VOID susWindowSetMenu(SUS_LPWINDOW window, LPCTSTR lpszMenuName) {
 	window->wcEx.lpszMenuName = lpszMenuName;
 }
 SUS_INLINE VOID susWindowSetHandler(SUS_LPWINDOW window, WNDPROC wndProc) {
@@ -203,12 +207,11 @@ SUS_INLINE LONG SUSAPI susGetGraphicsHeight(PAINTSTRUCT* gr) {
 
 // Save data to a window
 SUS_INLINE SUS_OBJECT susWriteDataToWindow(HWND hWnd, LONG_PTR dwNewLong) {
-	
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, dwNewLong);
 	return (SUS_OBJECT)dwNewLong;
 }
 // Write the window's incoming data to its internal memory
-SUS_INLINE SUS_OBJECT susWriteIncomingWindowData(HWND hWnd, LPARAM lParam) {
+SUS_INLINE SUS_OBJECT susWriteWindowContextData(HWND hWnd, LPARAM lParam) {
 	CONST LPCREATESTRUCT pCreate = (CONST LPCREATESTRUCT)lParam;
 	susWriteDataToWindow(hWnd, (LONG_PTR)pCreate->lpCreateParams);
 	return (SUS_OBJECT)pCreate->lpCreateParams;
@@ -250,18 +253,22 @@ typedef SUS_WIDGET SUS_WGEDIT;
 typedef SUS_WIDGETA SUS_WGEDITA;
 typedef SUS_WIDGETW SUS_WGEDITW;
 
-typedef SUS_WIDGET SUS_WGSTATIC;
-typedef SUS_WIDGETA SUS_WGSTATICA;
-typedef SUS_WIDGETW SUS_WGSTATICW;
+typedef SUS_WIDGET SUS_WGPANEL;
+typedef SUS_WIDGETA SUS_WGPANELA;
+typedef SUS_WIDGETW SUS_WGPANELW;
+
+typedef SUS_WIDGET SUS_WGTOOLBAR;
+typedef SUS_WIDGETA SUS_WGTOOLBARA;
+typedef SUS_WIDGETW SUS_WGTOOLBARW;
 
 // Setup a button
 SUS_WGBUTTONA SUSAPI susWgButtonSetupA(
-	_In_ LPCSTR lpTitle,
+	_In_opt_ LPCSTR lpTitle,
 	_In_ INT id
 );
 // Setup a button
 SUS_WGBUTTONW SUSAPI susWgButtonSetupW(
-	_In_ LPCWSTR lpTitle,
+	_In_opt_ LPCWSTR lpTitle,
 	_In_ INT id
 );
 
@@ -273,12 +280,12 @@ SUS_WGBUTTONW SUSAPI susWgButtonSetupW(
 
 // Setup a edit widget
 SUS_WGEDITA SUSAPI susWgEditSetupA(
-	_In_ LPCSTR lpTitle,
+	_In_opt_ LPCSTR lpTitle,
 	_In_ INT id
 );
 // Setup a edit widget
 SUS_WGEDITW SUSAPI susWgEditSetupW(
-	_In_ LPCWSTR lpTitle,
+	_In_opt_ LPCWSTR lpTitle,
 	_In_ INT id
 );
 
@@ -289,20 +296,20 @@ SUS_WGEDITW SUSAPI susWgEditSetupW(
 #endif // !UNICODE
 
 // Setup a static widget
-SUS_WGSTATICA SUSAPI susWgStaticSetupA(
-	_In_ LPCSTR lpTitle,
+SUS_WGPANELA SUSAPI susWgPanelSetupA(
+	_In_opt_ LPCSTR lpTitle,
 	_In_ INT id
 );
 // Setup a static widget
-SUS_WGSTATICW SUSAPI susWgStaticSetupW(
-	_In_ LPCWSTR lpTitle,
+SUS_WGPANELW SUSAPI susWgPanelSetupW(
+	_In_opt_ LPCWSTR lpTitle,
 	_In_ INT id
 );
 
 #ifdef UNICODE
-#define susWgStaticSetup	susWgStaticSetupW
+#define susWgPanelSetup	susWgPanelSetupW
 #else
-#define susWgStaticSetup	susWgStaticSetupA
+#define susWgPanelSetup	susWgPanelSetupA
 #endif // !UNICODE
 
 // Build a widget
@@ -345,6 +352,11 @@ SUS_INLINE VOID SUSAPI susRemoveWidgetHandler(HWND hWnd, SUBCLASSPROC widgetProc
 }
 #endif // !SUSNOTCOMMCTRL
 // Set the widget size and position
+SUS_INLINE VOID SUSAPI susWidgetSetRect(SUS_LPWIDGET widget, RECT bounds) {
+	susWidgetSetPos(widget, (POINT) { bounds.left, bounds.top });
+	susWidgetSetSize(widget, (SIZE) { bounds.right, bounds.bottom });
+}
+// Set the widget size and position
 SUS_INLINE VOID SUSAPI susWidgetSetBounds(SUS_LPWIDGET widget, RECT bounds) {
 	susWidgetSetPos(widget, (POINT) { bounds.left, bounds.top });
 	susWidgetSetSize(widget, (SIZE) { bounds.right - bounds.left, bounds.bottom - bounds.top });
@@ -353,9 +365,17 @@ SUS_INLINE VOID SUSAPI susWidgetSetBounds(SUS_LPWIDGET widget, RECT bounds) {
 SUS_INLINE VOID SUSAPI susWidgetSetStyle(SUS_LPWIDGET widget, DWORD style) {
 	widget->wStruct.style = style;
 }
+// Add styles for the widget
+SUS_INLINE VOID SUSAPI susWidgetAddStyle(SUS_LPWIDGET widget, DWORD style) {
+	widget->wStruct.style |= style;
+}
 // Set the extended styles for the widget
 SUS_INLINE VOID SUSAPI susWidgetSetExStyle(SUS_LPWIDGET widget, DWORD dwExStyle) {
 	widget->wStruct.dwExStyle = dwExStyle;
+}
+// Add the extended styles for the widget
+SUS_INLINE VOID SUSAPI susWidgetAddExStyle(SUS_LPWIDGET widget, DWORD dwExStyle) {
+	widget->wStruct.dwExStyle |= dwExStyle;
 }
 // Set the extended styles for the widget
 SUS_INLINE VOID SUSAPI susWidgetSetId(SUS_LPWIDGET widget, UINT id) {

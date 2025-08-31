@@ -108,6 +108,7 @@ VOID SUSAPI susBufferClear(
 
 // -------------------------------------
 
+#ifndef SUS_DEBUGONLYERRORS
 #ifdef _DEBUG
 SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
 	SUS_PRINTDL("Buffer output: %s", buff->data);
@@ -115,6 +116,7 @@ SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
 #else
 #define susBufferPrint(buff)
 #endif // !_DEBUG
+#endif // !SUS_DEBUGONLYERRORS
 
 // -------------------------------------
 
@@ -155,7 +157,6 @@ SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset);
 #define susNewVector(type) susNewVectorSized(sizeof(type))
 // Destroy the dynamic array
 SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
-	SUS_PRINTDL("Deleting an array");
 	SUS_ASSERT(array);
 	SUS_BUFFER buff = susVectorBuffer(array);
 	susBufferDestroy(buff);
@@ -165,13 +166,11 @@ SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
 
 // Accessing an array element
 SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR array, _In_ UINT index) {
-	SUS_PRINTDL("Accessing the %dth element of an array", index);
 	SUS_ASSERT(array && array->size);
 	return index >= susVectorCount(array) ? (SUS_OBJECT)NULL : (SUS_OBJECT)(susVectorData(array, BYTE) + index * array->isize);
 }
 // Accessing an array element
 SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR array, _In_ INT index) {
-	SUS_PRINTDL("Accessing the %dth element of an array", index);
 	SUS_ASSERT(array && array->size);
 	DWORD count = susVectorCount(array);
 	index = index < 0 ? count - (-index % count) : index % count;
@@ -179,13 +178,11 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR array, _In_ INT inde
 }
 // Get the first element of the array
 SUS_INLINE SUS_OBJECT SUSAPI susVectorFront(_Inout_ SUS_VECTOR array) {
-	SUS_PRINTDL("Getting the first element of the array");
 	SUS_ASSERT(array);
 	return susVectorData(array, VOID);
 }
 // Get the last element of the array
 SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR array) {
-	SUS_PRINTDL("Getting the last element of the array");
 	SUS_ASSERT(array);
 	return susVectorAt(array, -1);
 }
@@ -237,7 +234,6 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR array, _In_
 // Delete all elements of the array
 SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 {
-	SUS_PRINTDL("Removing all elements from an array");
 	SUS_ASSERT(array);
 	susBufferClear(susVectorBuffer(array));
 }

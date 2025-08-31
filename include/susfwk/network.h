@@ -25,32 +25,32 @@
 #endif // !SUS_SOCKET_WRITE_BUFFER_SIZE
 
 typedef enum sus_sock_message {
-	SUS_SOCK_NCCREATE = 1,
-	SUS_SOCK_CREATE,
-	SUS_SOCK_DATA,
-	SUS_SOCK_START,
-	SUS_SOCK_ACCEPT,
-	SUS_SOCK_ERROR,
-	SUS_SOCK_TIMEOUT,
-	SUS_SOCK_CLOSE,
-	SUS_SOCK_END
+	SUS_SOCK_NCCREATE = 1,	// Called before the socket is created
+	SUS_SOCK_CREATE,		// Called after creating a socket
+	SUS_SOCK_START,			// Called after connecting to the host
+	SUS_SOCK_DATA,			// Called when data is received
+	SUS_SOCK_ERROR,			// Called when an error occurs
+	SUS_SOCK_TIMEOUT,		// It is called when the waiting time is over
+	SUS_SOCK_CLOSE,			// Called when the connection is closed
+	SUS_SOCK_END			// Called after the connection is closed
 } SUS_SOCK_MESSAGE;
 
 // Socket processing function
-typedef DWORD(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, UINT uMsg, LPARAM lParam, WPARAM wParam);
+typedef VOID(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 typedef enum sus_sock_flags {
-	SUS_SOCKFLAG_AUTOMATIC_FLUSHING = 1,
-	SUS_SOCKFLAG_IMMEDIATE_PROCESSING
+	SUS_SOCKFLAG_LISTENING
 } SUS_SOCK_FLAGS;
 
 // socket structure
 typedef struct sus_socket {
-	SOCKET sock;
-	SUS_SOCKET_HANDLER handler;
-	SUS_BUFFER readBuffer;
-	SUS_BUFFER writeBuffer;
-	sus_flag flags;
+	SOCKET				sock;
+	SUS_SOCKET_HANDLER	handler;
+	WSAEVENT			event;
+	SUS_BUFFER			readBuffer;
+	SUS_BUFFER			writeBuffer;
+	LPVOID				userData;
+	sus_flag			flags;
 } SUS_SOCKET, *SUS_LPSOCKET;
 
 // Initializing the winsock
@@ -59,34 +59,35 @@ DWORD SUSAPI susNetworkSetup();
 VOID SUSAPI susNetworkCleanup();
 
 //
-SUS_INLINE SUS_SOCKET SUSAPI susInitSocket(_In_ SUS_SOCKET_HANDLER handler) {
+SUS_INLINE SUS_SOCKET SUSAPI susInitSocket(_In_ SUS_SOCKET_HANDLER handler, _In_opt_ LPVOID userData) {
 	return (SUS_SOCKET) {
 		.sock = INVALID_SOCKET,
 		.handler = handler,
 		.readBuffer = susNewBuffer(SUS_SOCKET_READ_BUFFER_SIZE),
 		.writeBuffer = susNewBuffer(SUS_SOCKET_WRITE_BUFFER_SIZE),
 		.flags = 0,
+		.event = WSACreateEvent(),
+		.userData = userData
 	};
 }
 // Build a socket
-SUS_SOCKET SUSAPI susBuildSocket(_In_ SUS_SOCKET_HANDLER handler, _In_opt_ LPVOID userData);
+BOOL SUSAPI susBuildSocket(_In_ SUS_LPSOCKET sock);
 // Closing a network socket
 BOOL SUSAPI susSocketClose(_In_ SUS_LPSOCKET sock);
 // Binding an address to a socket
-BOOL SUSAPI susSocketBind(_In_ SUS_SOCKET sock, _In_ USHORT port);
+BOOL SUSAPI susSocketBind(_In_ SUS_LPSOCKET sock, _In_ USHORT port);
 // Install Socket listening
-BOOL SUSAPI susSocketListen(_In_ SUS_SOCKET sock);
+BOOL SUSAPI susSocketListen(_In_ SUS_LPSOCKET sock);
 // Accept connection
-SUS_SOCKET SUSAPI susSocketAccept(_In_ SUS_SOCKET server, _In_ SUS_SOCKET_HANDLER handler, _Out_opt_ PSOCKADDR_IN addr, _In_opt_ LPVOID userData);
+SUS_SOCKET SUSAPI susSocketAccept(_In_ SUS_SOCKET server, _In_ SUS_SOCKET_HANDLER handler, _Out_opt_ PSOCKADDR_IN addr);
 // Connects to the server
 SOCKADDR_IN SUSAPI susConnectToServer(_In_ SUS_SOCKET sock, _In_ LPCSTR addr, _In_ USHORT port);
 // Polling socket events
 BOOL SUSAPI susSocketPollEvents(_Inout_ SUS_LPSOCKET sock);
 // Clean the socket
-SUS_INLINE VOID SUSAPI susSocketCleanup(_Inout_ SUS_LPSOCKET sock) {
-	sock->sock = INVALID_SOCKET;
-	susBufferDestroy(sock->readBuffer);
-	susBufferDestroy(sock->writeBuffer);
+SUS_INLINE VOID SUSAPI susSocketCleanup(_Inout_ SUS_SOCKET sock) {
+	susBufferDestroy(sock.readBuffer);
+	susBufferDestroy(sock.writeBuffer);
 }
 
 // Set the possibility of reusing the address
@@ -137,7 +138,7 @@ SUS_INLINE INT SUSAPI susGetSocketError(SOCKET sock) {
 // Create a server
 SUS_SOCKET SUSAPI susCreateServer(SUS_SOCKET_HANDLER handler, _In_opt_ LPVOID userData);
 // Start the server
-BOOL SUSAPI susServerListen(_Inout_ SUS_SOCKET sock, _In_ USHORT port);
+BOOL SUSAPI susServerListen(_Inout_ SUS_LPSOCKET sock, _In_ USHORT port);
 
 // Get data from a socket
 SUS_INLINE BOOL SUSAPI susSocketRead(_Inout_ SUS_LPSOCKET sock) {
@@ -154,9 +155,6 @@ SUS_INLINE BOOL SUSAPI susSocketRead(_Inout_ SUS_LPSOCKET sock) {
 			if (err == WSAEWOULDBLOCK) return TRUE;
 			sock->handler(&sock, SUS_SOCK_ERROR, (LPARAM)err, 0);
 			return FALSE;
-		}
-		if (sock->flags & SUS_SOCKFLAG_IMMEDIATE_PROCESSING) {
-			sock->handler(&sock, SUS_SOCK_DATA, (LPARAM)sock->readBuffer->data, sock->readBuffer->size);
 		}
 		susBufferAppend(&sock->readBuffer, chunkBuffer, bytesRead);
 	} while (bytesRead == sizeof(chunkBuffer));
@@ -181,7 +179,6 @@ SUS_INLINE BOOL SUSAPI susSocketFlush(_Inout_ SUS_LPSOCKET sock) {
 // Send data to the socket
 SUS_INLINE BOOL SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, LPBYTE data, SIZE_T size) {
 	susBufferAppend(&sock->writeBuffer, data, size);
-	if (sock->flags & SUS_SOCKFLAG_AUTOMATIC_FLUSHING) return susSocketFlush(sock);
 	return TRUE;
 }
 

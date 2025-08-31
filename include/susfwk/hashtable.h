@@ -27,7 +27,7 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetHash(SUS_DATAVIEW key) {
 	SUS_ASSERT(key.data);
 	SUS_HASH_T hash = SUS_FNV_OFFSET;
 	DWORD i = 0;
-	for (; i + 4 <= key.size; i += 4) {
+	for (; i + 4 <= (DWORD)key.size; i += 4) {
 		hash ^= key.data[i]; hash *= SUS_FNV_PRIME;
 		hash ^= key.data[i + 1]; hash *= SUS_FNV_PRIME;
 		hash ^= key.data[i + 2]; hash *= SUS_FNV_PRIME;
@@ -144,6 +144,7 @@ VOID SUSAPI susMapClear(
 
 // -------------------------------------------------------------------
 
+#ifndef SUS_DEBUGONLYERRORS
 #ifdef _DEBUG
 SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 	SUS_PRINTDL("Hashmap output {");
@@ -161,6 +162,7 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 #else
 #define susMapPrint(map)
 #endif // !_DEBUG
+#endif // !SUS_DEBUGONLYERRORS
 
 // ================================================================================================
 

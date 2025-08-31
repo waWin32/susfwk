@@ -11,7 +11,7 @@
 // The structure of the time delta
 typedef struct sus_delta_time {
 	DWORD lastTime;
-} SUS_DELTA_TIME, * SUS_LPDELTA_TIME;
+} SUS_DELTA_TIME, *SUS_LPDELTA_TIME;
 // Initialize the time delta
 SUS_INLINE SUS_DELTA_TIME SUSAPI susInitDeltaTime() {
 	return (SUS_DELTA_TIME) { .lastTime = GetTickCount() };
@@ -33,11 +33,14 @@ typedef sus_u32 SUS_COMPONENT_TYPE, *SUS_LPCOMPONENT_TYPE;
 typedef sus_u32 SUS_ENTITY;
 typedef sus_u32 SUS_SYSTEM_ID;
 // The system's callback function
-typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
+typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
 // The system's callback function
 typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
 // Maximum number of possible registered components (SUS_BITMASK256 limit - 256 bits)
 #define SUS_MAX_COMPONENTS	256
+
+// Declare the component
+#define SUS_DECLARE_COMPONENT(ComponentName) SUS_COMPONENT_TYPE ComponentName##Type; SUS_STRUCT ComponentName
 
 // --------------------------------------------------------------------------------------
 
@@ -72,10 +75,17 @@ typedef struct sus_system {
 	SUS_SYSTEM_TYPE				type;		// Type of system
 	SUS_OBJECT					userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
+
+// ECS Component Constructor
+typedef VOID(SUSAPI* SUS_COMPONENT_CONSTRUCTOR)(SUS_OBJECT component);
+// The ECS component destructor
+typedef VOID(SUSAPI* SUS_COMPONENT_DESTRUCTOR)(SUS_OBJECT component);
+
 // Registered components in the world
 typedef struct sus_registered_component {
-	sus_size_t size;					// Size of the registered component
-	CONST SUS_OBJECT constructor;	// Component Template
+	sus_size_t					size;		// Size of the registered component
+	SUS_COMPONENT_CONSTRUCTOR	constructor;// The component Constructor
+	SUS_COMPONENT_DESTRUCTOR	destructor;	// The component's destructor
 } SUS_REGISTERED_COMPONENT, *SUS_LPREGISTERED_COMPONENT;
 // A pool for storing all the world's data
 typedef struct sus_world {
@@ -104,7 +114,8 @@ VOID SUSAPI susWorldUpdate(
 VOID SUSAPI susWorldRegisterComponent(
 	_Inout_ SUS_WORLD world,
 	_In_ sus_size_t componentSize,
-	_In_opt_ SUS_OBJECT constructor,
+	_In_opt_ SUS_COMPONENT_CONSTRUCTOR constructor,
+	_In_opt_ SUS_COMPONENT_DESTRUCTOR destructor,
 	_Out_ SUS_LPCOMPONENT_TYPE type
 );
 // Register an entity processing system
@@ -165,13 +176,13 @@ SUS_INLINE BOOL SUSAPI susEntityExists(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY 
 }
 // Check the component for the existence of the component
 SUS_INLINE BOOL SUSAPI susEntityHasComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type) {
-	SUS_ASSERT(world && world->entities);
+	SUS_ASSERT(world && world->entities && susEntityExists(world, entity));
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
 	return susBitmask256Test(location.archetype->mask, type);
 }
-// Replace the component
+// Get a component
 SUS_INLINE SUS_OBJECT SUSAPI susEntityGetComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type) {
-	SUS_ASSERT(world && world->entities);
+	SUS_ASSERT(world && world->entities && susEntityExists(world, entity));
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
 	SUS_LPVECTOR pool = (SUS_LPVECTOR)susMapGet(location.archetype->componentPools, &type);
 	return pool ? susVectorGet(*pool, location.index) : NULL;
@@ -193,12 +204,12 @@ VOID SUSAPI susSystemRun(
 );
 
 // Get a system
-SUS_INLINE SUS_STATIC SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
+SUS_INLINE SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	SUS_ASSERT(world);
 	return (SUS_LPSYSTEM)susVectorGet(world->systems, index);
 }
 // Check the system for existence
-SUS_INLINE SUS_STATIC BOOL SUSAPI susSystemExists(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
+SUS_INLINE BOOL SUSAPI susSystemExists(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	return (BOOL)((ULONGLONG)susWorldGetSystem(world, index));
 }
 // Set the operating status of the system

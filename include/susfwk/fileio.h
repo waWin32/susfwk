@@ -159,23 +159,35 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName);
 // File Search Handler
 typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORA)(LPSTR path);
 // Recursive traversal of hard disk files
-DWORD SUSAPI susDirectorySearchA(
-	_In_ LPSTR directory,
+DWORD SUSAPI susTraverseFileTreeA(
+	_In_ LPCSTR directory,
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc
+);
+// Navigate through the folders and files in directory
+BOOL SUSAPI susEnumDirectoryA(
+	_In_ LPCSTR directory,
 	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc
 );
 
 // File Search Handler
 typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORW)(LPWSTR path);
 // Recursive traversal of hard disk files
-DWORD SUSAPI susDirectorySearchW(
-	_In_ LPWSTR directory,
+DWORD SUSAPI susTraverseFileTreeW(
+	_In_ LPCWSTR directory,
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc
+);
+// Navigate through the folders and files in directory
+BOOL SUSAPI susEnumDirectoryW(
+	_In_ LPCWSTR directory,
 	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc
 );
 
 #ifdef UNICODE
-#define susDirectorySearch	susDirectorySearchW
+#define susTraverseFileTree	susTraverseFileTreeW
+#define susEnumDirectory	susEnumDirectoryW
 #else
-#define susDirectorySearch	susDirectorySearchA
+#define susTraverseFileTree	susTraverseFileTreeA
+#define susEnumDirectory	susEnumDirectoryA
 #endif // !UNICODE
 
 #endif /* !_SUS_FILE_IO_ */

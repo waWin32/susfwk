@@ -15,12 +15,9 @@ extern const sus_float USM_COS_TABLE[];
 // 
 // -----------------------------------------------------------------------------------------------------
 
-#ifndef max
-#define max(a,b)            (((a) > (b)) ? (a) : (b))
-#endif
-#ifndef min
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-#endif
+#define sus_max(a,b)            (((a) > (b)) ? (a) : (b))
+#define sus_min(a,b)            (((a) < (b)) ? (a) : (b))
+#define sus_clamp(value, minv, maxv) sus_max(minv, sus_min(maxv, value))
 
 // Get a random number
 SUS_INLINE sus_u32 SUSAPI sus_rand() {

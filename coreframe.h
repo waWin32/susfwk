@@ -17,4 +17,4 @@
 #include <CommCtrl.h>
 #include <wincrypt.h>
 
-// #define SUS_DEBUGONLYERRORS
+#define SUS_DEBUGONLYERRORS
