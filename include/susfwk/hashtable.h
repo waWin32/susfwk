@@ -170,17 +170,17 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 // An unordered array
 typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 
-#define susNewSetSized(typeSize)	(SUS_HASHSET)susNewMapSized(typeSize, 0);
-#define susNewSet(type)				susNewSetSized(sizeof(type));
-#define susSetCopy					(SUS_HASHSET)susMapCopy
-#define susSetDestroy				susMapDestroy
+#define susNewSetSized(typeSize)		(SUS_HASHSET)susNewMapSized(typeSize, 0);
+#define susNewSet(type)					susNewSetSized(sizeof(type));
+#define susSetCopy						(SUS_HASHSET)susMapCopy
+#define susSetDestroy					susMapDestroy
 
-#define susSetForeach(set, entry)	susMapForeach(set, entry)
-#define susSetContains(set, key)	((BOOL)(susMapGet(set, key) != NULL))
-#define susSetClear					susMapClear
-#define susSetValue(set, entry)		susMapKey(set, entry)
-#define susSetAdd(lpSet, key)		susMapAdd(lpSet, key, NULL)
-#define susSetRemove(lpSet, key)	susMapRemove(lpSet, key)
+#define susSetForeach(set, tag, entry)	susMapForeach(set, tag, entry)
+#define susSetContains(set, key)		((BOOL)(susMapGet(set, key) != NULL))
+#define susSetClear						susMapClear
+#define susSetValue(set, entry)			susMapKey(set, entry)
+#define susSetAdd(lpSet, key)			susMapAdd(lpSet, key, NULL)
+#define susSetRemove(lpSet, key)		susMapRemove(lpSet, key)
 
 #pragma warning(pop)
 

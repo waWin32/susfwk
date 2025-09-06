@@ -16,5 +16,7 @@
 #include <TlHelp32.h>
 #include <CommCtrl.h>
 #include <wincrypt.h>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 
 #define SUS_DEBUGONLYERRORS

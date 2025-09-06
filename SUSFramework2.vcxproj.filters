@@ -75,9 +75,6 @@
     <ClInclude Include="include\susfwk\math.h">
       <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\mathcore.h">
-      <Filter>Файлы заголовков\math</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\mathdef.h">
       <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
@@ -86,9 +83,6 @@
     </ClInclude>
     <ClInclude Include="include\susfwk.h">
       <Filter>Файлы заголовков\core</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\tmath.h">
-      <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
     <ClInclude Include="coreframe.h">
       <Filter>Файлы заголовков\core</Filter>
@@ -143,7 +137,7 @@
     <ClCompile Include="iostream.c">
       <Filter>Исходные файлы\io</Filter>
     </ClCompile>
-    <ClCompile Include="mathcore.c">
+    <ClCompile Include="math.c">
       <Filter>Исходные файлы\math</Filter>
     </ClCompile>
     <ClCompile Include="string.c">

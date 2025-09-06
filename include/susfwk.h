@@ -20,7 +20,7 @@ Abstract:
 /*
 * SUSNOTMATH
 * SUSNOTWINDOW
-* SUSMINIMAL
+* SSUSINIMAL
 * SUSNOTCONSOLEAPI
 * SUSNOTSTRING
 * SUSNOTECS
@@ -40,7 +40,7 @@ Abstract:
 #include "susfwk/linkedlist.h"
 #include "susfwk/hashtable.h"
 
-#ifndef SUSMINIMAL
+#ifndef SSUSINIMAL
     #include "susfwk/regapi.h"
     #ifndef SUSNOTCRYPTO
     #include "susfwk/crypto.h"
@@ -61,6 +61,6 @@ Abstract:
     #ifndef SUSNOTNETWORK
     #include "susfwk/network.h"
     #endif // !SUSNOTNETWORK
-#endif // !SUSMINIMAL
+#endif // !SSUSINIMAL
 
 #endif /* !_SUS_FRAMEWORK_ */

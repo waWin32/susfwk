@@ -2,12 +2,12 @@
 //
 #include "include/susfwk/core.h"
 #include "include/susfwk/mathdef.h"
-#include "include/susfwk/mathcore.h"
+#include "include/susfwk/math.h"
 
-sus_u32 usm_random_seed = USM_RAND_SEED;
+sus_u32 usm_random_seed = SUS_RAND_SEED;
 
 // table cosine
-const sus_float USM_COS_TABLE[] = {
+const sus_float SUS_COS_TABLE[] = {
     1.000000f, 0.999848f, 0.999391f, 0.998630f, 0.997564f,
     0.996195f, 0.994522f, 0.992546f, 0.990268f, 0.987688f,
     0.984808f, 0.981627f, 0.978148f, 0.974370f, 0.970296f,

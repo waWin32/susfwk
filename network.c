@@ -3,6 +3,7 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/memory.h"
+#include "include/susfwk/vector.h"
 #include "include/susfwk/network.h"
 
 DWORD SUSAPI susNetworkSetup()

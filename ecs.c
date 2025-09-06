@@ -103,31 +103,54 @@ static inline SUS_ARCHETYPE SUSAPI susArchetypeMoveEntity(_Inout_ SUS_WORLD worl
 // --------------------------------------------------------------------------------------
 
 // Create a new world of entities, components, and systems
+SUS_WORLD_STRUCT SUSAPI susWorldSetup()
+{
+	SUS_PRINTDL("Creating the world");
+	return (SUS_WORLD_STRUCT) {
+		.archetypes = susNewMap(SUS_COMPONENTMASK, SUS_ARCHETYPE_STRUCT),
+		.entities = susNewMap(SUS_ENTITY, SUS_ENTITY_LOCATION),
+		.freeEntities = susNewVector(SUS_ENTITY),
+		.next = 0,
+		.registeredComponents = susNewVector(SUS_REGISTERED_COMPONENT),
+		.systems = susNewVector(SUS_SYSTEM)
+	};
+}
+// Create a new world of entities, components, and systems
 SUS_WORLD SUSAPI susNewWorld()
 {
 	SUS_PRINTDL("Creating the world");
 	SUS_WORLD world = sus_malloc(sizeof(SUS_WORLD_STRUCT));
 	if (!world) return NULL;
-	world->archetypes = susNewMap(SUS_COMPONENTMASK, SUS_ARCHETYPE_STRUCT);
-	world->entities = susNewMap(SUS_ENTITY, SUS_ENTITY_LOCATION);
-	world->freeEntities = susNewVector(SUS_ENTITY);
-	world->registeredComponents = susNewVector(SUS_REGISTERED_COMPONENT);
-	world->systems = susNewVector(SUS_SYSTEM);
-	world->next = 0;
+	SUS_WORLD_STRUCT worldStruct = susWorldSetup();
+	sus_memcpy((LPBYTE)world, (LPBYTE)&worldStruct, sizeof(SUS_WORLD_STRUCT));
 	return world;
 }
 // Destroy the world
-VOID SUSAPI susWorldDestroy(_Inout_ SUS_WORLD world)
+VOID SUSAPI susWorldCleanup(_In_ SUS_WORLD_STRUCT* world)
 {
 	SUS_PRINTDL("The destruction of the world");
-	SUS_ASSERT(world);
 	susVectorDestroy(world->systems);
+	SUS_VECTOR rootEntities = susNewVector(SUS_ENTITY);
 	susMapForeach(world->entities, _count, entry) {
-		susEntityDestroy(world, *(SUS_ENTITY*)susMapKey(world->entities, entry));
+		SUS_ENTITY* entity = (SUS_ENTITY*)susMapKey(world->entities, entry);
+		SUS_LPENTITY_LOCATION location = susMapGet(world->entities, entity);
+		if (location->parent == SUS_INVALID_ENTITY) susVectorPushBack(&rootEntities, entity);
+
 	}
+	susVecForeach(0, i, count, rootEntities) {
+		susEntityDestroy(world, *(SUS_ENTITY*)susVectorGet(rootEntities, i));
+	}
+	susVectorDestroy(rootEntities);
 	susMapDestroy(world->archetypes);
 	susMapDestroy(world->entities);
 	susVectorDestroy(world->registeredComponents);
+}
+// Destroy the world
+VOID SUSAPI susWorldDestroy(_In_ SUS_WORLD world)
+{
+	SUS_PRINTDL("The destruction of the world");
+	SUS_ASSERT(world);
+	susWorldCleanup(world);
 	sus_free(world);
 }
 // Update the state of the world
@@ -193,8 +216,56 @@ SUS_VECTOR SUSAPI susWorldGetEntitiesWith(_Inout_ SUS_WORLD world, _In_ SUS_COMP
 
 // --------------------------------------------------------------------------------------
 
+// Check for cyclical dependence
+static inline BOOL SUSAPI susHierarchyDetectCycle(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY potentialParent) {
+	while (potentialParent != SUS_INVALID_ENTITY) {
+		if (potentialParent == entity) return TRUE;
+		SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &potentialParent);
+		potentialParent = location ? location->parent : SUS_INVALID_ENTITY;
+	}
+	return FALSE;
+}
+// Set the parent
+VOID SUSAPI susEntitySetParent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY parent)
+{
+	SUS_ASSERT(entity != parent && !susHierarchyDetectCycle(world, entity, parent));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	if (location->parent != SUS_INVALID_ENTITY) {
+		SUS_LPENTITY_LOCATION oldParentLocation = susMapGet(world->entities, &location->parent);
+		susSetRemove(&oldParentLocation->children, &entity);
+		SUS_LPENTITY_LOCATION parentLocation = susMapGet(world->entities, &parent);
+		susSetAdd(&parentLocation->children, &entity);
+	}
+	location->parent = parent;
+}
+// Get a parent
+SUS_ENTITY SUSAPI susEntityGetParent(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
+{
+	SUS_ASSERT(world && susEntityExists(world, entity));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	return location->parent;
+}
+// Get kids
+SUS_HASHSET SUSAPI susEntityGetChildren(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
+{
+	SUS_ASSERT(world && susEntityExists(world, entity));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	return location->children;
+}
+// Check the affiliation
+BOOL SUSAPI susEntityIsDescendantOf(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY ancestor)
+{
+	do {
+		entity = susEntityGetParent(world, entity);
+		if (entity == ancestor) return TRUE;
+	} while (entity != SUS_INVALID_ENTITY);
+	return FALSE;
+}
+
+// --------------------------------------------------------------------------------------
+
 // Create a new entity
-SUS_ENTITY SUSAPI susNewEntity(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK initMask)
+SUS_ENTITY SUSAPI susNewEntity(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK initMask, _In_opt_ SUS_ENTITY parent)
 {
 	SUS_ASSERT(world && world->entities && world->freeEntities);
 	SUS_ENTITY entity;
@@ -202,19 +273,27 @@ SUS_ENTITY SUSAPI susNewEntity(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK i
 		entity = *(SUS_ENTITY*)susVectorBack(world->freeEntities);
 		susVectorPopBack(&world->freeEntities);
 	}
-	else {
-		entity = world->next++;
-	}
+	else entity = world->next++;
 	SUS_ENTITY_LOCATION location = susArchetypeAddEntity(world, entity, initMask);
+	location.parent = SUS_INVALID_ENTITY;
+	location.children = susNewSet(SUS_ENTITY);
 	susMapAdd(&world->entities, &entity, &location);
+	susEntitySetParent(world, entity, parent);
 	return entity;
 }
 // Destroy the entity
 VOID SUSAPI susEntityDestroy(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity)
 {
 	SUS_ASSERT(world && world->entities && world->freeEntities && susEntityExists(world, entity));
-	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
-	susArchetypeRemoveEntity(world, location);
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	if (location->parent != SUS_INVALID_ENTITY) {
+		SUS_LPENTITY_LOCATION parentLocation = susMapGet(world->entities, &entity);
+		susSetRemove(&parentLocation->children, &entity);
+	}
+	susSetForeach(location->children, count, entry) {
+		susEntityDestroy(world, *(SUS_ENTITY*)entry);
+	}
+	susArchetypeRemoveEntity(world, *location);
 	susMapRemove(&world->entities, &entity);
 	susVectorPushBack(&world->freeEntities, &entity);
 }

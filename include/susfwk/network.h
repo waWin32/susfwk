@@ -5,10 +5,6 @@
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include "core.h"
-#include "memory.h"
-#include "vector.h"
-#include "linkedList.h"
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma warning(disable: 4996)

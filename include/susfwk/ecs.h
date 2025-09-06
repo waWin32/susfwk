@@ -38,7 +38,7 @@ typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY en
 typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
 // Maximum number of possible registered components (SUS_BITMASK256 limit - 256 bits)
 #define SUS_MAX_COMPONENTS	256
-
+#define SUS_INVALID_ENTITY	INFINITE
 // Declare the component
 #define SUS_DECLARE_COMPONENT(ComponentName) SUS_COMPONENT_TYPE ComponentName##Type; SUS_STRUCT ComponentName
 
@@ -59,6 +59,8 @@ typedef struct sus_archetype {
 typedef struct sus_entity_location {
 	SUS_ARCHETYPE archetype;	// The Archetype
 	sus_u32 index;				// The index of the entity in the archetype
+	SUS_ENTITY parent;
+	SUS_HASHSET children;
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
 // ECS system structure
 typedef struct sus_system {
@@ -70,10 +72,10 @@ typedef struct sus_system {
 		SUS_SYSTEM_FREE_CALLBACK	callbackFree;	// System function
 	};
 #pragma warning(pop)
-	SUS_COMPONENTMASK			mask;		// System Mask
-	BOOL						enabled;	// System status - TRUE/FALSE
-	SUS_SYSTEM_TYPE				type;		// Type of system
-	SUS_OBJECT					userData;	// User data
+	SUS_COMPONENTMASK	mask;		// System Mask
+	BOOL				enabled;	// System status - TRUE/FALSE
+	SUS_SYSTEM_TYPE		type;		// Type of system
+	SUS_OBJECT			userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
 
 // ECS Component Constructor
@@ -100,10 +102,16 @@ typedef struct sus_world {
 // --------------------------------------------------------------------------------------
 
 // Create a new world of entities, components, and systems
+SUS_WORLD_STRUCT SUSAPI susWorldSetup();
+// Create a new world of entities, components, and systems
 SUS_WORLD SUSAPI susNewWorld();
 // Destroy the world
+VOID SUSAPI susWorldCleanup(
+	_In_ SUS_WORLD_STRUCT* world
+);
+// Destroy the world
 VOID SUSAPI susWorldDestroy(
-	_Inout_ SUS_WORLD world
+	_In_ SUS_WORLD world
 );
 // Update the state of the world
 VOID SUSAPI susWorldUpdate(
@@ -139,10 +147,35 @@ SUS_VECTOR SUSAPI susWorldGetEntitiesWith(
 
 // --------------------------------------------------------------------------------------
 
+VOID SUSAPI susEntitySetParent(
+	_Inout_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity,
+	_In_opt_ SUS_ENTITY parent
+);
+// Get a parent
+SUS_ENTITY SUSAPI susEntityGetParent(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity
+);
+// Get kids
+SUS_HASHSET SUSAPI susEntityGetChildren(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity
+);
+// Check the affiliation
+BOOL SUSAPI susEntityIsDescendantOf(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity,
+	_In_ SUS_ENTITY ancestor
+);
+
+// --------------------------------------------------------------------------------------
+
 // Create a new entity
 SUS_ENTITY SUSAPI susNewEntity(
 	_Inout_ SUS_WORLD world,
-	_In_ SUS_COMPONENTMASK initMask
+	_In_ SUS_COMPONENTMASK initMask,
+	_In_opt_ SUS_ENTITY parent
 );
 // Destroy the entity
 VOID SUSAPI susEntityDestroy(
@@ -171,18 +204,18 @@ VOID SUSAPI susEntityReplaceComponent(
 
 // Check the entity for existence
 SUS_INLINE BOOL SUSAPI susEntityExists(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity) {
-	SUS_ASSERT(world && world->entities);
+	SUS_ASSERT(world && world->entities && entity != SUS_INVALID_ENTITY);
 	return (BOOL)((ULONGLONG)susMapGet(world->entities, &entity));
 }
 // Check the component for the existence of the component
 SUS_INLINE BOOL SUSAPI susEntityHasComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type) {
-	SUS_ASSERT(world && world->entities && susEntityExists(world, entity));
+	SUS_ASSERT(world && susEntityExists(world, entity));
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
 	return susBitmask256Test(location.archetype->mask, type);
 }
 // Get a component
 SUS_INLINE SUS_OBJECT SUSAPI susEntityGetComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type) {
-	SUS_ASSERT(world && world->entities && susEntityExists(world, entity));
+	SUS_ASSERT(world && susEntityExists(world, entity));
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
 	SUS_LPVECTOR pool = (SUS_LPVECTOR)susMapGet(location.archetype->componentPools, &type);
 	return pool ? susVectorGet(*pool, location.index) : NULL;

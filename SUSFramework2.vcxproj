@@ -34,7 +34,6 @@
     <ClInclude Include="include\susfwk\iostream.h" />
     <ClInclude Include="include\susfwk\linkedlist.h" />
     <ClInclude Include="include\susfwk\math.h" />
-    <ClInclude Include="include\susfwk\mathcore.h" />
     <ClInclude Include="include\susfwk\mathdef.h" />
     <ClInclude Include="include\susfwk\memory.h" />
     <ClInclude Include="include\susfwk\network.h" />
@@ -42,7 +41,6 @@
     <ClInclude Include="include\susfwk\resapi.h" />
     <ClInclude Include="include\susfwk\string.h" />
     <ClInclude Include="include\susfwk\thrprocessapi.h" />
-    <ClInclude Include="include\susfwk\tmath.h" />
     <ClInclude Include="include\susfwk\vector.h" />
     <ClInclude Include="include\susfwk\windowapi.h" />
   </ItemGroup>
@@ -55,7 +53,7 @@
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="iostream.c" />
     <ClCompile Include="linkedlist.c" />
-    <ClCompile Include="mathcore.c" />
+    <ClCompile Include="math.c" />
     <ClCompile Include="memory.c" />
     <ClCompile Include="network.c" />
     <ClCompile Include="regapi.c" />
