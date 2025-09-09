@@ -1,4 +1,4 @@
-﻿# SUSFramework2
+﻿# SUSFramework2 (susfwk)
 **A lightweight C framework for embedded systems that provides low-level access to the Windows system**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -22,26 +22,30 @@ This framework provides an interface similar to standard libraries, but without 
 - 🧩 **Modular architecture** - Use only required components
 - ✨ **CRT-like API** - Familiar interface without external dependencies
 
+## How to install 🛠
+
+1. Install Visual Studio
+2. Create a project using the susfwk template
+3. Install templates - place all project templates in the folder - 
+C:\Users\Your user\Documents\Visual Studio 2022\Templates\ProjectTemplates
+4. Go to the project properties and set the additional include directories - 
+Properties -> C/C++ -> General -> Additional Include Directories - 
+Specify the path to the 'include' folder here
+5. In the properties, set additional library directories - 
+Properties -> Linker -> General -> Additional Library Directories - 
+Specify the path to the x64/Release folder here
+
 ## Quick start 🚀
 ```C
-// WinMain.c
+// main.c
 //
 #include "susfwk.h"
-#pragma comment(lib, "susf2.lib")
+#pragma comment(lib, "susfwk.lib")
 
 int _fltused = 1; // Required! (Due to the absence of CRT)
 
-int WINAPI WinMain(
-    _In_        HINSTANCE   hInstance,
-    _In_opt_    HINSTANCE   hPrevInstance,
-    _In_        LPSTR       lpCmdLine,
-    _In_        int         nShowCmd)
+int main()
 {
-    UNREFERENCED_PARAMETER(hInstance);
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
-    UNREFERENCED_PARAMETER(nShowCmd);
-
     SUS_CONSOLE_DEBUGGING(); // Creating a debugging console
     sus_printf("hello world!"); // Text output to the console
 
