@@ -5,26 +5,28 @@
 
 // --------------------------------------------------------------------------------------
 
-#pragma warning(push)
-#pragma warning(disable: 28159)
-
 // The structure of the time delta
 typedef struct sus_delta_time {
-	DWORD lastTime;
-} SUS_DELTA_TIME, *SUS_LPDELTA_TIME;
+	LARGE_INTEGER	lastTime;
+	LARGE_INTEGER	frequency;
+	FLOAT			invFrequency;
+} SUS_DTIMER, *SUS_LPDTIMER;
 // Initialize the time delta
-SUS_INLINE SUS_DELTA_TIME SUSAPI susInitDeltaTime() {
-	return (SUS_DELTA_TIME) { .lastTime = GetTickCount() };
+SUS_INLINE SUS_DTIMER SUSAPI susDTimerInit() {
+	SUS_DTIMER timer = { 0 };
+	QueryPerformanceFrequency(&timer.frequency);
+	QueryPerformanceCounter(&timer.lastTime);
+	timer.invFrequency = 1.0f / (FLOAT)timer.frequency.QuadPart;
+	return timer;
 }
 // Update the delta from time to time
-SUS_INLINE FLOAT SUSAPI susGetDeltaTime(SUS_LPDELTA_TIME timer) {
-	DWORD time = GetTickCount() - timer->lastTime;
-	if (!time) return 0.0f;
-	timer->lastTime += time;
-	return time / 1000.0f;
+SUS_INLINE FLOAT SUSAPI susDTimeGet(SUS_LPDTIMER timer) {
+	LARGE_INTEGER currentTime;
+	QueryPerformanceCounter(&currentTime);
+	LONGLONG delta = currentTime.QuadPart - timer->lastTime.QuadPart;
+	timer->lastTime = currentTime;
+	return delta * timer->invFrequency;
 }
-
-#pragma warning(pop)
 
 // --------------------------------------------------------------------------------------
 
@@ -40,7 +42,7 @@ typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime
 #define SUS_MAX_COMPONENTS	256
 #define SUS_INVALID_ENTITY	INFINITE
 // Declare the component
-#define SUS_DECLARE_COMPONENT(ComponentName) SUS_COMPONENT_TYPE ComponentName##Type; SUS_STRUCT ComponentName
+#define SUS_DECLARE_COMPONENT(ComponentName) extern SUS_COMPONENT_TYPE ComponentName##Type; SUS_STRUCT ComponentName
 
 // --------------------------------------------------------------------------------------
 
@@ -59,8 +61,8 @@ typedef struct sus_archetype {
 typedef struct sus_entity_location {
 	SUS_ARCHETYPE archetype;	// The Archetype
 	sus_u32 index;				// The index of the entity in the archetype
-	SUS_ENTITY parent;
-	SUS_HASHSET children;
+	SUS_ENTITY parent;			// Parent Entity
+	SUS_HASHSET children;		// Children of the entity
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
 // ECS system structure
 typedef struct sus_system {
@@ -85,7 +87,7 @@ typedef VOID(SUSAPI* SUS_COMPONENT_DESTRUCTOR)(SUS_OBJECT component);
 
 // Registered components in the world
 typedef struct sus_registered_component {
-	sus_size_t					size;		// Size of the registered component
+	SIZE_T	size;		// Size of the registered component
 	SUS_COMPONENT_CONSTRUCTOR	constructor;// The component Constructor
 	SUS_COMPONENT_DESTRUCTOR	destructor;	// The component's destructor
 } SUS_REGISTERED_COMPONENT, *SUS_LPREGISTERED_COMPONENT;
@@ -235,7 +237,6 @@ VOID SUSAPI susSystemRun(
 	_In_ SUS_SYSTEM_ID index,
 	_In_ FLOAT deltaTime
 );
-
 // Get a system
 SUS_INLINE SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	SUS_ASSERT(world);

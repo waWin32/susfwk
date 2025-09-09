@@ -86,19 +86,37 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window);
 // Build a window
 BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window);
 // The main Window cycle
-INT SUSAPI susWindowMainLoopA(_In_ SUS_LPWINDOW_STRUCTA window);
+INT SUSAPI susWindowMainLoopA();
 // The main Window cycle
-INT SUSAPI susWindowMainLoopW(_In_ SUS_LPWINDOW_STRUCTW window);
+INT SUSAPI susWindowMainLoopW();
+
+// Clean all window data
+SUS_INLINE VOID SUSAPI susWindowCleanupA(_In_ SUS_LPWINDOW_STRUCTA window) {
+	if (lstrcmpA(window->wStruct.lpszClass, SUS_DEFWNDNAMEA) != 0) {
+		UnregisterClassA(window->wcEx.lpszClassName, window->wcEx.hInstance);
+		sus_free((LPVOID)window->wStruct.lpszClass);
+	}
+}
+// Clean all window data
+SUS_INLINE VOID SUSAPI susWindowCleanupW(_In_ SUS_LPWINDOW_STRUCTW window) {
+	if (lstrcmpW(window->wStruct.lpszClass, SUS_DEFWNDNAMEW) != 0) {
+		UnregisterClassW(window->wcEx.lpszClassName, window->wcEx.hInstance);
+		sus_free((LPVOID)window->wStruct.lpszClass);
+	}
+}
 
 #ifdef UNICODE
 #define susWindowSetup		susWindowSetupW
+#define susWindowCleanup	susWindowCleanupW
 #define susBuildWindow		susBuildWindowW
 #define susWindowMainLoop	susWindowMainLoopW
 #else // ELSE UNICODE
 #define susWindowSetup		susWindowSetupA
+#define susWindowCleanup	susWindowCleanupA
 #define susBuildWindow		susBuildWindowA
 #define susWindowMainLoop	susWindowMainLoopA
 #endif // !UNICODE
+
 
 // =================================================================================================
 
@@ -352,12 +370,12 @@ SUS_INLINE VOID SUSAPI susRemoveWidgetHandler(HWND hWnd, SUBCLASSPROC widgetProc
 }
 #endif // !SUSNOTCOMMCTRL
 // Set the widget size and position
-SUS_INLINE VOID SUSAPI susWidgetSetRect(SUS_LPWIDGET widget, RECT bounds) {
+SUS_INLINE VOID SUSAPI susWidgetSetBounds(SUS_LPWIDGET widget, RECT bounds) {
 	susWidgetSetPos(widget, (POINT) { bounds.left, bounds.top });
 	susWidgetSetSize(widget, (SIZE) { bounds.right, bounds.bottom });
 }
 // Set the widget size and position
-SUS_INLINE VOID SUSAPI susWidgetSetBounds(SUS_LPWIDGET widget, RECT bounds) {
+SUS_INLINE VOID SUSAPI susWidgetSetRect(SUS_LPWIDGET widget, RECT bounds) {
 	susWidgetSetPos(widget, (POINT) { bounds.left, bounds.top });
 	susWidgetSetSize(widget, (SIZE) { bounds.right - bounds.left, bounds.bottom - bounds.top });
 }

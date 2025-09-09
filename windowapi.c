@@ -210,36 +210,26 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window)
 	return TRUE;
 }
 // The main Window cycle
-INT SUSAPI susWindowMainLoopA(_In_ SUS_LPWINDOW_STRUCTA window)
+INT SUSAPI susWindowMainLoopA()
 {
 	SUS_PRINTDL("The main window cycle");
-	SUS_ASSERT(window);
 	MSG msg;
 	while (GetMessageA(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
 		DispatchMessageA(&msg);
 	}
-	if ((LPVOID)window->wStruct.lpszClass != (LPVOID)SUS_DEFWNDNAMEW) {
-		UnregisterClassA(window->wcEx.lpszClassName, window->wcEx.hInstance);
-		sus_free((LPVOID)window->wStruct.lpszClass);
-	}
 	return (int)msg.wParam;
 }
 // The main Window cycle
-INT SUSAPI susWindowMainLoopW(_In_ SUS_LPWINDOW_STRUCTW window)
+INT SUSAPI susWindowMainLoopW()
 {
 	SUS_PRINTDL("The main window cycle");
-	SUS_ASSERT(window);
 	MSG msg;
 	while (GetMessageW(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);
-	}
-	if ((LPVOID)window->wStruct.lpszClass != (LPVOID)SUS_DEFWNDNAMEW) {
-		UnregisterClassW(window->wcEx.lpszClassName, window->wcEx.hInstance);
-		sus_free((LPVOID)window->wStruct.lpszClass);
 	}
 	return (int)msg.wParam;
 }
