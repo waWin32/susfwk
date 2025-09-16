@@ -114,6 +114,7 @@ SUS_OBJECT SUSAPI susMapGet(
 	_In_ SUS_HASHMAP map,
 	_In_bytecount_(map->valueSize) SUS_OBJECT key
 );
+#define susMapFind(map, key) (BOOL)(susMapGet(map, key) != NULL)
 // Get the entry from the hash table node
 #define susMapEntry(bucket, i) (SUS_OBJECT)susVectorGet(bucket, i)
 // Get the key from the hash table node
@@ -166,7 +167,6 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 
 // ================================================================================================
 
-
 // An unordered array
 typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 
@@ -176,8 +176,8 @@ typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 #define susSetDestroy					susMapDestroy
 
 #define susSetForeach(set, tag, entry)	susMapForeach(set, tag, entry)
-#define susSetContains(set, key)		((BOOL)(susMapGet(set, key) != NULL))
-#define susSetClear						susMapClear
+#define susSetFind(set, key)			susMapFind(set, key)
+#define susSetClear(set)				susMapClear(set)
 #define susSetValue(set, entry)			susMapKey(set, entry)
 #define susSetAdd(lpSet, key)			susMapAdd(lpSet, key, NULL)
 #define susSetRemove(lpSet, key)		susMapRemove(lpSet, key)

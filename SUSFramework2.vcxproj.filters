@@ -46,6 +46,12 @@
     <Filter Include="Файлы заголовков\system">
       <UniqueIdentifier>{aef1af48-2a19-4c50-88a2-28dc8cab2a0e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\api">
+      <UniqueIdentifier>{f9b03f77-58f6-4816-ad51-7f8368fa9538}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\api">
+      <UniqueIdentifier>{0b506127-596d-48aa-b3a6-a484328506a8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\susfwk\conio.h">
@@ -56,9 +62,6 @@
     </ClInclude>
     <ClInclude Include="include\susfwk\crypto.h">
       <Filter>Файлы заголовков\strings</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\debug.h">
-      <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\deftypes.h">
       <Filter>Файлы заголовков\core</Filter>
@@ -118,7 +121,13 @@
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\ecs.h">
-      <Filter>Файлы заголовков\collections</Filter>
+      <Filter>Файлы заголовков\api</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\debug.h">
+      <Filter>Файлы заголовков\api</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\thread.h">
+      <Filter>Файлы заголовков\api</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -171,7 +180,10 @@
       <Filter>Исходные файлы\system</Filter>
     </ClCompile>
     <ClCompile Include="ecs.c">
-      <Filter>Исходные файлы\collections</Filter>
+      <Filter>Исходные файлы\api</Filter>
+    </ClCompile>
+    <ClCompile Include="thread.c">
+      <Filter>Исходные файлы\api</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

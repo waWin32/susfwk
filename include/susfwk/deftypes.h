@@ -62,7 +62,7 @@ typedef sus_flag32 sus_flag;
 
 // custom data types :
 
-typedef sus_u8 sus_bool;
+typedef sus_u32 sus_bool;
 typedef sus_i32 sus_status;
 typedef sus_i32 sus_result;
 

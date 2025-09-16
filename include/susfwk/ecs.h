@@ -34,15 +34,14 @@ typedef SUS_BITMASK256 SUS_COMPONENTMASK, *SUS_LPCOMPONENTMASK;
 typedef sus_u32 SUS_COMPONENT_TYPE, *SUS_LPCOMPONENT_TYPE;
 typedef sus_u32 SUS_ENTITY;
 typedef sus_u32 SUS_SYSTEM_ID;
-// The system's callback function
-typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
-// The system's callback function
-typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
 // Maximum number of possible registered components (SUS_BITMASK256 limit - 256 bits)
 #define SUS_MAX_COMPONENTS	256
 #define SUS_INVALID_ENTITY	INFINITE
+#define SUS_COMPONENT SUS_STRUCT
 // Declare the component
 #define SUS_DECLARE_COMPONENT(ComponentName) extern SUS_COMPONENT_TYPE ComponentName##Type; SUS_STRUCT ComponentName
+// Define the component
+#define SUS_DEFINE_COMPONENT(ComponentName) SUS_COMPONENT_TYPE ComponentName##Type	
 
 // --------------------------------------------------------------------------------------
 
@@ -64,9 +63,12 @@ typedef struct sus_entity_location {
 	SUS_ENTITY parent;			// Parent Entity
 	SUS_HASHSET children;		// Children of the entity
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
+// The system's callback function
+typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
+// The system's callback function
+typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
 // ECS system structure
 typedef struct sus_system {
-
 #pragma warning(push)
 #pragma warning(disable: 4201)
 	union sus_system_callback_union {
@@ -75,7 +77,7 @@ typedef struct sus_system {
 	};
 #pragma warning(pop)
 	SUS_COMPONENTMASK	mask;		// System Mask
-	BOOL				enabled;	// System status - TRUE/FALSE
+	sus_bool			enabled;	// System status
 	SUS_SYSTEM_TYPE		type;		// Type of system
 	SUS_OBJECT			userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
@@ -87,7 +89,7 @@ typedef VOID(SUSAPI* SUS_COMPONENT_DESTRUCTOR)(SUS_OBJECT component);
 
 // Registered components in the world
 typedef struct sus_registered_component {
-	SIZE_T	size;		// Size of the registered component
+	sus_size_t					size;		// Size of the registered component
 	SUS_COMPONENT_CONSTRUCTOR	constructor;// The component Constructor
 	SUS_COMPONENT_DESTRUCTOR	destructor;	// The component's destructor
 } SUS_REGISTERED_COMPONENT, *SUS_LPREGISTERED_COMPONENT;
@@ -100,6 +102,12 @@ typedef struct sus_world {
 	SUS_VECTOR freeEntities;			// SUS_ENTITY
 	SUS_ENTITY next;					// The following entity id
 } SUS_WORLD_STRUCT, *SUS_WORLD;
+
+// --------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//									Manager of Worlds									//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
@@ -118,16 +126,20 @@ VOID SUSAPI susWorldDestroy(
 // Update the state of the world
 VOID SUSAPI susWorldUpdate(
 	_In_ SUS_WORLD world,
-	_In_ FLOAT deltaTime
+	_In_ sus_float deltaTime
 );
+
+// --------------------------------------------------------------------------------------
+
 // Register a new component
-VOID SUSAPI susWorldRegisterComponent(
+VOID SUSAPI susWorldRegisterComponentEx(
 	_Inout_ SUS_WORLD world,
 	_In_ sus_size_t componentSize,
 	_In_opt_ SUS_COMPONENT_CONSTRUCTOR constructor,
 	_In_opt_ SUS_COMPONENT_DESTRUCTOR destructor,
 	_Out_ SUS_LPCOMPONENT_TYPE type
 );
+#define susWorldRegisterComponent(world, componentName, constructor, destructor) susWorldRegisterComponentEx(world, sizeof(SUS_COMPONENT componentName), constructor, destructor, &componentName##Type)
 // Register an entity processing system
 SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(
 	_Inout_ SUS_WORLD world,
@@ -149,27 +161,9 @@ SUS_VECTOR SUSAPI susWorldGetEntitiesWith(
 
 // --------------------------------------------------------------------------------------
 
-VOID SUSAPI susEntitySetParent(
-	_Inout_ SUS_WORLD world,
-	_In_ SUS_ENTITY entity,
-	_In_opt_ SUS_ENTITY parent
-);
-// Get a parent
-SUS_ENTITY SUSAPI susEntityGetParent(
-	_In_ SUS_WORLD world,
-	_In_ SUS_ENTITY entity
-);
-// Get kids
-SUS_HASHSET SUSAPI susEntityGetChildren(
-	_In_ SUS_WORLD world,
-	_In_ SUS_ENTITY entity
-);
-// Check the affiliation
-BOOL SUSAPI susEntityIsDescendantOf(
-	_In_ SUS_WORLD world,
-	_In_ SUS_ENTITY entity,
-	_In_ SUS_ENTITY ancestor
-);
+//////////////////////////////////////////////////////////////////////////////////////////
+//									Entity Manager										//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
@@ -184,6 +178,9 @@ VOID SUSAPI susEntityDestroy(
 	_Inout_ SUS_WORLD world,
 	_In_ SUS_ENTITY entity
 );
+
+// --------------------------------------------------------------------------------------
+
 // Add a component to an entity
 VOID SUSAPI susEntityAddComponent(
 	_Inout_ SUS_WORLD world,
@@ -203,6 +200,8 @@ VOID SUSAPI susEntityReplaceComponent(
 	_In_ SUS_COMPONENT_TYPE srcType,
 	_In_ SUS_COMPONENT_TYPE newType
 );
+
+// --------------------------------------------------------------------------------------
 
 // Check the entity for existence
 SUS_INLINE BOOL SUSAPI susEntityExists(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity) {
@@ -231,12 +230,54 @@ SUS_INLINE SUS_COMPONENTMASK SUSAPI susEntityGetMask(_Inout_ SUS_WORLD world, _I
 
 // --------------------------------------------------------------------------------------
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//								Hierarchy of entities									//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// --------------------------------------------------------------------------------------
+
+VOID SUSAPI susEntitySetParent(
+	_Inout_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity,
+	_In_opt_ SUS_ENTITY parent
+);
+// Get a parent
+SUS_ENTITY SUSAPI susEntityGetParent(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity
+);
+
+// --------------------------------------------------------------------------------------
+
+// Get kids
+SUS_HASHSET SUSAPI susEntityGetChildren(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity
+);
+// Check the affiliation
+BOOL SUSAPI susEntityIsDescendantOf(
+	_In_ SUS_WORLD world,
+	_In_ SUS_ENTITY entity,
+	_In_ SUS_ENTITY ancestor
+);
+
+// --------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//								Systems Manager											//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// --------------------------------------------------------------------------------------
+
 // Launch the system
 VOID SUSAPI susSystemRun(
 	_Inout_ SUS_WORLD world,
 	_In_ SUS_SYSTEM_ID index,
 	_In_ FLOAT deltaTime
 );
+
+// --------------------------------------------------------------------------------------
+
 // Get a system
 SUS_INLINE SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	SUS_ASSERT(world);
@@ -246,6 +287,9 @@ SUS_INLINE SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_
 SUS_INLINE BOOL SUSAPI susSystemExists(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	return (BOOL)((ULONGLONG)susWorldGetSystem(world, index));
 }
+
+// --------------------------------------------------------------------------------------
+
 // Set the operating status of the system
 SUS_INLINE VOID SUSAPI susSystemSetEnabled(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index, _In_ BOOL enabled) {
 	SUS_ASSERT(world && susSystemExists(world, index));

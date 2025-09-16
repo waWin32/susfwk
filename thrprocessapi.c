@@ -4,9 +4,6 @@
 #include "include/susfwk/core.h"
 #include "include/susfwk/thrprocessapi.h"
 
-// Global Critical Section
-CRITICAL_SECTION g_cs;
-
 // Create a snapshot of the system
 SUS_FILE SUSAPI susCreateSystemSnapshot(_In_ DWORD dwFlags)
 {
@@ -259,11 +256,11 @@ SUS_THREAD SUSAPI susOpenThread(
 	return hThr;
 }
 // Create a thread
-SUS_THREAD SUSAPI susCreateThread(_In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt_ LPVOID lpParam)
+SUS_THREAD SUSAPI susCreateThread(_In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt_ LPVOID lpParam, _In_ BOOL start)
 {
 	SUS_PRINTDL("Creating a new thread");
 	SUS_ASSERT(lpThrFunc);
-	SUS_FILE hThr = CreateThread(NULL, 0, lpThrFunc, lpParam, 0, NULL);
+	SUS_FILE hThr = CreateThread(NULL, 0, lpThrFunc, lpParam, !start ? CREATE_SUSPENDED : 0, NULL);
 	if (!hThr) {
 		SUS_PRINTDE("Failed to create a new thread");
 		SUS_PRINTDC(GetLastError());
@@ -273,11 +270,11 @@ SUS_THREAD SUSAPI susCreateThread(_In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt
 	return (SUS_THREAD)hThr;
 }
 // Create a remote thread
-SUS_THREAD SUSAPI susCreateRemoteThread(_In_ SUS_PROCESS hProcess, _In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt_ LPVOID lpParam)
+SUS_THREAD SUSAPI susCreateRemoteThread(_In_ SUS_PROCESS hProcess, _In_ LPTHREAD_START_ROUTINE lpThrFunc, _In_opt_ LPVOID lpParam, _In_ BOOL start)
 {
 	SUS_PRINTDL("Create a new thread in another process");
 	SUS_ASSERT(lpThrFunc);
-	SUS_FILE hThr = CreateRemoteThread(hProcess, NULL, 0, lpThrFunc, lpParam, 0, NULL);
+	SUS_FILE hThr = CreateRemoteThread(hProcess, NULL, 0, lpThrFunc, lpParam, !start ? CREATE_SUSPENDED : 0, NULL);
 	if (!hThr) {
 		SUS_PRINTDE("Failed to create a new thread");
 		SUS_PRINTDC(GetLastError());

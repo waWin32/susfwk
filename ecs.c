@@ -8,6 +8,10 @@
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/ecs.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//									Archetypes											//
+//////////////////////////////////////////////////////////////////////////////////////////
+
 // --------------------------------------------------------------------------------------
 
 // Find the archetype
@@ -38,28 +42,9 @@ static inline SUS_ARCHETYPE SUSAPI susCreateArchetype(_Inout_ SUS_WORLD world, _
 	SUS_ARCHETYPE archetype = susFindArchetype(world, mask);
 	return archetype ? archetype : susNewArchetype(world, mask);
 }
-// Destroy the archetype in the absence of connections
-static inline VOID SUSAPI susArchetypeCull(_Inout_ SUS_WORLD world, _In_ SUS_ARCHETYPE archetype) {
-	SUS_ASSERT(world && world->archetypes && archetype);
-	if (!susVectorCount(archetype->entities)) {
-		susVectorDestroy(archetype->entities);
-		susMapDestroy(archetype->componentPools);
-		susMapRemove(&world->archetypes, &archetype->mask);
-	}
-}
-// Remove an entity component from an archetype
-static inline VOID SUSAPI susArchetypeRemoveEntity(_In_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION location) {
-	SUS_ASSERT(world && location.archetype && world->registeredComponents && location.archetype->componentPools);
-	((SUS_LPENTITY_LOCATION)susMapGet(world->entities, (SUS_ENTITY*)susVectorSwapErase(&location.archetype->entities, location.index)))->index = location.index;
-	susVecForeach(0, i, _count, world->registeredComponents) {
-		if (susBitmask256Test(location.archetype->mask, i)) {
-			SUS_LPVECTOR pool = susMapGet(location.archetype->componentPools, &i);
-			if (((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor) ((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor(susVectorGet(*pool, location.index));
-			susVectorSwapErase(pool, location.index);
-		}
-	}
-	susArchetypeCull(world, location.archetype);
-}
+
+// --------------------------------------------------------------------------------------
+
 // Add an entity to an archetype
 static inline sus_u32 SUSAPI susArchetypeAddEntityEx(_In_ SUS_WORLD world, _Inout_ SUS_ARCHETYPE archetype, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY_LOCATION constructor) {
 	SUS_ASSERT(world && archetype);
@@ -84,6 +69,34 @@ static inline SUS_ENTITY_LOCATION SUSAPI susArchetypeAddEntity(_Inout_ SUS_WORLD
 	location.index = susArchetypeAddEntityEx(world, location.archetype, entity, (SUS_ENTITY_LOCATION) { 0 });
 	return location;
 }
+
+// --------------------------------------------------------------------------------------
+
+// Destroy the archetype in the absence of connections
+static inline VOID SUSAPI susArchetypeCull(_Inout_ SUS_WORLD world, _In_ SUS_ARCHETYPE archetype) {
+	SUS_ASSERT(world && world->archetypes && archetype);
+	if (!susVectorCount(archetype->entities)) {
+		susVectorDestroy(archetype->entities);
+		susMapDestroy(archetype->componentPools);
+		susMapRemove(&world->archetypes, &archetype->mask);
+	}
+}
+// Remove an entity component from an archetype
+static inline VOID SUSAPI susArchetypeRemoveEntity(_In_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION location) {
+	SUS_ASSERT(world && location.archetype && world->registeredComponents && location.archetype->componentPools);
+	((SUS_LPENTITY_LOCATION)susMapGet(world->entities, (SUS_ENTITY*)susVectorSwapErase(&location.archetype->entities, location.index)))->index = location.index;
+	susVecForeach(0, i, _count, world->registeredComponents) {
+		if (susBitmask256Test(location.archetype->mask, i)) {
+			SUS_LPVECTOR pool = susMapGet(location.archetype->componentPools, &i);
+			if (((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor) ((SUS_LPREGISTERED_COMPONENT)susVectorGet(world->registeredComponents, i))->destructor(susVectorGet(*pool, location.index));
+			susVectorSwapErase(pool, location.index);
+		}
+	}
+	susArchetypeCull(world, location.archetype);
+}
+
+// --------------------------------------------------------------------------------------
+
 // Move an entity from one archetype to another
 static inline VOID SUSAPI susArchetypeMoveEntityEx(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY_LOCATION oldLoc, SUS_ARCHETYPE newArchetype) {
 	SUS_ASSERT(world && world->archetypes && susVectorGet(oldLoc.archetype->entities, oldLoc.index));
@@ -99,6 +112,12 @@ static inline SUS_ARCHETYPE SUSAPI susArchetypeMoveEntity(_Inout_ SUS_WORLD worl
 	susArchetypeMoveEntityEx(world, oldLoc, newArchetype);
 	return newArchetype;
 }
+
+// --------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//									Manager of Worlds									//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
@@ -154,15 +173,18 @@ VOID SUSAPI susWorldDestroy(_In_ SUS_WORLD world)
 	sus_free(world);
 }
 // Update the state of the world
-VOID SUSAPI susWorldUpdate(_In_ SUS_WORLD world, _In_ FLOAT deltaTime)
+VOID SUSAPI susWorldUpdate(_In_ SUS_WORLD world, _In_ sus_float deltaTime)
 {
 	SUS_ASSERT(world);
 	susVecForeach(0, i, _count, world->systems) {
 		susSystemRun(world, i, deltaTime);
 	}
 }
+
+// --------------------------------------------------------------------------------------
+
 // Register a new component
-VOID SUSAPI susWorldRegisterComponent(_Inout_ SUS_WORLD world, _In_ sus_size_t componentSize, _In_opt_ SUS_COMPONENT_CONSTRUCTOR constructor, _In_opt_ SUS_COMPONENT_DESTRUCTOR destructor, _Out_ SUS_LPCOMPONENT_TYPE type)
+VOID SUSAPI susWorldRegisterComponentEx(_Inout_ SUS_WORLD world, _In_ sus_size_t componentSize, _In_opt_ SUS_COMPONENT_CONSTRUCTOR constructor, _In_opt_ SUS_COMPONENT_DESTRUCTOR destructor, _Out_ SUS_LPCOMPONENT_TYPE type)
 {
 	SUS_PRINTDL("Component registration");
 	SUS_ASSERT(world && world->registeredComponents && susVectorCount(world->registeredComponents) < SUS_MAX_COMPONENTS);
@@ -198,6 +220,9 @@ SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(_Inout_ SUS_WORLD world, _In_ SU
 	susVectorPushBack(&world->systems, &system);
 	return susVectorCount(world->systems) - 1;
 }
+
+// --------------------------------------------------------------------------------------
+
 // Get all entities with a mask
 SUS_VECTOR SUSAPI susWorldGetEntitiesWith(_Inout_ SUS_WORLD world, _In_ SUS_COMPONENTMASK mask)
 {
@@ -216,51 +241,9 @@ SUS_VECTOR SUSAPI susWorldGetEntitiesWith(_Inout_ SUS_WORLD world, _In_ SUS_COMP
 
 // --------------------------------------------------------------------------------------
 
-// Check for cyclical dependence
-static inline BOOL SUSAPI susHierarchyDetectCycle(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY potentialParent) {
-	while (potentialParent != SUS_INVALID_ENTITY) {
-		if (potentialParent == entity) return TRUE;
-		SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &potentialParent);
-		potentialParent = location ? location->parent : SUS_INVALID_ENTITY;
-	}
-	return FALSE;
-}
-// Set the parent
-VOID SUSAPI susEntitySetParent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY parent)
-{
-	SUS_ASSERT(entity != parent && !susHierarchyDetectCycle(world, entity, parent));
-	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
-	if (location->parent != SUS_INVALID_ENTITY) {
-		SUS_LPENTITY_LOCATION oldParentLocation = susMapGet(world->entities, &location->parent);
-		susSetRemove(&oldParentLocation->children, &entity);
-		SUS_LPENTITY_LOCATION parentLocation = susMapGet(world->entities, &parent);
-		susSetAdd(&parentLocation->children, &entity);
-	}
-	location->parent = parent;
-}
-// Get a parent
-SUS_ENTITY SUSAPI susEntityGetParent(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
-{
-	SUS_ASSERT(world && susEntityExists(world, entity));
-	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
-	return location->parent;
-}
-// Get kids
-SUS_HASHSET SUSAPI susEntityGetChildren(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
-{
-	SUS_ASSERT(world && susEntityExists(world, entity));
-	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
-	return location->children;
-}
-// Check the affiliation
-BOOL SUSAPI susEntityIsDescendantOf(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY ancestor)
-{
-	do {
-		entity = susEntityGetParent(world, entity);
-		if (entity == ancestor) return TRUE;
-	} while (entity != SUS_INVALID_ENTITY);
-	return FALSE;
-}
+//////////////////////////////////////////////////////////////////////////////////////////
+//									Entity Manager										//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
@@ -297,6 +280,9 @@ VOID SUSAPI susEntityDestroy(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity)
 	susMapRemove(&world->entities, &entity);
 	susVectorPushBack(&world->freeEntities, &entity);
 }
+
+// --------------------------------------------------------------------------------------
+
 // Add a component to an entity
 VOID SUSAPI susEntityAddComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_COMPONENT_TYPE type)
 {
@@ -332,6 +318,69 @@ VOID SUSAPI susEntityReplaceComponent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY e
 
 // --------------------------------------------------------------------------------------
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//								Hierarchy of entities									//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// --------------------------------------------------------------------------------------
+
+// Check for cyclical dependence
+static inline BOOL SUSAPI susHierarchyDetectCycle(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY potentialParent) {
+	while (potentialParent != SUS_INVALID_ENTITY) {
+		if (potentialParent == entity) return TRUE;
+		SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &potentialParent);
+		potentialParent = location ? location->parent : SUS_INVALID_ENTITY;
+	}
+	return FALSE;
+}
+// Set the parent
+VOID SUSAPI susEntitySetParent(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY parent)
+{
+	SUS_ASSERT(entity != parent && !susHierarchyDetectCycle(world, entity, parent));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	if (location->parent != SUS_INVALID_ENTITY) {
+		SUS_LPENTITY_LOCATION oldParentLocation = susMapGet(world->entities, &location->parent);
+		susSetRemove(&oldParentLocation->children, &entity);
+		SUS_LPENTITY_LOCATION parentLocation = susMapGet(world->entities, &parent);
+		susSetAdd(&parentLocation->children, &entity);
+	}
+	location->parent = parent;
+}
+// Get a parent
+SUS_ENTITY SUSAPI susEntityGetParent(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
+{
+	SUS_ASSERT(world && susEntityExists(world, entity));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	return location->parent;
+}
+
+// --------------------------------------------------------------------------------------
+
+// Get kids
+SUS_HASHSET SUSAPI susEntityGetChildren(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity)
+{
+	SUS_ASSERT(world && susEntityExists(world, entity));
+	SUS_LPENTITY_LOCATION location = susMapGet(world->entities, &entity);
+	return location->children;
+}
+// Check the affiliation
+BOOL SUSAPI susEntityIsDescendantOf(_In_ SUS_WORLD world, _In_ SUS_ENTITY entity, _In_ SUS_ENTITY ancestor)
+{
+	do {
+		entity = susEntityGetParent(world, entity);
+		if (entity == ancestor) return TRUE;
+	} while (entity != SUS_INVALID_ENTITY);
+	return FALSE;
+}
+
+// --------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//								Systems Manager											//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// --------------------------------------------------------------------------------------
+
 // Launch the system
 VOID SUSAPI susSystemRun(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index, _In_ FLOAT deltaTime)
 {
@@ -352,3 +401,5 @@ VOID SUSAPI susSystemRun(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index, _In_
 		}
 	}
 }
+
+// --------------------------------------------------------------------------------------

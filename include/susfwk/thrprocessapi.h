@@ -3,23 +3,7 @@
 #ifndef _SUS_PROCESS_API_
 #define _SUS_PROCESS_API_
 
-#include "memory.h"
 #include <TlHelp32.h>
-
-// Global Critical Section
-extern CRITICAL_SECTION g_cs;
-// Initialize the critical section
-SUS_INLINE VOID SUSAPI susInitCriticalSection() {
-	InitializeCriticalSection(&g_cs);
-}
-// Cleaning the critical section
-SUS_INLINE VOID SUSAPI susCleanupCriticalSection() {
-	DeleteCriticalSection(&g_cs);
-}
-// Enter the critical section
-SUS_INLINE VOID SUSAPI susEnterCriticalSection() {
-	EnterCriticalSection(&g_cs);
-}
 
 // Create a snapshot of the system
 SUS_FILE SUSAPI susCreateSystemSnapshot(_In_ DWORD dwFlags);
@@ -130,13 +114,15 @@ SUS_THREAD SUSAPI susOpenThread(
 // Create a thread
 SUS_THREAD SUSAPI susCreateThread(
 	_In_ LPTHREAD_START_ROUTINE lpThrFunc,
-	_In_opt_ LPVOID lpParam
+	_In_opt_ LPVOID lpParam,
+	_In_ BOOL start
 );
 // Create a remote thread
 SUS_THREAD SUSAPI susCreateRemoteThread(
 	_In_ SUS_PROCESS hProcess, 
 	_In_ LPTHREAD_START_ROUTINE lpThrFunc,
-	_In_opt_ LPVOID lpParam
+	_In_opt_ LPVOID lpParam,
+	_In_ BOOL start
 );
 // Terminate the thread
 BOOL SUSAPI susTerminateThread(
