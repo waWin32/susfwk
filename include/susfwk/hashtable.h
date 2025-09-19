@@ -122,7 +122,7 @@ SUS_OBJECT SUSAPI susMapGet(
 // Get the value from the hash table node
 #define susMapValue(map, entry) ((SUS_OBJECT)((entry) + ((SUS_HASHMAP)(map))->keySize))
 // Iterate over all elements of the hash table
-#define susMapForeach(map, tag, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(0, __j, tag, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
+#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(0, __j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
 // -------------------------------------------------------------------
 
@@ -175,7 +175,7 @@ typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 #define susSetCopy						(SUS_HASHSET)susMapCopy
 #define susSetDestroy					susMapDestroy
 
-#define susSetForeach(set, tag, entry)	susMapForeach(set, tag, entry)
+#define susSetForeach(set, entry)		susMapForeach(set, entry)
 #define susSetFind(set, key)			susMapFind(set, key)
 #define susSetClear(set)				susMapClear(set)
 #define susSetValue(set, entry)			susMapKey(set, entry)

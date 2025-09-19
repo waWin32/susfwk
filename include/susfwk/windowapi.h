@@ -78,9 +78,9 @@ typedef SUS_WINDOW_STRUCTW SUS_WINDOWW, *SUS_PWINDOWW, *SUS_LPWINDOWW;
 typedef SUS_WINDOW_STRUCT SUS_WINDOW, *SUS_PWINDOW, *SUS_LPWINDOW;
 
 // Basic initialization of the window
-SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lParam);
+SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ DWORD style, _In_opt_ LPVOID lParam);
 // Basic initialization of the window
-SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam);
+SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ DWORD style, _In_opt_ LPVOID lParam);
 // Build a window
 BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window);
 // Build a window
@@ -279,16 +279,35 @@ typedef SUS_WIDGET SUS_WGTOOLBAR;
 typedef SUS_WIDGETA SUS_WGTOOLBARA;
 typedef SUS_WIDGETW SUS_WGTOOLBARW;
 
-// Setup a button
-SUS_WGBUTTONA SUSAPI susWgButtonSetupA(
+// Setup a custom widget
+SUS_WIDGETA SUSAPI susWidgetSetupA(
 	_In_opt_ LPCSTR lpTitle,
-	_In_ INT id
+	_In_ INT id,
+	_In_ LPCSTR lpszClass,
+	_In_opt_ DWORD style
 );
-// Setup a button
-SUS_WGBUTTONW SUSAPI susWgButtonSetupW(
+// Setup a custom widget
+SUS_WIDGETW SUSAPI susWidgetSetupW(
 	_In_opt_ LPCWSTR lpTitle,
-	_In_ INT id
+	_In_ INT id,
+	_In_ LPCWSTR lpszClass,
+	_In_opt_ DWORD style
 );
+
+#ifdef UNICODE
+#define susWidgetSetup	susWidgetSetupW
+#else
+#define susWidgetSetup	susWidgetSetupA
+#endif // !UNICODE
+
+// Setup a button
+SUS_INLINE SUS_WGBUTTONA SUSAPI susWgButtonSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupA(lpTitle, id, "BUTTON", BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER | style);
+}
+// Setup a button
+SUS_INLINE SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupW(lpTitle, id, L"BUTTON", BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER | style);
+}
 
 #ifdef UNICODE
 #define susWgButtonSetup	susWgButtonSetupW
@@ -297,15 +316,13 @@ SUS_WGBUTTONW SUSAPI susWgButtonSetupW(
 #endif // !UNICODE
 
 // Setup a edit widget
-SUS_WGEDITA SUSAPI susWgEditSetupA(
-	_In_opt_ LPCSTR lpTitle,
-	_In_ INT id
-);
+SUS_INLINE SUS_WGEDITA SUSAPI susWgEditSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupA(lpTitle, id, "EDIT", ES_AUTOHSCROLL | style);
+}
 // Setup a edit widget
-SUS_WGEDITW SUSAPI susWgEditSetupW(
-	_In_opt_ LPCWSTR lpTitle,
-	_In_ INT id
-);
+SUS_INLINE SUS_WGEDITW SUSAPI susWgEditSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupW(lpTitle, id, L"EDIT", ES_AUTOHSCROLL | style);
+}
 
 #ifdef UNICODE
 #define susWgEditSetup	susWgEditSetupW
@@ -314,15 +331,13 @@ SUS_WGEDITW SUSAPI susWgEditSetupW(
 #endif // !UNICODE
 
 // Setup a static widget
-SUS_WGPANELA SUSAPI susWgPanelSetupA(
-	_In_opt_ LPCSTR lpTitle,
-	_In_ INT id
-);
+SUS_INLINE SUS_WGPANELA SUSAPI susWgPanelSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupA(lpTitle, id, "STATIC", style);
+}
 // Setup a static widget
-SUS_WGPANELW SUSAPI susWgPanelSetupW(
-	_In_opt_ LPCWSTR lpTitle,
-	_In_ INT id
-);
+SUS_INLINE SUS_WGPANELW SUSAPI susWgPanelSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id, _In_opt_ DWORD style) {
+	return susWidgetSetupW(lpTitle, id, L"STATIC", style);
+}
 
 #ifdef UNICODE
 #define susWgPanelSetup	susWgPanelSetupW
@@ -333,12 +348,12 @@ SUS_WGPANELW SUSAPI susWgPanelSetupW(
 // Build a widget
 BOOL SUSAPI susBuildWidgetA(
 	_In_ HWND hWnd,
-	_In_ SUS_LPWIDGETA widget
+	_Inout_ SUS_LPWIDGETA widget
 );
 // Build a widget
 BOOL SUSAPI susBuildWidgetW(
 	_In_ HWND hWnd,
-	_In_ SUS_LPWIDGETW widget
+	_Inout_ SUS_LPWIDGETW widget
 );
 
 #ifdef UNICODE

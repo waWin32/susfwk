@@ -59,6 +59,10 @@ SUS_INLINE VOID SUSAPI susBufferSet(_Inout_ SUS_BUFFER buff, _In_ BYTE value) {
 SUS_INLINE VOID SUSAPI susBufferZero(_Inout_ SUS_BUFFER buff) {
 	sus_zeromem(buff->data, buff->capacity);
 }
+// Get the number of bytes in the buffer
+SUS_INLINE SIZE_T SUSAPI susBufferSize(_In_ SUS_BUFFER buff) {
+	return buff->size;
+}
 
 // -------------------------------------
 
@@ -139,13 +143,13 @@ typedef struct sus_vector {
 // Get the array size
 #define susVectorTypeSize(array) ((array)->isize)
 // Get the array count
-#define susVectorCount(array) (DWORD)((array)->size / susVectorTypeSize(array))
+#define susVectorCount(array) (UINT)((array)->size / susVectorTypeSize(array))
 // Get the array buffer
 #define susVectorBuffer(array) ((SUS_BUFFER)((LPBYTE)(array) + array->offset))
 // Get the array buffer
 #define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
 // Go through all the elements of the array
-#define susVecForeach(start, i, count, vec) for (UINT i = (start), count = susVectorCount(vec); i < count; i++)
+#define susVecForeach(start, i, vec) for (UINT i = (start); i < susVectorCount(vec); i++)
 
 // -------------------------------------
 
@@ -243,7 +247,7 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 #ifdef _DEBUG
 SUS_INLINE VOID SUSAPI susVectorPrint(_In_ SUS_VECTOR vec) {
 	SUS_PRINTDL("Vector output {");
-	susVecForeach(0, i, count, vec) {
+	susVecForeach(0, i, vec) {
 		SUS_PRINTDL("'%s'", susVectorGet(vec, i));
 	}
 	SUS_PRINTDL("}");
