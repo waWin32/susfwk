@@ -8,6 +8,8 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma warning(disable: 4996)
 
+// -------------------------------------------------------------------------------------------------------------
+
 #define SUS_SOCKET_API_VERSION MAKEWORD(2, 2)
 #define SUS_SOCKET_TIMEOUT 1000
 #define SUS_SOCKET_INIT_READ_BUFFER_SIZE 1024
@@ -38,7 +40,7 @@ typedef struct sus_socket {
 	SUS_BUFFER			writeBuffer;// Dynamic buffer for writing
 	SUS_OBJECT			userdata;	// User data
 } SUS_SOCKET_STRUCT, *SUS_LPSOCKET_STRUCT, *SUS_SOCKET;
-//
+// The structure of the server socket
 typedef struct sus_server_socket {
 	SUS_SOCKET_STRUCT _PARENT_;
 	SUS_VECTOR clients;			// SUS_SOCKET_STRUCT

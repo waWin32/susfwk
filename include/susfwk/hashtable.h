@@ -152,7 +152,7 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 	for (DWORD i = 0; i < map->capacity; i++) {
 		SUS_VECTOR bucket = map->buckets[i];
 		SUS_PRINTDL("bucket [%d]:", i);
-		susVecForeach(0, j, _count, bucket) {
+		susVecForeach(0, j, bucket) {
 			LPBYTE entry = (LPBYTE)susMapEntry(bucket, j);
 			SUS_PRINTDL("\tkey: '%s' -> '%s'", susMapKey(map, entry), susMapValue(map, entry));
 		}

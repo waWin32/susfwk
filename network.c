@@ -164,7 +164,7 @@ BOOL SUSAPI susSocketAccept(_In_ SUS_SERVER_SOCKET server, _Out_ SUS_SOCKET clie
 	*client = susSocketSetup(server->clientHandler, server->super.userdata);
 	SOCKADDR_IN addr = { 0 };
 	INT size = sizeof(addr);
-	client->handler(client, SUS_SOCK_NCCREATE, 0, (LPARAM)server->super.sock);
+	client->handler(client, SUS_SOCK_NCCREATE, (WPARAM)server, (LPARAM)server->super.userdata);
 	client->sock = accept(server->super.sock, (SOCKADDR*)&addr, &size);
 	if (client->sock == INVALID_SOCKET) {
 		client->handler(client, SUS_SOCK_ERROR, WSAGetLastError(), SUS_SOCK_CREATE);
@@ -174,8 +174,9 @@ BOOL SUSAPI susSocketAccept(_In_ SUS_SERVER_SOCKET server, _Out_ SUS_SOCKET clie
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
 	}
+	susSocketSetNonBlocking(client, TRUE);
 	if (pAddr) *pAddr = addr;
-	client->handler(client, SUS_SOCK_CREATE, 0, (LPARAM)server);
+	client->handler(client, SUS_SOCK_CREATE, (WPARAM)server, (LPARAM)server->super.userdata);
 	server->super.handler(server, SUS_SOCK_START, (WPARAM)&addr, (LPARAM)client);
 	return TRUE;
 }
@@ -279,7 +280,7 @@ BOOL SUSAPI susServerListen(_Inout_ SUS_SERVER_SOCKET server, _In_ USHORT port)
 static SUS_SOCKET SUSAPI susServerAddClient(_Inout_ SUS_SERVER_SOCKET server, _In_ SUS_SOCKET client) {
 	WSAPOLLFD fd = { .fd = client->sock, .events = POLLIN | POLLOUT, .revents = 0 };
 	susVectorPushBack(&server->clientfds, &fd);
-	return susVectorPushBack(&server->clients, &client);
+	return susVectorPushBack(&server->clients, client);
 }
 // Delete the client from the server
 static VOID SUSAPI susServerRemoveClient(_Inout_ SUS_SERVER_SOCKET server, _In_ UINT clientId) {
@@ -343,7 +344,8 @@ BOOL SUSAPI susSocketUpdate(_In_ SUS_SOCKET sock)
 static BOOL SUSAPI susClientsPoll(_Inout_ SUS_SERVER_SOCKET server)
 {
 	SUS_ASSERT(server && server->clients && server->clientfds && server->super.sock != INVALID_SOCKET);
-	if (WSAPoll((LPWSAPOLLFD)server->clientfds->data, susVectorCount(server->clientfds), SUS_SOCK_TIMEOUT) == SOCKET_ERROR) {
+	if (!server->clientfds->size) return TRUE;
+	if (WSAPoll((LPWSAPOLLFD)server->clientfds->data, susVectorCount(server->clientfds), 0) == SOCKET_ERROR) {
 		SUS_PRINTDE("Failed to poll sockets");
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
@@ -364,7 +366,7 @@ static BOOL SUSAPI susClientsPoll(_Inout_ SUS_SERVER_SOCKET server)
 		}
 		if (fds->revents & POLLERR) {
 			client->handler(client, SUS_SOCK_ERROR, (WPARAM)WSAGetLastError(), POLLERR);
-			susSocketShutdown(client);
+			if (client->sock != INVALID_SOCKET) susSocketShutdown(client);
 			susServerRemoveClient(server, i);
 		}
 	}
@@ -373,12 +375,14 @@ static BOOL SUSAPI susClientsPoll(_Inout_ SUS_SERVER_SOCKET server)
 // Update the server status
 BOOL SUSAPI susServerUpdate(_In_ SUS_SERVER_SOCKET server)
 {
-	SUS_ASSERT(server && server->super.sock != INVALID_SOCKET);
-	WSAPOLLFD fd = { 0 };
-	fd.fd = server->super.sock;
-	fd.events = POLLRDNORM;
-	if (WSAPoll(&fd, 1, SUS_SOCKET_TIMEOUT) == SOCKET_ERROR) {
-		SUS_PRINTDE("Failed to poll sockets");
+	SUS_ASSERT(server);
+	WSAPOLLFD fd = {
+		.fd = server->super.sock,
+		.events = POLLRDNORM,
+		.revents = 0
+	};
+	if (WSAPoll(&fd, 1, 0) == SOCKET_ERROR) {
+		SUS_PRINTDE("Failed to poll server");
 		SUS_PRINTDC(WSAGetLastError());
 		return FALSE;
 	}
@@ -387,11 +391,13 @@ BOOL SUSAPI susServerUpdate(_In_ SUS_SERVER_SOCKET server)
 	}
 	if (fd.revents & POLLHUP) {
 		susSocketClose(&server->super);
-		return FALSE;
 	}
 	if (fd.revents & POLLERR) {
 		server->super.handler(&server->super, SUS_SOCK_ERROR, (WPARAM)WSAGetLastError(), 0);
-		susSocketShutdown(&server->super);
+		if (server->super.sock != INVALID_SOCKET) susSocketShutdown(&server->super);
+	}
+	if (server->super.sock == INVALID_SOCKET) {
+		susServerCleanup(server);
 		return FALSE;
 	}
 	return susClientsPoll(server);
