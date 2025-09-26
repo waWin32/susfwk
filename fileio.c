@@ -187,7 +187,7 @@ BOOL SUSAPI susDeleteFileW(_In_ LPCWSTR lpFileName)
 // --------------------------------------------------------
 
 // Reading data from a file
-DWORD SUSAPI susReadFile(
+DWORD SUSAPI susReadFileEx(
 	_In_ SUS_FILE hFile,
 	_Out_ LPBYTE lpBuffer,
 	_In_ DWORD dwReadBufferSize)
@@ -208,6 +208,17 @@ DWORD SUSAPI susReadFile(
 	}
 	SUS_PRINTDL("The data has been read successfully");
 	return bytesRead;
+}
+// Read the entire file
+SUS_DATAVIEW SUSAPI susReadFile(_In_ SUS_FILE hFile)
+{
+	SUS_PRINTDL("Reading the entire file");
+	SUS_DATAVIEW data = susNewData(susGetFileSize(hFile));
+	if (!susReadFileEx(hFile, data.data, (DWORD)data.size)) {
+		susDataDestroy(data);
+		return (SUS_DATAVIEW) { 0 };
+	}
+	return data;
 }
 // Writing to a file
 DWORD SUSAPI susWriteFile(
@@ -291,7 +302,8 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName)
 // Recursive traversal of hard disk files
 DWORD SUSAPI susTraverseFileTreeA(
 	_In_ LPCSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc)
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAA lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAA));
@@ -319,7 +331,7 @@ DWORD SUSAPI susTraverseFileTreeA(
 		lstrcatA(filePath, lpFindFileData->cFileName);
 		if (lpFindFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			lstrcatA(filePath, "\\");
-			if (susTraverseFileTreeA(filePath, lpFileSearchProc) == INFINITE) {
+			if (susTraverseFileTreeA(filePath, lpFileSearchProc, userData) == INFINITE) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
@@ -327,7 +339,7 @@ DWORD SUSAPI susTraverseFileTreeA(
 			}
 		}
 		else {
-			if (lpFileSearchProc(filePath)) {
+			if (lpFileSearchProc(filePath, userData)) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
@@ -344,7 +356,8 @@ DWORD SUSAPI susTraverseFileTreeA(
 // Navigate through the folders and files in directory
 BOOL SUSAPI susEnumDirectoryA(
 	_In_ LPCSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc)
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	WIN32_FIND_DATAA findFileData = { 0 };
@@ -360,7 +373,7 @@ BOOL SUSAPI susEnumDirectoryA(
 		return FALSE;
 	}
 	do {
-		if (lpFileSearchProc(findFileData.cFileName)) {
+		if (lpFileSearchProc(findFileData.cFileName, userData)) {
 			FindClose(hFind);
 			return 2;
 		}
@@ -372,7 +385,8 @@ BOOL SUSAPI susEnumDirectoryA(
 // Recursive traversal of hard disk files
 DWORD SUSAPI susTraverseFileTreeW(
 	_In_ LPCWSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc)
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAW lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAW));
@@ -400,7 +414,7 @@ DWORD SUSAPI susTraverseFileTreeW(
 		lstrcatW(filePath, lpFindFileData->cFileName);
 		if (lpFindFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			lstrcatW(filePath, L"\\");
-			if (susTraverseFileTreeW(filePath, lpFileSearchProc) == INFINITE) {
+			if (susTraverseFileTreeW(filePath, lpFileSearchProc, userData) == INFINITE) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
@@ -408,7 +422,7 @@ DWORD SUSAPI susTraverseFileTreeW(
 			}
 		}
 		else {
-			if (lpFileSearchProc(filePath)) {
+			if (lpFileSearchProc(filePath, userData)) {
 				FindClose(hFind);
 				sus_free(filePath);
 				sus_free(lpFindFileData);
@@ -425,7 +439,8 @@ DWORD SUSAPI susTraverseFileTreeW(
 // Navigate through the folders and files in directory
 BOOL SUSAPI susEnumDirectoryW(
 	_In_ LPCWSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc)
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	WIN32_FIND_DATAW findFileData = { 0 };
@@ -441,7 +456,7 @@ BOOL SUSAPI susEnumDirectoryW(
 		return FALSE;
 	}
 	do {
-		if (lpFileSearchProc(findFileData.cFileName)) {
+		if (lpFileSearchProc(findFileData.cFileName, userData)) {
 			FindClose(hFind);
 			return 2;
 		}

@@ -149,7 +149,7 @@ typedef struct sus_vector {
 // Get the array buffer
 #define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
 // Go through all the elements of the array
-#define susVecForeach(start, i, vec) for (UINT i = (start); i < susVectorCount(vec); i++)
+#define susVecForeach(i, vec) for (UINT i = susVectorCount(vec) - 1; i != (UINT)-1; i--)
 
 // -------------------------------------
 
@@ -247,7 +247,7 @@ SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
 #ifdef _DEBUG
 SUS_INLINE VOID SUSAPI susVectorPrint(_In_ SUS_VECTOR vec) {
 	SUS_PRINTDL("Vector output {");
-	susVecForeach(0, i, vec) {
+	susVecForeach(i, vec) {
 		SUS_PRINTDL("'%s'", susVectorGet(vec, i));
 	}
 	SUS_PRINTDL("}");

@@ -6,6 +6,21 @@
 
 // -----------------------------------------------------------------------------
 
+// Convert ascii format to unicode
+VOID SUSAPI sus_atow(_In_ LPCSTR source, _Out_ LPWSTR buffer)
+{
+	SUS_ASSERT(source && buffer);
+	while ((*buffer++ = (WCHAR)*source++));
+}
+// Convert Unicode format to Ascii
+VOID SUSAPI sus_wtoa(_In_ LPCWSTR source, _Out_ LPSTR buffer)
+{
+	SUS_ASSERT(source && buffer);
+	while ((*buffer++ = (CHAR)(*source++ <= 127 ? *(source - 1): '?')));
+}
+
+// -----------------------------------------------------------------------------
+
 // Flipping the string
 VOID SUSAPI sus_strrevA(_Inout_ LPSTR str)
 {
@@ -125,7 +140,7 @@ LONGLONG SUSAPI sus_atoi(_In_ LPCSTR str, _Out_opt_ LPCSTR* end)
 	}
 	else if (*str == '+') str++;
 	while (sus_isdigitA(*str)) {
-		value = value * 10 + (*str++ - '0');
+		value = value * 10 + (LONGLONG)(*str++ - '0');
 	}
 	if (end) *end = str;
 	return isNegative ? -value : value;
@@ -142,7 +157,7 @@ LONGLONG SUSAPI sus_wtoi(_In_ LPCWSTR str, _Out_opt_ LPCWSTR* end)
 	}
 	else if (*str == '+') str++;
 	while (sus_isdigitW(*str)) {
-		value = value * 10 + (*str++ - L'0');
+		value = value * 10 + (LONGLONG)(*str++ - L'0');
 	}
 	if (end) *end = str;
 	return isNegative ? -value : value;
@@ -215,12 +230,35 @@ VOID SUSAPI sus_substringW(
 	}
 	*buffer = L'\0';
 }
+// Separation from spaces
+LPSTR SUSAPI sus_trimA(_Inout_ LPSTR str)
+{
+	SUS_ASSERT(str);
+	while (sus_isspaceA(*str)) str++;
+	LPSTR end = str + sus_strlenA(str);
+	while (end > str && sus_isspaceA(*(end - 1))) end--;
+	*end = '\0';
+	return str;
+}
+// Separation from spaces
+LPWSTR SUSAPI sus_trimW(_Inout_ LPWSTR str)
+{
+	SUS_ASSERT(str);
+	while (sus_isspaceW(*str)) str++;
+	LPWSTR end = str + sus_strlenW(str);
+	while (end > str && sus_isspaceW(*(end - 1))) end--;
+	*end = L'\0';
+	return str;
+}
+
+// -----------------------------------------------------------------------------
+
 // The index of the symbol
 LPSTR SUSAPI sus_strchrA(
 	_In_ LPCSTR str,
 	_In_ CHAR s)
 {
-	while (*str != s) if (!(*(LPSTR)str++)) return NULL;
+	while (*str != s) if (!(*str++)) return NULL;
 	return (LPSTR)str;
 }
 // The index of the symbol
@@ -228,9 +266,34 @@ LPWSTR SUSAPI sus_strchrW(
 	_In_ LPCWSTR str,
 	_In_ WCHAR s)
 {
-	while (*str != s) if (!(*(LPWSTR)str++)) return NULL;
+	while (*str != s) if (!(*str++)) return NULL;
 	return (LPWSTR)str;
 }
+// Find a rock undergrowth in a row
+LPSTR SUSAPI sus_strstrA(
+	_In_ LPCSTR str,
+	_In_ LPCSTR substring)
+{
+	if (!*substring) return (LPSTR)str;
+	for (; *str; str++) {
+		if (!(str = sus_strchrA(str, *substring))) return NULL;
+		if (!sus_strcmpA(str, substring)) return (LPSTR)str + sus_strlenA(substring);
+	}
+	return NULL;
+}
+// Find a rock undergrowth in a row
+LPWSTR SUSAPI sus_strstrW(
+	_In_ LPCWSTR str,
+	_In_ LPCWSTR substring)
+{
+	if (!*substring) return (LPWSTR)str;
+	for (; *str; str++) {
+		if (!(str = sus_strchrW(str, *substring))) return NULL;
+		if (!sus_strcmpW(str, substring)) return (LPWSTR)str + sus_strlenW(substring);
+	}
+	return NULL;
+}
+
 // The last index of the symbol
 LPSTR SUSAPI sus_strrchrA(
 	_In_ LPCSTR str,
@@ -248,6 +311,28 @@ LPWSTR SUSAPI sus_strrchrW(
 	LPWSTR cur = (LPWSTR)str + lstrlenW(str) - 1;
 	while (*cur != s) if (cur-- - str < 0) return NULL;
 	return cur;
+}
+// Find a rock undergrowth in a row
+LPSTR SUSAPI sus_strrstrA(
+	_In_ LPCSTR str,
+	_In_ LPCSTR substring)
+{
+	if (!*substring) return (LPSTR)(str + sus_strlenA(str));
+	for (LPSTR cur = (LPSTR)str + sus_strlenA(str) - 1; cur >= str; cur--) {
+		if (*cur == *substring && !sus_strcmpA(cur, substring)) return cur - sus_strlenA(substring);
+	}
+	return NULL;
+}
+// Find a rock undergrowth in a row
+LPWSTR SUSAPI sus_strrstrW(
+	_In_ LPCWSTR str,
+	_In_ LPCWSTR substring)
+{
+	if (!*substring) return (LPWSTR)(str + sus_strlenW(str));
+	for (LPWSTR cur = (LPWSTR)str + sus_strlenW(str) - 1; cur >= str; cur--) {
+		if (*cur == *substring && !sus_strcmpW(cur, substring)) return cur - sus_strlenW(substring);
+	}
+	return NULL;
 }
 
 // -----------------------------------------------------------------------------

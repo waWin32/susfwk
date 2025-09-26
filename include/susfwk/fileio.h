@@ -101,13 +101,15 @@ SUS_FILE SUSAPI susCreateTempFileW(
 // --------------------------------------------------------
 
 // Reading data from a file
-DWORD SUSAPI susReadFile(
+DWORD SUSAPI susReadFileEx(
 	_In_ SUS_FILE hFile,
 	_Out_ LPBYTE lpBuffer,
 	_In_ DWORD dwReadBufferSize
 );
+// Read the entire file
+SUS_DATAVIEW SUSAPI susReadFile(_In_ SUS_FILE hFile);
 // Reading data from a file
-#define sus_fread(file, lpBuffer, dwReadBufferSize)	susReadFile(file, lpBuffer, dwReadBufferSize)
+#define sus_fread(file)	susReadFile(file)
 
 // Writing to a file
 DWORD SUSAPI susWriteFile(
@@ -157,29 +159,33 @@ SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName);
 // --------------------------------------------------------
 
 // File Search Handler
-typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORA)(LPSTR path);
+typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORA)(LPSTR path, _In_opt_ SUS_OBJECT userData);
 // Recursive traversal of hard disk files
 DWORD SUSAPI susTraverseFileTreeA(
 	_In_ LPCSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData
 );
 // Navigate through the folders and files in directory
 BOOL SUSAPI susEnumDirectoryA(
 	_In_ LPCSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc
+	_In_ SUS_FILE_SEARCH_PROCESSORA lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData
 );
 
 // File Search Handler
-typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORW)(LPWSTR path);
+typedef DWORD(SUSAPI* SUS_FILE_SEARCH_PROCESSORW)(LPWSTR path, _In_opt_ SUS_OBJECT userData);
 // Recursive traversal of hard disk files
 DWORD SUSAPI susTraverseFileTreeW(
 	_In_ LPCWSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData
 );
 // Navigate through the folders and files in directory
 BOOL SUSAPI susEnumDirectoryW(
 	_In_ LPCWSTR directory,
-	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc
+	_In_ SUS_FILE_SEARCH_PROCESSORW lpFileSearchProc,
+	_In_opt_ SUS_OBJECT userData
 );
 
 #ifdef UNICODE

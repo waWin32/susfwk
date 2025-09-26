@@ -52,6 +52,9 @@
     <Filter Include="Файлы заголовков\api">
       <UniqueIdentifier>{0b506127-596d-48aa-b3a6-a484328506a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\asm">
+      <UniqueIdentifier>{32e10ab9-fada-401b-9616-e180914bcf1e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\susfwk\conio.h">
@@ -129,6 +132,9 @@
     <ClInclude Include="include\susfwk\thread.h">
       <Filter>Файлы заголовков\api</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\httprequest.h">
+      <Filter>Файлы заголовков\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="conio.c">
@@ -183,6 +189,9 @@
       <Filter>Исходные файлы\api</Filter>
     </ClCompile>
     <ClCompile Include="thread.c">
+      <Filter>Исходные файлы\api</Filter>
+    </ClCompile>
+    <ClCompile Include="httprequest.c">
       <Filter>Исходные файлы\api</Filter>
     </ClCompile>
   </ItemGroup>

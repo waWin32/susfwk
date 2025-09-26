@@ -60,8 +60,9 @@ SUS_PROCESS SUSAPI susOpenProcess(
 // Create a process
 BOOL SUSAPI susCreateProcessA(
 	_In_ LPCSTR lpApplicationNameCommandLine,
-	_In_opt_ STARTUPINFOA *psi,
-	_In_opt_ PROCESS_INFORMATION *ppi)
+	_In_ BOOL inheritHandle,
+	_Out_opt_ STARTUPINFOA *psi,
+	_Out_opt_ PROCESS_INFORMATION *ppi)
 {
 	SUS_PRINTDL("Creating a process");
 	STARTUPINFOA si = { 0 };
@@ -71,7 +72,7 @@ BOOL SUSAPI susCreateProcessA(
 		NULL,
 		(LPSTR)lpApplicationNameCommandLine,
 		NULL, NULL,
-		FALSE, 0,
+		inheritHandle, 0,
 		NULL, NULL,
 		&si, &pi
 	)) {
@@ -91,8 +92,9 @@ BOOL SUSAPI susCreateProcessA(
 // Create a process
 BOOL SUSAPI susCreateProcessW(
 	_In_ LPCWSTR lpApplicationNameCommandLine,
-	_In_opt_ STARTUPINFOW* psi,
-	_In_opt_ PROCESS_INFORMATION* ppi)
+	_In_ BOOL inheritHandle,
+	_Out_opt_ STARTUPINFOW* psi,
+	_Out_opt_ PROCESS_INFORMATION* ppi)
 {
 	SUS_PRINTDL("Creating a process");
 	STARTUPINFOW si = { 0 };
@@ -102,7 +104,7 @@ BOOL SUSAPI susCreateProcessW(
 		NULL,
 		(LPWSTR)lpApplicationNameCommandLine,
 		NULL, NULL,
-		FALSE, 0,
+		inheritHandle, 0,
 		NULL, NULL,
 		&si, &pi
 	)) {

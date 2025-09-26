@@ -94,7 +94,7 @@ static const CREATESTRUCTW susDefWidgetStructW = {
 };
 
 // Basic initialization of the window
-SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ DWORD style, _In_opt_ LPVOID lParam)
+SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lParam)
 {
 	SUS_PRINTDL("Setting up the window");
 	SUS_ASSERT(lpTitle);
@@ -105,7 +105,6 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ DWORD style
 	window.wStruct.hInstance = GetModuleHandleA(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	window.wStruct.style |= style;
 	LPSTR className = sus_fmalloc((SIZE_T)(sus_strlenA(SUS_WCNAMEA) + sus_strlenA(lpTitle) + 30));
 	if (className) {
 		sus_formattingA(className, "%s%s%pA", SUS_WCNAMEA, lpTitle, &window);
@@ -119,7 +118,7 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ DWORD style
 	return window;
 }
 // Basic initialization of the window
-SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ DWORD style, _In_opt_ LPVOID lParam)
+SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam)
 {
 	SUS_PRINTDL("Setting up the window");
 	SUS_ASSERT(lpTitle);
@@ -130,7 +129,6 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ DWORD styl
 	window.wStruct.hInstance = GetModuleHandleW(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	window.wStruct.style |= style;
 	LPWSTR className = sus_fmalloc((SIZE_T)(sus_strlenW(SUS_WCNAMEW) + sus_strlenW(lpTitle) + 30));
 	if (className) {
 		sus_formattingW(className, L"%s%s%pW", SUS_WCNAMEW, lpTitle,  &window);

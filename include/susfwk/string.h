@@ -17,7 +17,6 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalphaW(WCHAR c) { return (c >= L'A' && c <= L'Z'
 SUS_INLINE BOOLEAN SUSAPI sus_isdigitA(CHAR c) { return (c >= '0' && c <= '9'); }
 // is a number
 SUS_INLINE BOOLEAN SUSAPI sus_isdigitW(WCHAR c) { return (c >= L'0' && c <= L'9'); }
-
 // Is it a number or a word
 SUS_INLINE BOOLEAN SUSAPI sus_isalnumA(CHAR c) { return sus_isalphaA(c) || sus_isdigitA(c); }
 // Is it a number or a word
@@ -34,6 +33,9 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_isdigit sus_isdigitA
 #define sus_isalnum	sus_isalnumA
 #endif // !UNICODE
+
+// -----------------------------------------------------------------------------
+
 
 // Get the length of the string
 #define sus_strlenA(lpString) lstrlenA((LPCSTR)lpString)
@@ -71,13 +73,23 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 // Compare lines
 #define sus_strcmpA(lpString1, lpString2) (INT)lstrcmpA((LPCSTR)lpString1, (LPCSTR)lpString2)
 // Compare lines
-#define sus_strcmpW(lpString1, lpString2) (INT)lstrcmpA((LPCWSTR)lpString1, (LPCWSTR)lpString2)
+#define sus_strcmpW(lpString1, lpString2) (INT)lstrcmpW((LPCWSTR)lpString1, (LPCWSTR)lpString2)
 
 #ifdef UNICODE
 #define sus_strcmp	sus_strcmpW
 #else
 #define sus_strcmp	sus_strcmpA
 #endif // !UNICODE
+
+// -----------------------------------------------------------------------------
+
+// Convert ascii format to unicode
+VOID SUSAPI sus_atow(_In_ LPCSTR source, _Out_ LPWSTR buffer);
+// Convert Unicode format to Ascii
+VOID SUSAPI sus_wtoa(_In_ LPCWSTR source, _Out_ LPSTR buffer);
+
+// -----------------------------------------------------------------------------
+
 // Flipping the string
 VOID SUSAPI sus_strrevA(_Inout_ LPSTR str);
 // Flipping the string
@@ -88,6 +100,8 @@ VOID SUSAPI sus_strrevW(_Inout_ LPWSTR str);
 #else
 #define sus_strrev	sus_strrevA
 #endif // !UNICODE
+
+// -----------------------------------------------------------------------------
 
 // convert string to int
 LONGLONG SUSAPI sus_atoi(_In_ LPCSTR str, _Out_opt_ LPCSTR* end);
@@ -111,60 +125,7 @@ FLOAT SUSAPI sus_wtof(_In_ LPCWSTR str, _Out_opt_ LPCWSTR* end);
 #define sus_stof	sus_atof
 #endif // !UNICODE
 
-// cropping a string
-VOID SUSAPI sus_substringA(
-	_Out_ LPSTR buffer,
-	_In_ LPCSTR str,
-	_In_ DWORD substart,
-	_In_ DWORD subend
-);
-// cropping a string
-VOID SUSAPI sus_substringW(
-	_Out_ LPWSTR buffer,
-	_In_ LPCWSTR str,
-	_In_ DWORD substart,
-	_In_ DWORD subend
-);
-
-#ifdef UNICODE
-#define sus_substring	sus_substringW
-#else
-#define sus_substring	sus_substringA
-#endif // !UNICODE
-
-// The index of the symbol
-LPSTR SUSAPI sus_strchrA(
-	_In_ LPCSTR str,
-	_In_ CHAR s
-);
-// The index of the symbol
-LPWSTR SUSAPI sus_strchrW(
-	_In_ LPCWSTR str,
-	_In_ WCHAR s
-);
-
-#ifdef UNICODE
-#define sus_strchr	sus_strchrW
-#else
-#define sus_strchr	sus_strchrA
-#endif // !UNICODE
-
-// The last index of the symbol
-LPSTR SUSAPI sus_strrchrA(
-	_In_ LPCSTR str,
-	_In_ CHAR s
-);
-// The last index of the symbol
-LPWSTR SUSAPI sus_strrchrW(
-	_In_ LPCWSTR str,
-	_In_ WCHAR s
-);
-
-#ifdef UNICODE
-#define sus_strrchr	sus_strrchrW
-#else
-#define sus_strrchr	sus_strrchrA
-#endif // !UNICODE
+// -----------------------------------------------------------------------------
 
 // convert int to string
 LPSTR SUSAPI sus_itoa(
@@ -210,6 +171,114 @@ SUS_INLINE INT SUSAPI sus_fslen(_In_ FLOAT value, _In_ UINT precision) {
 #define sus_ftos	sus_ftow
 #else
 #define sus_ftos	sus_ftoa
+#endif // !UNICODE
+
+// -----------------------------------------------------------------------------
+
+// cropping a string
+VOID SUSAPI sus_substringA(
+	_Out_ LPSTR buffer,
+	_In_ LPCSTR str,
+	_In_ DWORD substart,
+	_In_ DWORD subend
+);
+// cropping a string
+VOID SUSAPI sus_substringW(
+	_Out_ LPWSTR buffer,
+	_In_ LPCWSTR str,
+	_In_ DWORD substart,
+	_In_ DWORD subend
+);
+
+#ifdef UNICODE
+#define sus_substring	sus_substringW
+#else
+#define sus_substring	sus_substringA
+#endif // !UNICODE
+
+// Separation from spaces
+LPSTR SUSAPI sus_trimA(
+	_Inout_ LPSTR str
+);
+// Separation from spaces
+LPWSTR SUSAPI sus_trimW(
+	_Inout_ LPWSTR str
+);
+
+#ifdef UNICODE
+#define sus_trim	sus_trimW
+#else
+#define sus_trim	sus_trimA
+#endif // !UNICODE
+
+// -----------------------------------------------------------------------------
+
+// The index of the symbol
+LPSTR SUSAPI sus_strchrA(
+	_In_ LPCSTR str,
+	_In_ CHAR s
+);
+// The index of the symbol
+LPWSTR SUSAPI sus_strchrW(
+	_In_ LPCWSTR str,
+	_In_ WCHAR s
+);
+
+#ifdef UNICODE
+#define sus_strchr	sus_strchrW
+#else
+#define sus_strchr	sus_strchrA
+#endif // !UNICODE
+
+// Find a rock undergrowth in a row
+LPSTR SUSAPI sus_strstrA(
+	_In_ LPCSTR str,
+	_In_ LPCSTR substring
+);
+// Find a rock undergrowth in a row
+LPWSTR SUSAPI sus_strstrW(
+	_In_ LPCWSTR str,
+	_In_ LPCWSTR substring
+);
+
+#ifdef UNICODE
+#define sus_strstr	sus_strstrW
+#else
+#define sus_strstr	sus_strstrA
+#endif // !UNICODE
+
+// The last index of the symbol
+LPSTR SUSAPI sus_strrchrA(
+	_In_ LPCSTR str,
+	_In_ CHAR s
+);
+// The last index of the symbol
+LPWSTR SUSAPI sus_strrchrW(
+	_In_ LPCWSTR str,
+	_In_ WCHAR s
+);
+
+#ifdef UNICODE
+#define sus_strrchr	sus_strrchrW
+#else
+#define sus_strrchr	sus_strrchrA
+#endif // !UNICODE
+
+// Find a rock undergrowth in a row
+LPSTR SUSAPI sus_strrstrA(
+	_In_ LPCSTR str,
+	_In_ LPCSTR substring
+);
+// Find a rock undergrowth in a row
+LPWSTR SUSAPI sus_strrstrW(
+	_In_ LPCWSTR str,
+	_In_ LPCWSTR substring
+);
+
+#ifdef UNICODE
+#define sus_strrstr	sus_strrstrW
+#else
+#define sus_strrstr	sus_strrstrA
 #endif // !UNICODE
 
 // -----------------------------------------------------------------------------

@@ -67,11 +67,8 @@ INT SUSAPI sus_vformattingA(
 	while (*format) {
 		if (*format == '%') {
 			format++;
-			UINT width = FALSE;
-			if (*(format) == '.') {
-				width = (UINT)sus_atoi(++format, &format);
-			}
-
+			UINT width = 0;
+			if (sus_isdigitA(*format)) width = (INT)sus_atoi(format, &format);
 			switch (*(format++))
 			{
 			case 'd': {
@@ -124,35 +121,47 @@ INT SUSAPIV sus_formattingA(
 	return res;
 }
 
-static SUS_INLINE VOID SUSAPI format_handleW_d(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args) {
+static SUS_INLINE VOID SUSAPI format_handleW_d(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ UINT width) {
 	INT value = sus_va_arg(*args, INT);
+	UINT len = sus_islen((INT64)value);
+	INT padLen = (width > len) ? width - len : 0;
 	if (*buffer) {
+		if (width) {
+			sus_memset((LPBYTE)*buffer, padLen, L'0');
+			*buffer += padLen;
+		}
 		*buffer = sus_itow(*buffer, (INT64)value);
 	}
-	*length += sus_islen(value);
+	*length += padLen + len;
 }
-static SUS_INLINE VOID SUSAPI format_handleW_p(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args) {
-	SIZE_T value = (SIZE_T)sus_va_arg(*args, SIZE_T);
+static SUS_INLINE VOID SUSAPI format_handleW_p(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ UINT width) {
+	SIZE_T value = sus_va_arg(*args, SIZE_T);
+	UINT len = sus_islen((INT64)value);
+	INT padLen = width > len ? width - len : 0;
 	if (*buffer) {
+		if (width) {
+			sus_memset((LPBYTE)*buffer, padLen, L'0');
+			*buffer += padLen;
+		}
 		*buffer = sus_itow(*buffer, (INT64)value);
 	}
-	*length += sus_islen(value);
+	*length += padLen + len;
 }
-static SUS_INLINE VOID SUSAPI format_handleW_f(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ INT precision) {
+static SUS_INLINE VOID SUSAPI format_handleW_f(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ UINT width) {
 	FLOAT value = sus_va_arg(*args, FLOAT);
 	if (*buffer) {
-		*buffer = sus_ftow(*buffer, value, precision);
+		*buffer = sus_ftow(*buffer, value, width);
 	}
-	*length += sus_fslen(value, precision);
+	*length += sus_fslen(value, width);
 }
-static SUS_INLINE VOID SUSAPI format_handleW_s(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ INT sLen) {
+static SUS_INLINE VOID SUSAPI format_handleW_s(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args, _In_ UINT width) {
 	LPWSTR str = sus_va_arg(*args, LPWSTR);
 	if (str == NULL) str = L"(null)";
-	if (sLen == -1) sLen = lstrlenW(str);
+	if (!width) width = lstrlenW(str);
 	if (*buffer) {
-		*buffer = lstrcpynW(*buffer, str, sLen + 1) + sLen;
+		*buffer = lstrcpynW(*buffer, str, width + 1) + width;
 	}
-	*length += sLen;
+	*length += width;
 }
 static SUS_INLINE VOID SUSAPI format_handleW_c(_Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args) {
 	WCHAR ch = sus_va_arg(*args, WCHAR);
@@ -160,19 +169,6 @@ static SUS_INLINE VOID SUSAPI format_handleW_c(_Inout_ LPWSTR* buffer, _Inout_ L
 		*(*buffer)++ = ch;
 	}
 	++(*length);
-}
-static SUS_INLINE VOID SUSAPI format_handleW_dot(_Inout_ LPWSTR* format, _Inout_ LPWSTR* buffer, _Inout_ LPINT length, _Inout_ sus_va_list* args) {
-	DWORD value = (DWORD)sus_wtoi(*format, format);
-	switch (*((*format)++)) {
-	case L'f': {
-		(*format)++;
-		format_handleW_f(buffer, length, args, value);
-	} return;
-	case L's': {
-		(*format)++;
-		format_handleW_s(buffer, length, args, value);
-	} return;
-	}
 }
 
 // text formatting
@@ -182,30 +178,29 @@ INT SUSAPI sus_vformattingW(
 	_In_ sus_va_list args)
 {
 	SUS_ASSERT(format);
-	if (buffer) *buffer = L'\0';
+	if (buffer) *buffer = '\0';
 	INT length = 0;
 	while (*format) {
 		if (*format == L'%') {
 			format++;
+			UINT width = 0;
+			if (sus_isdigitW(*format)) width = (INT)sus_wtoi(format, &format);
 			switch (*(format++))
 			{
 			case L'd': {
-				format_handleW_d(&buffer, &length, &args);
+				format_handleW_d(&buffer, &length, &args, width);
 			} break;
 			case L'f': {
-				format_handleW_f(&buffer, &length, &args, 6);
+				format_handleW_f(&buffer, &length, &args, width);
 			} break;
 			case L's': {
-				format_handleW_s(&buffer, &length, &args, -1);
+				format_handleW_s(&buffer, &length, &args, width);
 			} break;
 			case L'c': {
 				format_handleW_c(&buffer, &length, &args);
 			} break;
 			case L'p': {
-				format_handleW_p(&buffer, &length, &args);
-			} break;
-			case L'.': {
-				format_handleW_dot(&format, &buffer, &length, &args);
+				format_handleW_p(&buffer, &length, &args, width);
 			} break;
 			default: {
 				if (buffer) {
@@ -213,7 +208,7 @@ INT SUSAPI sus_vformattingW(
 					*buffer++ = *(format - 1);
 				}
 				format++;
-				length += 2;
+				length++;
 			}
 			}
 		}
@@ -268,14 +263,14 @@ static SUS_INLINE BOOL SUSAPI parsing_handleA_p(_In_ BOOLEAN skipAssignment, _In
 	if (dest) *dest = value;
 	return TRUE;
 }
-SUS_STATIC SUS_INLINE BOOL SUSAPI parsing_handleA_s(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args, _In_ DWORD width) {
+static SUS_INLINE BOOL SUSAPI parsing_handleA_s(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args, _In_opt_ CHAR before, _In_ DWORD width) {
 	LPSTR dest = skipAssignment ? NULL : sus_va_arg(*args, LPSTR);
 	LPCSTR start = *str;
-	while (**str && sus_isspaceA(**str)) {
+	while (**str != before && sus_isspaceA(**str)) {
 		(*str)++;
 	}
 	if (dest) {
-		while (**str && !sus_isspaceA(**str) && width > 0) {
+		while (**str != before && !sus_isspaceA(**str) && width > 0) {
 			*dest++ = **str;
 			(*str)++;
 			width--;
@@ -283,7 +278,7 @@ SUS_STATIC SUS_INLINE BOOL SUSAPI parsing_handleA_s(_In_ BOOLEAN skipAssignment,
 		*dest = '\0';
 	}
 	else {
-		while (**str && !sus_isspaceA(**str) && width-- > 0) {
+		while (**str != before && !sus_isspaceA(**str) && width-- > 0) {
 			(*str)++;
 		}
 	}
@@ -304,15 +299,13 @@ INT sus_vparsingA(
 {
 	SUS_ASSERT(str && format);
 	INT count = 0;
-	BOOLEAN skipAssignment;
-	BOOLEAN skipWhitespace;
 	DWORD width;
 	LPCSTR start = str;
 	while (*format && *str) {
 		if (*format == '%') {
 			format++;
-			skipAssignment = FALSE;
-			skipWhitespace = TRUE;
+			BOOLEAN skipAssignment = FALSE;
+			BOOLEAN skipWhitespace = TRUE;
 			while (TRUE) {
 				switch (*format) {
 				case '*': {
@@ -340,8 +333,11 @@ INT sus_vparsingA(
 			case 'f': {
 				if (!parsing_handleA_f(skipAssignment, &str, &args)) return count;
 			} break;
+			case '^': {
+				if (!parsing_handleA_s(skipAssignment, &str, &args, *str++, width)) return count;
+			} break;
 			case 's': {
-				if (!parsing_handleA_s(skipAssignment, &str, &args, width)) return count;
+				if (!parsing_handleA_s(skipAssignment, &str, &args, '\0', width)) return count;
 			} break;
 			case 'c': {
 				if (!parsing_handleA_c(skipAssignment, &str, &args)) return count;
@@ -399,28 +395,28 @@ static SUS_INLINE BOOL SUSAPI parsing_handleW_f(_In_ BOOLEAN skipAssignment, _In
 static SUS_INLINE BOOL SUSAPI parsing_handleW_p(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args) {
 	SIZE_T* dest = skipAssignment ? NULL : sus_va_arg(*args, SIZE_T*);
 	LPWSTR end;
-	SIZE_T value = (SIZE_T)(INT_PTR)sus_wtoi(*str, &end);
+	SIZE_T value = (SIZE_T)sus_wtoi(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
 	if (dest) *dest = value;
 	return TRUE;
 }
-SUS_STATIC SUS_INLINE BOOL SUSAPI parsing_handleW_s(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args, _In_ DWORD width) {
+static SUS_INLINE BOOL SUSAPI parsing_handleW_s(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args, _In_opt_ WCHAR before, _In_ DWORD width) {
 	LPWSTR dest = skipAssignment ? NULL : sus_va_arg(*args, LPWSTR);
 	LPCWSTR start = *str;
-	while (**str && sus_isspaceW(**str)) {
+	while (**str != before && sus_isspaceW(**str)) {
 		(*str)++;
 	}
 	if (dest) {
-		while (**str && !sus_isspaceW(**str) && width > 0) {
+		while (**str != before && !sus_isspaceW(**str) && width > 0) {
 			*dest++ = **str;
 			(*str)++;
 			width--;
 		}
-		*dest = '\0';
+		*dest = L'\0';
 	}
 	else {
-		while (**str && !sus_isspaceW(**str) && width-- > 0) {
+		while (**str != before && !sus_isspaceW(**str) && width-- > 0) {
 			(*str)++;
 		}
 	}
@@ -441,15 +437,13 @@ INT sus_vparsingW(
 {
 	SUS_ASSERT(str && format);
 	INT count = 0;
-	BOOLEAN skipAssignment;
-	BOOLEAN skipWhitespace;
 	DWORD width;
 	LPCWSTR start = str;
 	while (*format && *str) {
 		if (*format == L'%') {
 			format++;
-			skipAssignment = FALSE;
-			skipWhitespace = TRUE;
+			BOOLEAN skipAssignment = FALSE;
+			BOOLEAN skipWhitespace = TRUE;
 			while (TRUE) {
 				switch (*format) {
 				case L'*': {
@@ -474,11 +468,14 @@ INT sus_vparsingW(
 			case L'p': {
 				if (!parsing_handleW_p(skipAssignment, &str, &args)) return count;
 			} break;
-			case 'f': {
+			case L'f': {
 				if (!parsing_handleW_f(skipAssignment, &str, &args)) return count;
 			} break;
+			case L'^': {
+				if (!parsing_handleW_s(skipAssignment, &str, &args, *str++, width)) return count;
+			} break;
 			case L's': {
-				if (!parsing_handleW_s(skipAssignment, &str, &args, width)) return count;
+				if (!parsing_handleW_s(skipAssignment, &str, &args, L'\0', width)) return count;
 			} break;
 			case L'c': {
 				if (!parsing_handleW_c(skipAssignment, &str, &args)) return count;

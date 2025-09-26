@@ -26,26 +26,29 @@ SUS_PROCESS SUSAPI susOpenProcess(
 // Create a process
 BOOL SUSAPI susCreateProcessA(
 	_In_ LPCSTR lpApplicationNameCommandLine,
-	_In_opt_ STARTUPINFOA* psi,
-	_In_opt_ PROCESS_INFORMATION* ppi
+	_In_ BOOL inheritHandle,
+	_Out_opt_ STARTUPINFOA* psi,
+	_Out_opt_ PROCESS_INFORMATION* ppi
 );
-// A quick way to create a process
-#define susQuickCreateProcessA(lpApplicationNameCommandLine) susCreateProcessA(lpApplicationNameCommandLine, NULL, NULL)
 // Create a process
 BOOL SUSAPI susCreateProcessW(
 	_In_ LPCWSTR lpApplicationNameCommandLine,
-	_In_opt_ STARTUPINFOW* psi,
-	_In_opt_ PROCESS_INFORMATION* ppi
+	_In_ BOOL inheritHandle,
+	_Out_opt_ STARTUPINFOW* psi,
+	_Out_opt_ PROCESS_INFORMATION* ppi
 );
-// A quick way to create a process
-#define susQuickCreateProcessW(lpApplicationNameCommandLine) susCreateProcessW(lpApplicationNameCommandLine, NULL, NULL)
+// Run the command in the system
+SUS_INLINE BOOL SUSAPI sus_system(LPCSTR command) {
+	PROCESS_INFORMATION ps = { 0 };
+	if (!susCreateProcessA(command, TRUE, NULL, &ps)) return FALSE;
+	WaitForSingleObject(ps.hProcess, 1000);
+	return TRUE;
+}
 
 #ifdef UNICODE
-#define susQuickCreateProcess	susQuickCreateProcessW
-#define susCreateProcess		susCreateProcessW
+#define susCreateProcess	susCreateProcessW
 #else
-#define susQuickCreateProcess	susQuickCreateProcessA
-#define susCreateProcess		susCreateProcessA
+#define susCreateProcess	susCreateProcessA
 #endif // !UNICODE
 
 // --------------------------------------------------------------

@@ -120,9 +120,9 @@ SUS_OBJECT SUSAPI susMapGet(
 // Get the key from the hash table node
 #define susMapKey(map, entry) (entry)
 // Get the value from the hash table node
-#define susMapValue(map, entry) ((SUS_OBJECT)((entry) + ((SUS_HASHMAP)(map))->keySize))
+#define susMapValue(map, entry) ((SUS_OBJECT)((LPBYTE)(entry) + ((SUS_HASHMAP)(map))->keySize))
 // Iterate over all elements of the hash table
-#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(0, __j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
+#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
 // -------------------------------------------------------------------
 
@@ -152,7 +152,7 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 	for (DWORD i = 0; i < map->capacity; i++) {
 		SUS_VECTOR bucket = map->buckets[i];
 		SUS_PRINTDL("bucket [%d]:", i);
-		susVecForeach(0, j, bucket) {
+		susVecForeach(j, bucket) {
 			LPBYTE entry = (LPBYTE)susMapEntry(bucket, j);
 			SUS_PRINTDL("\tkey: '%s' -> '%s'", susMapKey(map, entry), susMapValue(map, entry));
 		}

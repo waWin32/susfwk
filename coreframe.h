@@ -18,5 +18,6 @@
 #include <wincrypt.h>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <winhttp.h>
 
-#define SUS_DEBUGONLYERRORS
+//#define SUS_DEBUGONLYERRORS

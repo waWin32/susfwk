@@ -11,27 +11,24 @@
 // -------------------------------------------------------------------------------------------------------------
 
 #define SUS_SOCKET_API_VERSION MAKEWORD(2, 2)
-#define SUS_SOCKET_TIMEOUT 1000
 #define SUS_SOCKET_INIT_READ_BUFFER_SIZE 1024
 #define SUS_SOCKET_INIT_WRITE_BUFFER_SIZE 1024
+#define SUS_SOCKET_POLL_TIMEOUT 100
 #define SUS_SOCKET_CHUNK_BUFFER_SIZE 512
 
 // -------------------------------------------------------------------------------------------------------------
 
 // Socket Messages
-typedef enum sus_sock_message {
-	SUS_SOCK_NCCREATE = 1,	// Called before the socket is created
-	SUS_SOCK_CREATE,		// Called after creating a socket
-	SUS_SOCK_START,			// Called after connecting to the host
-	SUS_SOCK_DATA,			// Called when data is received
-	SUS_SOCK_WRITE,			// Called when the socket can send data
-	SUS_SOCK_ERROR,			// Called when an error occurs
-	SUS_SOCK_TIMEOUT,		// It is called when the waiting time is over
-	SUS_SOCK_CLOSE,			// Called when the connection is closed
-	SUS_SOCK_END			// Called after the connection is closed
-} SUS_SOCK_MESSAGE;
+typedef enum sus_socket_message {
+	SUS_SM_CREATE = 1,		// Called after creating a socket
+	SUS_SM_START,			// Called after connecting to the host
+	SUS_SM_DATA,			// Called when data is received
+	SUS_SM_ERROR,			// Called when an error occurs
+	SUS_SM_CLOSE,			// Called when the connection is closed
+	SUS_SM_END			// Called after the connection is closed
+} SUS_SOCKET_MESSAGE;
 // Socket processing function
-typedef VOID(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCK_MESSAGE uMsg, WPARAM wParam, LPARAM lParam);
+typedef VOID(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam);
 // socket structure
 typedef struct sus_socket {
 	SOCKET				sock;		// System Socket Descriptor
@@ -43,9 +40,9 @@ typedef struct sus_socket {
 // The structure of the server socket
 typedef struct sus_server_socket {
 	SUS_SOCKET_STRUCT _PARENT_;
-	SUS_VECTOR clients;			// SUS_SOCKET_STRUCT
-	SUS_VECTOR clientfds;		// WSAPOLLFD
-	SUS_SOCKET_HANDLER	clientHandler;
+	SUS_VECTOR clients;					// SUS_SOCKET_STRUCT
+	SUS_VECTOR clientfds;				// WSAPOLLFD
+	SUS_SOCKET_HANDLER	heirHandler;	// Default client sockets callback
 } SUS_SERVER_SOCKET_STRUCT, *SUS_LPSERVER_SOCKET_STRUCT, *SUS_SERVER_SOCKET;
 
 // -------------------------------------------------------------------------------------------------------------
@@ -65,7 +62,7 @@ VOID SUSAPI susNetworkCleanup();
 
 // Configure the base socket
 SUS_SOCKET_STRUCT SUSAPI susSocketSetup(
-	_In_ SUS_SOCKET_HANDLER handler,
+	_In_opt_ SUS_SOCKET_HANDLER handler,
 	_In_opt_ SUS_OBJECT userData
 );
 // Build a socket
@@ -128,7 +125,7 @@ BOOL SUSAPI susSocketRead(
 	_Inout_ SUS_SOCKET sock
 );
 // Flushing the send buffer
-BOOL SUSAPI susSocketFlush(
+SIZE_T SUSAPI susSocketFlush(
 	_Inout_ SUS_SOCKET sock
 );
 // Check the availability of data to send
@@ -155,10 +152,23 @@ SUS_INLINE BOOL SUSAPI susSocketSetTimeout(_In_ SUS_SOCKET sock, DWORD timeout) 
 	SUS_ASSERT(sock && sock->sock != INVALID_SOCKET);
 	return !(setsockopt(sock->sock, SOL_SOCKET, SO_SNDTIMEO, (PCHAR)&timeout, sizeof(timeout)) || setsockopt(sock->sock, SOL_SOCKET, SO_RCVTIMEO, (PCHAR)&timeout, sizeof(timeout)));
 }
+// configuring socket performance
+SUS_INLINE BOOL SUSAPI susSocketTunePerformance(_In_ SUS_SOCKET sock) {
+	int buffSize = 1024 * 1024;
+	setsockopt(sock->sock, SOL_SOCKET, SO_RCVBUF, (PCHAR)&buffSize, sizeof(buffSize));
+	setsockopt(sock->sock, SOL_SOCKET, SO_SNDBUF, (PCHAR)&buffSize, sizeof(buffSize));
+	int nodelay = 1;
+	return setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (PCHAR)&nodelay, sizeof(nodelay));
+}
 // Get Socket user data
 SUS_INLINE SUS_OBJECT SUSAPI susSocketGetUserData(_In_ SUS_SOCKET sock) {
 	SUS_ASSERT(sock);
 	return sock->userdata;
+}
+// Install the socket handler
+SUS_INLINE VOID SUSAPI susSocketSetHandler(_In_ SUS_SOCKET sock, _In_ SUS_SOCKET_HANDLER handler) {
+	SUS_ASSERT(sock);
+	sock->handler = handler;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,9 +176,9 @@ SUS_INLINE SUS_OBJECT SUSAPI susSocketGetUserData(_In_ SUS_SOCKET sock) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Create a server
-SUS_SERVER_SOCKET_STRUCT SUSAPI susCreateServer(
-	_In_ SUS_SOCKET_HANDLER handler,
-	_In_ SUS_SOCKET_HANDLER clientHandler,
+SUS_SERVER_SOCKET_STRUCT SUSAPI susServerSetup(
+	_In_opt_ SUS_SOCKET_HANDLER handler,
+	_In_opt_ SUS_SOCKET_HANDLER heirHandler,
 	_In_opt_ SUS_OBJECT userData
 );
 // Set the socket as a listening server

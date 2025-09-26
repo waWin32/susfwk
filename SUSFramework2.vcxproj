@@ -31,6 +31,7 @@
     <ClInclude Include="include\susfwk\fileio.h" />
     <ClInclude Include="include\susfwk\format.h" />
     <ClInclude Include="include\susfwk\hashtable.h" />
+    <ClInclude Include="include\susfwk\httprequest.h" />
     <ClInclude Include="include\susfwk\iostream.h" />
     <ClInclude Include="include\susfwk\linkedlist.h" />
     <ClInclude Include="include\susfwk\math.h" />
@@ -52,6 +53,7 @@
     <ClCompile Include="fileio.c" />
     <ClCompile Include="format.c" />
     <ClCompile Include="hashtable.c" />
+    <ClCompile Include="httprequest.c" />
     <ClCompile Include="iostream.c" />
     <ClCompile Include="linkedlist.c" />
     <ClCompile Include="math.c" />

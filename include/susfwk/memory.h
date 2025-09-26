@@ -18,11 +18,6 @@ typedef LPVOID SUS_LPMEMORY;
 typedef SUS_FILE SUS_HEAP, *SUS_PHEAP, *SUS_LPHEAP;
 typedef SUS_FILE SUS_MEMORY;
 
-typedef struct sus_data_view {
-	CONST LPBYTE data;
-	CONST SIZE_T size;
-} SUS_DATAVIEW, *SUS_PDATAVIEW, *SUS_LPDATAVIEW;
-
 //////////////////////////////////////////////////////////////////
 //					Basic memory operations						//
 //////////////////////////////////////////////////////////////////
@@ -104,6 +99,30 @@ SUS_LPMEMORY SUSAPI sus_free(
 #define sus_frealloc(block, newSize) (SUS_LPMEMORY)HeapReAlloc(GetProcessHeap(), 0, block, newSize)
 // Releasing memory with pointer cleanup
 #define sus_sfree(block) do { sus_free(block); block = NULL; } while (0)
+
+//////////////////////////////////////////////////////////////////
+//							Dynamic Data						//
+//////////////////////////////////////////////////////////////////
+
+
+typedef struct sus_data_view {
+	LPBYTE data;
+	SIZE_T size;
+} SUS_DATAVIEW, *SUS_PDATAVIEW, *SUS_LPDATAVIEW;
+
+// Create new dynamic memory
+SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
+	SUS_ASSERT(size);
+	return (SUS_DATAVIEW) {
+		.data = sus_fmalloc(size),
+		.size = size
+	};
+}
+// Destroy dynamic data
+SUS_INLINE VOID SUSAPI susDataDestroy(_In_ SUS_DATAVIEW data) {
+	SUS_ASSERT(data.data);
+	sus_free(data.data);
+}
 
 //////////////////////////////////////////////////////////////////
 //					Dynamic virtual memory						//

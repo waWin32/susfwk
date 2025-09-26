@@ -66,7 +66,7 @@ SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize)
 	SUS_PRINTDL("Getting a node from a hash table");
 	SUS_ASSERT(map && key);
 	SUS_VECTOR bucket = map->buckets[susMapGetIndex(map, key)];
-	susVecForeach(0, i, bucket) {
+	susVecForeach(i, bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(bucket, i);
 		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
 			return susMapValue(map, entry);
@@ -100,7 +100,7 @@ VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->k
 	SUS_ASSERT(lpMap && *lpMap && key);
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
-	susVecForeach(0, i , *bucket) {
+	susVecForeach(i , *bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(*bucket, i);
 		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
 			susVectorErase(bucket, i);

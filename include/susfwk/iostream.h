@@ -39,7 +39,7 @@ SUS_INLINE INT SUSAPI sus_readA(_In_ SUS_FILE hIn, LPSTR buff, INT len)
 	DWORD mode;
 	if (GetConsoleMode(hIn, &mode))
 		return susReadConsoleA(hIn, buff, len);
-	return susReadFile(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(CHAR));
+	return susReadFileEx(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(CHAR));
 }
 // Read data in a file
 SUS_INLINE INT SUSAPI sus_readW(_In_ SUS_FILE hIn, LPWSTR buff, INT len)
@@ -47,7 +47,7 @@ SUS_INLINE INT SUSAPI sus_readW(_In_ SUS_FILE hIn, LPWSTR buff, INT len)
 	DWORD mode;
 	if (GetConsoleMode(hIn, &mode))
 		return susReadConsoleW(hIn, buff, len);
-	return susReadFile(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(WCHAR));
+	return susReadFileEx(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(WCHAR));
 }
 
 #ifdef UNICODE
