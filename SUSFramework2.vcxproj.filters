@@ -75,9 +75,6 @@
     <ClInclude Include="include\susfwk\format.h">
       <Filter>Файлы заголовков\strings</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\iostream.h">
-      <Filter>Файлы заголовков\io</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\math.h">
       <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
@@ -134,6 +131,9 @@
     </ClInclude>
     <ClInclude Include="include\susfwk\httprequest.h">
       <Filter>Файлы заголовков\api</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\iostream.h">
+      <Filter>Файлы заголовков\io</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
