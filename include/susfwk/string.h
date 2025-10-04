@@ -36,59 +36,10 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 
 // -----------------------------------------------------------------------------
 
-
-// Get the length of the string
-#define sus_strlenA(lpString) lstrlenA((LPCSTR)lpString)
-// Get the length of the string
-#define sus_strlenW(lpString) lstrlenW((LPCWSTR)lpString)
-
-#ifdef UNICODE
-#define sus_strlen	sus_strlenW
-#else
-#define sus_strlen	sus_strlenA
-#endif // !UNICODE
-
-// Copy the text
-#define sus_strcpyA(lpString1, lpString2) (LPSTR)lstrcpyA((LPSTR)lpString1, (LPCSTR)lpString2)
-// Copy the text
-#define sus_strcpyW(lpString1, lpString2) (LPWSTR)lstrcpyW((LPWSTR)lpString1, (LPCWSTR)lpString2)
-
-#ifdef UNICODE
-#define sus_strcpy	sus_strcpyW
-#else
-#define sus_strcpy	sus_strcpyA
-#endif // !UNICODE
-
-// Copy the text
-#define sus_strcpynA(lpString1, lpString2, iMaxLength) (LPSTR)lstrcpynA((LPSTR)lpString1, (LPCSTR)lpString2, iMaxLength)
-// Copy the text
-#define sus_strcpynW(lpString1, lpString2, iMaxLength) (LPWSTR)lstrcpynW((LPWSTR)lpString1, (LPCWSTR)lpString2, iMaxLength)
-
-#ifdef UNICODE
-#define sus_strcpyn	sus_strcpynW
-#else
-#define sus_strcpyn	sus_strcpynA
-#endif // !UNICODE
-
-// Compare lines
-#define sus_strcmpA(lpString1, lpString2) (INT)lstrcmpA((LPCSTR)lpString1, (LPCSTR)lpString2)
-// Compare lines
-#define sus_strcmpW(lpString1, lpString2) (INT)lstrcmpW((LPCWSTR)lpString1, (LPCWSTR)lpString2)
-
-#ifdef UNICODE
-#define sus_strcmp	sus_strcmpW
-#else
-#define sus_strcmp	sus_strcmpA
-#endif // !UNICODE
-
-// -----------------------------------------------------------------------------
-
 // Convert ascii format to unicode
 VOID SUSAPI sus_atow(_In_ LPCSTR source, _Out_ LPWSTR buffer);
 // Convert Unicode format to Ascii
 VOID SUSAPI sus_wtoa(_In_ LPCWSTR source, _Out_ LPSTR buffer);
-
-// -----------------------------------------------------------------------------
 
 // Flipping the string
 VOID SUSAPI sus_strrevA(_Inout_ LPSTR str);
@@ -279,6 +230,23 @@ LPWSTR SUSAPI sus_strrstrW(
 #define sus_strrstr	sus_strrstrW
 #else
 #define sus_strrstr	sus_strrstrA
+#endif // !UNICODE
+
+// parse a string for tokens
+LPSTR SUSAPI sus_strtokA(
+	_Inout_ LPSTR* ctx,
+	_In_ LPCSTR delimiter
+);
+// parse a string for tokens
+LPWSTR SUSAPI sus_strtokW(
+	_Inout_ LPWSTR* ctx,
+	_In_ LPCWSTR delimiter
+);
+
+#ifdef UNICODE
+#define sus_strtok	sus_strtokW
+#else
+#define sus_strtok	sus_strtokA
 #endif // !UNICODE
 
 // -----------------------------------------------------------------------------
