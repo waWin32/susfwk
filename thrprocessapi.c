@@ -61,8 +61,8 @@ SUS_PROCESS SUSAPI susOpenProcess(
 BOOL SUSAPI susCreateProcessA(
 	_In_ LPCSTR lpApplicationNameCommandLine,
 	_In_ BOOL inheritHandle,
-	_Out_opt_ STARTUPINFOA *psi,
-	_Out_opt_ PROCESS_INFORMATION *ppi)
+	_Out_opt_ STARTUPINFOA* psi,
+	_Out_opt_ PROCESS_INFORMATION* ppi)
 {
 	SUS_PRINTDL("Creating a process");
 	STARTUPINFOA si = { 0 };
@@ -76,6 +76,8 @@ BOOL SUSAPI susCreateProcessA(
 		NULL, NULL,
 		&si, &pi
 	)) {
+		if (psi) *psi = (STARTUPINFOA){ 0 };
+		if (ppi) *ppi = (PROCESS_INFORMATION){ 0 };
 		SUS_PRINTDE("Failed to create a process");
 		SUS_PRINTDC(GetLastError());
 		return FALSE;
@@ -108,6 +110,8 @@ BOOL SUSAPI susCreateProcessW(
 		NULL, NULL,
 		&si, &pi
 	)) {
+		if (psi) *psi = (STARTUPINFOW){ 0 };
+		if (ppi) *ppi = (PROCESS_INFORMATION){ 0 };
 		SUS_PRINTDE("Failed to create a process");
 		SUS_PRINTDC(GetLastError());
 		return FALSE;
@@ -128,7 +132,7 @@ BOOL SUSAPI susCreateProcessW(
 PROCESSENTRY32 SUSAPI susProcessFirstA(_In_ SUS_FILE hSnapShot)
 {
 	SUS_PRINTDL("Getting the first process");
-	PROCESSENTRY32 pe32;
+	PROCESSENTRY32 pe32 = { 0 };
 	pe32.dwSize = sizeof(PROCESSENTRY32);
 	if (!Process32First(hSnapShot, &pe32)) {
 		SUS_PRINTDE("Failed to get the first process");
@@ -141,7 +145,7 @@ PROCESSENTRY32 SUSAPI susProcessFirstA(_In_ SUS_FILE hSnapShot)
 // Get the first process
 PROCESSENTRY32W SUSAPI susProcessFirstW(_In_ SUS_FILE hSnapShot)
 {
-	PROCESSENTRY32W pe32;
+	PROCESSENTRY32W pe32 = { 0 };
 	pe32.dwSize = sizeof(PROCESSENTRY32W);
 	if (!Process32FirstW(hSnapShot, &pe32)) {
 		SUS_PRINTDE("Failed to get the first process");
@@ -291,7 +295,7 @@ BOOL SUSAPI susTerminateThread(_In_ SUS_THREAD hThr)
 	SUS_PRINTDL("Thread shutdown");
 	SUS_ASSERT(hThr);
 #pragma warning(push)
-#pragma warning(disable : 4996)
+#pragma warning(disable : 6258)
 	if (!TerminateThread(hThr, 0)) {
 		SUS_PRINTDE("Failed to complete the flow");
 		SUS_PRINTDC(GetLastError());
@@ -348,7 +352,7 @@ BOOL SUSAPI susResumeThread(_In_ SUS_THREAD hThr)
 THREADENTRY32 SUSAPI susThreadFirst(_In_ SUS_FILE hSnapShot)
 {
 	SUS_PRINTDL("Getting the first thread");
-	THREADENTRY32 te32;
+	THREADENTRY32 te32 = { 0 };
 	te32.dwSize = sizeof(THREADENTRY32);
 	if (!Thread32First(hSnapShot, &te32)) {
 		SUS_PRINTDE("Failed to get the first thread");

@@ -3,6 +3,10 @@
 #ifndef _SUS_ECS_
 #define _SUS_ECS_
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//								Dealing with time differences							//
+//////////////////////////////////////////////////////////////////////////////////////////
+
 // --------------------------------------------------------------------------------------
 
 // The structure of the time delta
@@ -27,6 +31,12 @@ SUS_INLINE FLOAT SUSAPI susDTimeGet(SUS_LPDTIMER timer) {
 	timer->lastTime = currentTime;
 	return delta * timer->invFrequency;
 }
+
+// --------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//										ECS structures									//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
@@ -58,10 +68,10 @@ typedef struct sus_archetype {
 } SUS_ARCHETYPE_STRUCT, *SUS_ARCHETYPE;
 // The position of the entity in the archetype
 typedef struct sus_entity_location {
-	SUS_ARCHETYPE archetype;	// The Archetype
-	sus_u32 index;				// The index of the entity in the archetype
-	SUS_ENTITY parent;			// Parent Entity
-	SUS_HASHSET children;		// Children of the entity
+	SUS_ARCHETYPE	archetype;	// The Archetype
+	sus_u32			index;		// The index of the entity in the archetype
+	SUS_ENTITY		parent;		// Parent Entity
+	SUS_HASHSET		children;	// Children of the entity
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
 // The system's callback function
 typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);

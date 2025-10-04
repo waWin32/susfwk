@@ -105,7 +105,7 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lPar
 	window.wStruct.hInstance = GetModuleHandleA(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPSTR className = sus_fmalloc((SIZE_T)(sus_strlenA(SUS_WCNAMEA) + sus_strlenA(lpTitle) + 30));
+	LPSTR className = sus_fmalloc((SIZE_T)(lstrlenA(SUS_WCNAMEA) + lstrlenA(lpTitle) + 30));
 	if (className) {
 		sus_formattingA(className, "%s%s%pA", SUS_WCNAMEA, lpTitle, &window);
 		window.wcEx.lpszClassName = className;
@@ -129,7 +129,7 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lPa
 	window.wStruct.hInstance = GetModuleHandleW(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPWSTR className = sus_fmalloc((SIZE_T)(sus_strlenW(SUS_WCNAMEW) + sus_strlenW(lpTitle) + 30));
+	LPWSTR className = sus_fmalloc((SIZE_T)(lstrlenW(SUS_WCNAMEW) + lstrlenW(lpTitle) + 30));
 	if (className) {
 		sus_formattingW(className, L"%s%s%pW", SUS_WCNAMEW, lpTitle,  &window);
 		window.wcEx.lpszClassName = className;

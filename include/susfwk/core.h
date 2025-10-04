@@ -78,11 +78,16 @@ and when used, access it via super.
 
 // -----------------------------------------------
 
+//
+#define SUS_COUNT_OF(array) (sizeof(array) / sizeof(*array))
 // The return value for exiting recursion
 #define GETTING_OUT_RECURSION (DWORD)-1
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
+#define WIDESTRINGIFY(x) L##x
+#define WIDESTRING(x) WIDESTRINGIFY(x)
+
 
 // Example of using SUS_TO_XARRAY:
 /******************************************************************

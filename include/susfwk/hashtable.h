@@ -45,14 +45,13 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
 	return *(SUS_HASH_T*)key.data;
 }
 
+// ================================================================================================
+
 #define SUS_HASHTABLE_INIT_COUNT 7
 #define SUS_HASHTABLE_GROWTH_FACTOR 2
 #define SUS_HASHTABLE_RATIO 0.75f
 
-// ================================================================================================
-
-
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 // Hash table
 typedef struct sus_hashmap{
@@ -64,7 +63,7 @@ typedef struct sus_hashmap{
 	SUS_VECTOR		buckets[];	// Buckets
 } SUS_HASHMAP_STRUCT, *SUS_HASHMAP, **SUS_LPHASHMAP;
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 // Create a hash table
 SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_opt_ SUS_GET_HASH getHash, _In_opt_ DWORD initCount);
@@ -74,7 +73,6 @@ SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_o
 #define susNewMap(keyType, valueType) susNewMapSized(sizeof(keyType), sizeof(valueType))
 // Destroy the hash table
 SUS_INLINE VOID SUSAPI susMapDestroy(SUS_HASHMAP map) {
-	SUS_PRINTDL("Destroying the hash table");
 	SUS_ASSERT(map);
 	for (DWORD i = 0; i < map->capacity; i++) susVectorDestroy(map->buckets[i]);
 	sus_free(map);
@@ -85,7 +83,7 @@ SUS_HASHMAP SUSAPI susMapCopy(
 	_In_ DWORD initCount
 );
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 // Optimizing a hash table by resizing it for improved performance
 VOID SUSAPI susMapReserve(
@@ -103,7 +101,7 @@ SUS_INLINE VOID SUSAPI susMapResize(_In_ SUS_LPHASHMAP lpMap, _In_ DWORD newCoun
 	*lpMap = newHt;
 }
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 // Get an index in a hash table by key
 SUS_INLINE DWORD SUSAPI susMapGetIndex(SUS_HASHMAP map, LPBYTE key) {
@@ -124,7 +122,7 @@ SUS_OBJECT SUSAPI susMapGet(
 // Iterate over all elements of the hash table
 #define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 // Add a new key-value pair to the hash table
 SUS_OBJECT SUSAPI susMapAdd(
@@ -143,7 +141,7 @@ VOID SUSAPI susMapClear(
 	_In_ SUS_HASHMAP map
 );
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------
 
 #ifndef SUS_DEBUGONLYERRORS
 #ifdef _DEBUG
@@ -160,12 +158,30 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 	SUS_PRINTDL("Count %d:", map->count);
 	SUS_PRINTDL("}");
 }
+SUS_INLINE VOID SUSAPI susMapPrintW(_In_ SUS_HASHMAP map) {
+	SUS_WPRINTDL("Hashmap output {");
+	for (DWORD i = 0; i < map->capacity; i++) {
+		SUS_VECTOR bucket = map->buckets[i];
+		SUS_WPRINTDL("bucket [%d]:", i);
+		susVecForeach(j, bucket) {
+			LPBYTE entry = (LPBYTE)susMapEntry(bucket, j);
+			SUS_WPRINTDL("\tkey: '%s' -> %s", susMapKey(map, entry), susMapValue(map, entry));
+		}
+	}
+	SUS_WPRINTDL("Count %d:", map->count);
+	SUS_WPRINTDL("}");
+}
 #else
 #define susMapPrint(map)
+#define susMapPrintW(map)
 #endif // !_DEBUG
 #endif // !SUS_DEBUGONLYERRORS
 
+// ---------------------------------------------------------
+
 // ================================================================================================
+
+// ---------------------------------------------------------
 
 // An unordered array
 typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
@@ -175,12 +191,18 @@ typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 #define susSetCopy						(SUS_HASHSET)susMapCopy
 #define susSetDestroy					susMapDestroy
 
+// ---------------------------------------------------------
+
 #define susSetForeach(set, entry)		susMapForeach(set, entry)
 #define susSetFind(set, key)			susMapFind(set, key)
 #define susSetClear(set)				susMapClear(set)
 #define susSetValue(set, entry)			susMapKey(set, entry)
 #define susSetAdd(lpSet, key)			susMapAdd(lpSet, key, NULL)
 #define susSetRemove(lpSet, key)		susMapRemove(lpSet, key)
+
+// ---------------------------------------------------------
+
+// ================================================================================================
 
 #pragma warning(pop)
 

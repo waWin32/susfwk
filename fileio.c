@@ -308,7 +308,7 @@ DWORD SUSAPI susTraverseFileTreeA(
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAA lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAA));
 	if (!lpFindFileData) return 1;
-	LPSTR searchPath = sus_fcalloc(sus_strlenA(directory) + 2, sizeof(CHAR));
+	LPSTR searchPath = sus_fcalloc(lstrlenA(directory) + 2, sizeof(CHAR));
 	if (!searchPath) {
 		sus_free(lpFindFileData);
 		return 1;
@@ -325,7 +325,7 @@ DWORD SUSAPI susTraverseFileTreeA(
 	}
 	do {
 		if (lstrcmpA(lpFindFileData->cFileName, ".") == 0 || lstrcmpA(lpFindFileData->cFileName, "..") == 0) continue;
-		LPSTR filePath = sus_fcalloc(sus_strlenA(directory) + sus_strlenA(lpFindFileData->cFileName) + 2, sizeof(CHAR));
+		LPSTR filePath = sus_fcalloc(lstrlenA(directory) + lstrlenA(lpFindFileData->cFileName) + 2, sizeof(CHAR));
 		if (!filePath) continue;
 		lstrcpyA(filePath, directory);
 		lstrcatA(filePath, lpFindFileData->cFileName);
@@ -361,7 +361,7 @@ BOOL SUSAPI susEnumDirectoryA(
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	WIN32_FIND_DATAA findFileData = { 0 };
-	LPSTR searchPath = sus_fcalloc(sus_strlenA(directory) + 2, sizeof(CHAR));
+	LPSTR searchPath = sus_fcalloc(lstrlenA(directory) + 2, sizeof(CHAR));
 	if (!searchPath) return FALSE;
 	lstrcpyA(searchPath, directory);
 	lstrcatA(searchPath, "*");
@@ -391,7 +391,7 @@ DWORD SUSAPI susTraverseFileTreeW(
 	SUS_ASSERT(directory && lpFileSearchProc);
 	PWIN32_FIND_DATAW lpFindFileData = sus_fmalloc(sizeof(WIN32_FIND_DATAW));
 	if (!lpFindFileData) return 1;
-	LPWSTR searchPath = sus_fcalloc(sus_strlenW(directory) + 2, sizeof(WCHAR));
+	LPWSTR searchPath = sus_fcalloc(lstrlenW(directory) + 2, sizeof(WCHAR));
 	if (!searchPath) {
 		sus_free(lpFindFileData);
 		return 1;
@@ -408,7 +408,7 @@ DWORD SUSAPI susTraverseFileTreeW(
 	}
 	do {
 		if (lstrcmpW(lpFindFileData->cFileName, L".") == 0 || lstrcmpW(lpFindFileData->cFileName, L"..") == 0) continue;
-		LPWSTR filePath = sus_fcalloc(sus_strlenW(directory) + sus_strlenW(lpFindFileData->cFileName) + 2, sizeof(WCHAR));
+		LPWSTR filePath = sus_fcalloc(lstrlenW(directory) + lstrlenW(lpFindFileData->cFileName) + 2, sizeof(WCHAR));
 		if (!filePath) continue;
 		lstrcpyW(filePath, directory);
 		lstrcatW(filePath, lpFindFileData->cFileName);
@@ -444,7 +444,7 @@ BOOL SUSAPI susEnumDirectoryW(
 {
 	SUS_ASSERT(directory && lpFileSearchProc);
 	WIN32_FIND_DATAW findFileData = { 0 };
-	LPWSTR searchPath = sus_fcalloc(sus_strlenW(directory) + 2, sizeof(WCHAR));
+	LPWSTR searchPath = sus_fcalloc(lstrlenW(directory) + 2, sizeof(WCHAR));
 	if (!searchPath) return FALSE;
 	lstrcpyW(searchPath, directory);
 	lstrcatW(searchPath, L"*");

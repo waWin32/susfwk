@@ -176,7 +176,7 @@ BOOL SUSAPI susSocketAccept(_In_ SUS_SERVER_SOCKET server, _Out_ SUS_SOCKET clie
 	susSocketTunePerformance(client);
 	susSocketSetNonBlocking(client, TRUE);
 	if (pAddr) *pAddr = addr;
-	server->super.handler(server, SUS_SM_START, (WPARAM)&addr, (LPARAM)client);
+	if (server->super.handler) server->super.handler(server, SUS_SM_START, (WPARAM)&addr, (LPARAM)client);
 	if (client->handler) client->handler(client, SUS_SM_CREATE, (WPARAM)server, (LPARAM)server->super.userdata);
 	return TRUE;
 }

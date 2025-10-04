@@ -20,4 +20,4 @@
 #include <WS2tcpip.h>
 #include <winhttp.h>
 
-//#define SUS_DEBUGONLYERRORS
+#define SUS_DEBUGONLYERRORS
