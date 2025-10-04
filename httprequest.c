@@ -6,35 +6,14 @@
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/httprequest.h"
 
-// 
+// Global session descriptor
 SUS_STATIC HINTERNET hSession = NULL;
 
-// =================================================================================================
+//////////////////////////////////////////////////////////////////////////////////////////
+//					Functions for formatting and receiving a response					//
+//////////////////////////////////////////////////////////////////////////////////////////
 
-// configuring the http protocol
-BOOL SUSAPI susHttpSetup()
-{
-	SUS_PRINTDL("");
-	SUS_ASSERT(!hSession);
-	hSession = WinHttpOpen(
-		L"SUS-HTTP-CLIENT/1.0",
-		WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-		WINHTTP_NO_PROXY_NAME,
-		WINHTTP_NO_PROXY_BYPASS,
-		0
-	);
-	return (BOOL)(ULONG_PTR)hSession;
-}
-// Clearing http protocol data
-VOID SUSAPI susHttpCleanup()
-{
-	SUS_PRINTDL("");
-	SUS_ASSERT(hSession);
-	WinHttpCloseHandle(hSession);
-	hSession = NULL;
-}
-
-// =================================================================================================
+// ------------------------------------------------------------
 
 // URL structure
 typedef struct sus_http_url {
@@ -42,125 +21,70 @@ typedef struct sus_http_url {
 	WCHAR host[64];
 	WCHAR path[MAX_PATH];
 } SUS_HTTP_URL, * SUS_LPHTTP_URL;
+
 // Parse the URL
 static BOOL SUSAPI susHttpParseUrl(_In_ LPCWSTR textUrl, _Out_ SUS_LPHTTP_URL url)
 {
 	SUS_ASSERT(textUrl && url);
 	URL_COMPONENTS uc = { 0 };
 	uc.dwStructSize = sizeof(uc);
-	uc.dwHostNameLength = 1;
-	uc.dwUrlPathLength = 1;
-	uc.dwExtraInfoLength = 1;
+	uc.dwHostNameLength = uc.dwUrlPathLength = uc.dwExtraInfoLength = 1;
 	if (!WinHttpCrackUrl(textUrl, 0, 0, &uc)) {
 		*url = (SUS_HTTP_URL){ 0 };
 		return FALSE;
 	}
 	if (uc.lpszHostName) {
-		sus_memcpy((LPBYTE)url->host, (LPBYTE)uc.lpszHostName, uc.dwHostNameLength * sizeof(WCHAR));
-		url->host[uc.dwHostNameLength] = L'\0';
+		SIZE_T maxChars = sizeof(url->host) / sizeof(WCHAR) - 1;
+		SIZE_T len = min(maxChars, uc.dwHostNameLength);
+		sus_memcpy((LPBYTE)url->host, (LPBYTE)uc.lpszHostName, len * sizeof(WCHAR));
+		url->host[len] = L'\0';
 	}
-	if (uc.lpszUrlPath) sus_memcpy((LPBYTE)url->path, (LPBYTE)uc.lpszUrlPath, uc.dwUrlPathLength * sizeof(WCHAR));
-	if (uc.lpszExtraInfo && uc.dwExtraInfoLength) {
-		sus_memcpy((LPBYTE)url->path + uc.dwUrlPathLength, (LPBYTE)uc.lpszExtraInfo, min(uc.dwExtraInfoLength * sizeof(WCHAR), sizeof(url->path)));
+	else url->host[0] = L'\0';
+	if (uc.lpszUrlPath) {
+		SIZE_T maxChars = sizeof(url->path) / sizeof(WCHAR) - 1;
+		SIZE_T len = min(maxChars, uc.dwUrlPathLength);
+		sus_memcpy((LPBYTE)url->path, (LPBYTE)uc.lpszUrlPath, len * sizeof(WCHAR));
+		if (uc.lpszExtraInfo) {
+			SIZE_T remaining = maxChars - len;
+			SIZE_T exlen = min(uc.dwExtraInfoLength, remaining);
+			sus_memcpy((LPBYTE)url->path + len * sizeof(WCHAR), (LPBYTE)uc.lpszExtraInfo, exlen * sizeof(WCHAR));
+			url->path[len + exlen] = L'\0';
+		}
+		else url->path[len] = L'\0';
 	}
-	url->path[min(uc.dwExtraInfoLength + uc.dwUrlPathLength, sizeof(url->path) / sizeof(WCHAR) - 1)] = L'\0';
+	else url->path[0] = L'\0';
 	url->port = uc.nPort;
 	return TRUE;
 }
-// Create a request
-BOOL SUSAPI susHttpRequestSetup(_In_ LPCWSTR method, _In_ LPCWSTR lpUrl, _Out_ SUS_LPHTTP_REQUEST req)
-{
-	SUS_PRINTDL("Creating a request");
-	SUS_ASSERT(method && lpUrl);
-	SUS_HTTP_URL url = { 0 };
-	if (!susHttpParseUrl(lpUrl, &url)) {
-		*req = (SUS_HTTP_REQUEST){ 0 };
-		SUS_PRINTDE("Failed to create a request");
-		return FALSE;
-	}
-	req->hConnect = WinHttpConnect(hSession, url.host, url.port, 0);
-	if (!req->hConnect) {
-		*req = (SUS_HTTP_REQUEST){ 0 };
-		SUS_PRINTDE("Failed to create a request");
-		return FALSE;
-	}
-	req->hRequest = WinHttpOpenRequest(
-		req->hConnect, method, url.path, NULL,
-		WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
-		(url.port == INTERNET_DEFAULT_HTTPS_PORT) ? WINHTTP_FLAG_SECURE : 0
-	);
-	if (!req->hRequest) {
-		WinHttpCloseHandle(req->hConnect);
-		*req = (SUS_HTTP_REQUEST){ 0 };
-		SUS_PRINTDE("Failed to create a request");
-		return FALSE;
-	}
-	return TRUE;
-}
 
-// Add a header to a query
-BOOL SUSAPI susHttpAddHeader(_Inout_ HINTERNET hRequest, LPCWSTR key, LPCWSTR value)
-{
-	SUS_PRINTDL("");
-	SUS_ASSERT(hRequest && key && value);
-	LPWSTR header = sus_fcalloc(sus_formattingW(NULL, L"%s: %s", key, value) + 1, sizeof(WCHAR));
-	if (!header) return FALSE;
-	sus_formattingW(header, L"%s: %s", key, value);
-	if (!WinHttpAddRequestHeaders(hRequest, header, (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD)) {
-		SUS_PRINTDE("");
-		SUS_PRINTDC(GetLastError());
+// Process the header line
+static BOOL SUSAPI susHttpParseHeaderLine(_Inout_ LPWSTR* pwszHeaders, _Inout_ SUS_LPHASHMAP map) {
+	SUS_ASSERT(map && *map && pwszHeaders);
+	if (!*pwszHeaders) return FALSE;
+	LPWSTR key = sus_strtokW(pwszHeaders, L": ");
+	if (!key || lstrlenW(key) >= 32) {
 		return FALSE;
 	}
-	sus_free(header);
-	return TRUE;
-}
-// Send a request
-BOOL SUSAPI susHttpSendRequest(_In_ HINTERNET hRequest, _In_opt_ SUS_DATAVIEW body)
-{
-	SUS_PRINTDL("Sending an http request");
-	SUS_ASSERT(hRequest);
-	if (body.data && body.size) {
-		WCHAR len[16] = { 0 };
-		sus_itow(len, body.size);
-		susHttpAddHeader(hRequest, L"Content-Length", len);
-	}
-	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, NULL, 0, (DWORD)body.size, 0)) {
-		SUS_PRINTDE("Couldn't send request");
-		SUS_PRINTDC(GetLastError());
-		return FALSE;
-	}
-	if (body.data) {
-		for (SIZE_T sent = 0, written = 1; sent < body.size; sent += written) {
-			if (!WinHttpWriteData(hRequest, body.data + sent, (DWORD)min(body.size - sent, 1024), (LPDWORD)&written)) return FALSE;
-			if (!written) break;
+	WCHAR keyBuff[32] = { 0 };
+	lstrcpyW(keyBuff, key);
+	LPWSTR value = sus_strtokW(pwszHeaders, L"\r\n");
+	if (!value) return FALSE;
+	SUS_LPBUFFER lpValueBuff = (SUS_BUFFER*)susMapGet(*map, keyBuff);
+	if (!lpValueBuff) {
+		SUS_BUFFER buff = susNewBuffer((lstrlenW(value) + 1) * sizeof(WCHAR));
+		lpValueBuff = susMapAdd(map, keyBuff, &buff);
+		if (!lpValueBuff) {
+			susBufferDestroy(buff);
+			return FALSE;
 		}
 	}
-	SUS_PRINTDL("The request has been sent successfully!");
-	return TRUE;
-}
-// 
-static BOOL SUSAPI susHttpParseHeaderLine(_Inout_ SUS_LPHASHMAP map, _In_ LPWSTR line) {
-	LPWSTR colon = sus_strchrW(line, L':');
-	if (!colon) return FALSE;
-	*colon = L'\0';
-	susMapAdd(map, sus_trimW(line), sus_trimW(colon + 1));
-	*colon = L':';
-	return TRUE;
-}
-// 
-static VOID SUSAPI susHttpParseHeaders(_In_ LPWSTR pwszHeaders, _Inout_ SUS_LPHASHMAP headers) {
-	SUS_ASSERT(pwszHeaders && headers);
-	for (LPWSTR line = pwszHeaders; *line;) {
-		LPWSTR end = sus_strstrW(line, L"\r\n");
-		if (!end || end == line) break;
-		*end = L'\0';
-		susHttpParseHeaderLine(headers, line);
-		*end = L'\r';
-		line = end + 2;
-	}
+	else susBufferAppend(lpValueBuff, (LPBYTE)L"; ", 4);
+	return susBufferAppend(lpValueBuff, (LPBYTE)value, lstrlenW(value) * sizeof(WCHAR)) != NULL;
 }
 
-// 
+// ------------------------------------------------------------
+
+// Request a response status code
 static VOID SUSAPI susHttpQueryStatusCode(_In_ HINTERNET hRequest, _Out_ LPDWORD pdwStatus) {
 	SUS_ASSERT(hRequest && pdwStatus);
 	DWORD dwStatusSize = sizeof(*pdwStatus);
@@ -170,17 +94,18 @@ static VOID SUSAPI susHttpQueryStatusCode(_In_ HINTERNET hRequest, _Out_ LPDWORD
 		&dwStatusSize, WINHTTP_NO_HEADER_INDEX
 	);
 }
-// 
-static VOID SUSAPI susHttpQueryStatusMessage(_In_ HINTERNET hRequest, _Out_writes_bytes_(size + sizeof(WCHAR)) LPWSTR msg, _In_ DWORD size) {
-	SUS_ASSERT(hRequest && msg);
+// Request a status message
+static VOID SUSAPI susHttpQueryStatusMessage(_In_ HINTERNET hRequest, _Out_ LPWSTR msg, _In_ DWORD size) {
+	SUS_ASSERT(hRequest && msg && size);
+	*msg = L'\0';
 	WinHttpQueryHeaders(hRequest,
 		WINHTTP_QUERY_STATUS_TEXT,
 		WINHTTP_HEADER_NAME_BY_INDEX, msg,
 		&size, WINHTTP_NO_HEADER_INDEX
 	);
-	*((LPWSTR)(msg + size)) = L'\0';
+	*((LPWSTR)((LPBYTE)msg + size)) = L'\0';
 }
-// 
+// Request the time of the request
 static VOID SUSAPI susHttpQueryTime(_In_ HINTERNET hRequest, _Out_ LPSYSTEMTIME time) {
 	SUS_ASSERT(hRequest && time);
 	DWORD dwTimeSize = sizeof(*time);
@@ -190,10 +115,41 @@ static VOID SUSAPI susHttpQueryTime(_In_ HINTERNET hRequest, _Out_ LPSYSTEMTIME 
 		&dwTimeSize, WINHTTP_NO_HEADER_INDEX
 	);
 }
-// 
+// Get the content type
+static BOOL SUSAPI susHttpQueryContentType(_In_ HINTERNET hRequest, _Out_ LPWSTR type, _In_ DWORD size) {
+	SUS_ASSERT(hRequest && type);
+	*type = L'\0';
+	if (!WinHttpQueryHeaders(hRequest,
+		WINHTTP_QUERY_CONTENT_TYPE,
+		WINHTTP_HEADER_NAME_BY_INDEX, type,
+		&size, WINHTTP_NO_HEADER_INDEX)
+		) {
+		SUS_PRINTDW("Couldn't get the content type");
+		return FALSE;
+	}
+	*((LPWSTR)((LPBYTE)type + size)) = L'\0';
+	return TRUE;
+}
+// Get content encryption
+static BOOL SUSAPI susHttpQueryContentEncoding(_In_ HINTERNET hRequest, _Out_ LPWSTR encoding, _In_ DWORD size) {
+	SUS_ASSERT(hRequest && encoding);
+	*encoding = L'\0';
+	if (!WinHttpQueryHeaders(hRequest,
+		WINHTTP_QUERY_CONTENT_ENCODING,
+		WINHTTP_HEADER_NAME_BY_INDEX, encoding,
+		&size, WINHTTP_NO_HEADER_INDEX)
+		) {
+		SUS_PRINTDW("Couldn't get the encryption type");
+		return FALSE;
+	}
+	*((LPWSTR)((LPBYTE)encoding + size)) = L'\0';
+	return TRUE;
+}
+// Request response headers
 static BOOL SUSAPI susHttpQueryHeaders(_In_ HINTERNET hRequest, _Inout_ SUS_LPHASHMAP headers) {
 	SUS_ASSERT(hRequest && headers);
 	DWORD dwHeaderSize = 0;
+	*headers = susNewMap(WCHAR[32], SUS_BUFFER);
 	if (!WinHttpQueryHeaders(hRequest,
 		WINHTTP_QUERY_RAW_HEADERS_CRLF,
 		WINHTTP_HEADER_NAME_BY_INDEX,
@@ -205,17 +161,19 @@ static BOOL SUSAPI susHttpQueryHeaders(_In_ HINTERNET hRequest, _Inout_ SUS_LPHA
 			WINHTTP_QUERY_RAW_HEADERS_CRLF, WINHTTP_HEADER_NAME_BY_INDEX,
 			pwszHeaders, &dwHeaderSize, WINHTTP_NO_HEADER_INDEX
 		);
-		susHttpParseHeaders(pwszHeaders, headers);
+		LPWSTR ctx = pwszHeaders;
+		sus_strtokW(&ctx, L"\r\n");
+		while (susHttpParseHeaderLine(&ctx, headers));
 		sus_free(pwszHeaders);
 		return TRUE;
 	}
-	*headers = NULL;
 	SUS_PRINTDE("Couldn't get the headers");
 	SUS_PRINTDC(GetLastError());
 	return FALSE;
 }
-// 
+// Request a response body
 static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPBUFFER body) {
+	SUS_ASSERT(hRequest && body);
 	*body = susNewBuffer(256);
 	DWORD dwAvailable = 0;
 	while (WinHttpQueryDataAvailable(hRequest, &dwAvailable) && dwAvailable) {
@@ -229,32 +187,164 @@ static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPBUFFER 
 	return TRUE;
 }
 
-// Get a response from the server
-BOOL SUSAPI susHttpParseResponse(_In_ HINTERNET hRequest, _Out_ SUS_LPHTTP_RESPONSE response)
+// ------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//						Functions for working with the http protocol					//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// ------------------------------------------------------------
+
+// Creating an http session
+BOOL SUSAPI susHttpSessionSetup(_In_opt_z_ LPCWSTR pszAgentW, _In_opt_ DWORD dwTimeOut)
 {
-	SUS_PRINTDL("Getting a response from the server");
-	SUS_ASSERT(hRequest);
-	*response = (SUS_HTTP_RESPONSE){ 0 };
-	if (!WinHttpReceiveResponse(hRequest, NULL)) {
-		SUS_PRINTDE("Failed to request a response");
+	SUS_PRINTDL("Opening of the http session");
+	SUS_ASSERT(!hSession);
+	hSession = WinHttpOpen(
+		pszAgentW,
+		WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+		WINHTTP_NO_PROXY_NAME,
+		WINHTTP_NO_PROXY_BYPASS,
+		0
+	);
+	if (!hSession) {
+		SUS_PRINTDE("Failed to initialize the session");
 		SUS_PRINTDC(GetLastError());
 		return FALSE;
 	}
-	if (!susHttpQueryBody(hRequest, &response->body)) return FALSE;
-	response->headers = susNewMap(WCHAR[32], WCHAR[64]);
-	susHttpQueryHeaders(hRequest, &response->headers);
-	susHttpQueryStatusCode(hRequest, (LPDWORD)&response->status);
-	susHttpQueryStatusMessage(hRequest, response->message, sizeof(response->message) - sizeof(WCHAR));
-	susHttpQueryTime(hRequest, &response->stReceived);
+	if (dwTimeOut) {
+		if (!WinHttpSetTimeouts(hSession, dwTimeOut, dwTimeOut, dwTimeOut, dwTimeOut)) {
+			WinHttpCloseHandle(hSession);
+			SUS_PRINTDE("Failed to initialize the session");
+			SUS_PRINTDC(GetLastError());
+			return FALSE;
+		}
+	}
 	return TRUE;
 }
-// Make a request
-SUS_HTTP_RESPONSE SUSAPI susHttpPerformRequest(SUS_HTTP_REQUEST req, _In_opt_ SUS_DATAVIEW body)
+
+// Deleting an http session
+VOID SUSAPI susHttpSessionCleanup()
 {
-	susHttpSendRequest(req.hRequest, body);
-	SUS_HTTP_RESPONSE res;
-	susHttpParseResponse(req.hRequest, &res);
-	WinHttpCloseHandle(req.hRequest);
-	WinHttpCloseHandle(req.hConnect);
+	SUS_PRINTDL("Closing the http session");
+	SUS_ASSERT(hSession);
+	WinHttpCloseHandle(hSession);
+	hSession = NULL;
+}
+
+// ------------------------------------------------------------
+
+// Create a request
+SUS_HTTP_REQUEST SUSAPI susHttpRequestSetup(_In_ LPCWSTR method, _In_ LPCWSTR lpUrl)
+{
+	SUS_PRINTDL("Creating a request");
+	SUS_ASSERT(method && lpUrl);
+	SUS_HTTP_REQUEST req = { 0 };
+	SUS_HTTP_URL url = { 0 };
+	if (!susHttpParseUrl(lpUrl, &url)) {
+		SUS_PRINTDE("Failed to create a request");
+		return (SUS_HTTP_REQUEST) { 0 };
+	}
+	req.hConnect = WinHttpConnect(hSession, url.host, url.port, 0);
+	if (!req.hConnect) {
+		SUS_PRINTDE("Failed to create a request");
+		return (SUS_HTTP_REQUEST) { 0 };
+	}
+	req.hRequest = WinHttpOpenRequest(
+		req.hConnect, method, url.path, NULL,
+		WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+		(url.port == INTERNET_DEFAULT_HTTPS_PORT) ? WINHTTP_FLAG_SECURE : 0
+	);
+	if (!req.hRequest) {
+		WinHttpCloseHandle(req.hConnect);
+		SUS_PRINTDE("Failed to create a request");
+		return (SUS_HTTP_REQUEST) { 0 };
+	}
+	return req;
+}
+
+// Add a header to a query
+BOOL SUSAPI susHttpSetHeader(_Inout_ HINTERNET hRequest, _In_ LPCWSTR key, _In_ LPCWSTR value, _In_ BOOL replace)
+{
+	SUS_PRINTDL("Setting the http request header");
+	SUS_ASSERT(hRequest && key && value);
+	LPWSTR header = sus_fcalloc(sus_formattingW(NULL, L"%s: %s", key, value) + 1, sizeof(WCHAR));
+	if (!header) return FALSE;
+	sus_formattingW(header, L"%s: %s", key, value);
+	if (!WinHttpAddRequestHeaders(hRequest, header, (DWORD)-1, replace ? WINHTTP_ADDREQ_FLAG_REPLACE : WINHTTP_ADDREQ_FLAG_ADD)) {
+		sus_free(header);
+		SUS_PRINTDE("Couldn't set the header");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	sus_free(header);
+	return TRUE;
+}
+
+// Send a request
+BOOL SUSAPI susHttpRequestExecute(_In_ HINTERNET hRequest, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_DATAVIEW body)
+{
+	SUS_PRINTDL("Sending an http request");
+	SUS_ASSERT(hRequest);
+	if (body.data && body.size) {
+		WCHAR len[20] = { 0 };
+		sus_itow(len, body.size);
+		susHttpSetHeader(hRequest, L"Content-Length", len, FALSE);
+	}
+	if (!WinHttpSendRequest(hRequest, lpszHeaders, (DWORD)-1, NULL, 0, (DWORD)body.size, 0)) {
+		SUS_PRINTDE("Couldn't send request");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	if (body.data) {
+		for (SIZE_T sent = 0, written = 1; sent < body.size; sent += written) {
+			if (!WinHttpWriteData(hRequest, body.data + sent, (DWORD)min(body.size - sent, 1024), (LPDWORD)&written)) return FALSE;
+			if (!written) break;
+		}
+	}
+	SUS_PRINTDL("The request has been sent successfully!");
+	return TRUE;
+}
+
+// Get a response from the server
+SUS_HTTP_RESPONSE SUSAPI susHttpReceiveResponse(_In_ HINTERNET hRequest)
+{
+	SUS_PRINTDL("Getting a response from the server");
+	SUS_ASSERT(hRequest);
+	SUS_HTTP_RESPONSE res = (SUS_HTTP_RESPONSE){ 0 };
+	if (!WinHttpReceiveResponse(hRequest, NULL)) {
+		SUS_PRINTDE("Failed to request a response");
+		SUS_PRINTDC(GetLastError());
+		return (SUS_HTTP_RESPONSE) { 0 };
+	}
+	susHttpQueryBody(hRequest, &res.body.buff);
+	susHttpQueryHeaders(hRequest, &res.headers);
+	susHttpQueryStatusCode(hRequest, (LPDWORD)&res.dwStatus);
+	susHttpQueryStatusMessage(hRequest, res.message, sizeof(res.message));
+	susHttpQueryTime(hRequest, &res.stTime);
+	susHttpQueryContentType(hRequest, res.body.type, sizeof(res.body.type));
+	susHttpQueryContentEncoding(hRequest, res.body.encoding, sizeof(res.body.encoding));
 	return res;
 }
+
+// Request a request
+SUS_HTTP_RESPONSE SUSAPI susHttpRequest(_In_ LPCWSTR method, _In_ LPCWSTR url, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_DATAVIEW body)
+{
+	SUS_WPRINTDL("Sending a '%s' request to the url: %s", method, url);
+	SUS_ASSERT(method && url);
+	SUS_HTTP_REQUEST req = susHttpRequestSetup(method, url);
+	if (!req.hConnect || !req.hRequest) return (SUS_HTTP_RESPONSE) { 0 };
+	if (!susHttpRequestExecute(req.hRequest, lpszHeaders, body)) {
+		susHttpRequestClose(&req);
+		return (SUS_HTTP_RESPONSE) { 0 };
+	}
+	SUS_HTTP_RESPONSE res = susHttpReceiveResponse(req.hRequest);
+	if (!res.dwStatus) {
+		susHttpRequestClose(&req);
+		return (SUS_HTTP_RESPONSE) { 0 };
+	}
+	susHttpRequestClose(&req);
+	return res;
+}
+
+// ------------------------------------------------------------
