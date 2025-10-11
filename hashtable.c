@@ -10,7 +10,7 @@
 // -------------------------------------------------------------------
 
 // Create a hash table
-SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_opt_ SUS_GET_HASH getHash, _In_opt_ DWORD initCount)
+SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_opt_ SUS_GET_HASH_CALLBACK getHash, _In_opt_ SUS_CMP_KEYS_CALLBACK cmpKeys, _In_opt_ DWORD initCount)
 {
 	SUS_PRINTDL("Creating a new hash table");
 	SUS_ASSERT(keySize);
@@ -21,6 +21,7 @@ SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_o
 	map->valueSize = valueSize;
 	map->keySize = keySize;
 	map->getHash = getHash ? getHash : (keySize <= 4 ? susDefGetHashInt : susDefGetHash);
+	map->cmpKeys = cmpKeys ? cmpKeys : susDefCmpKeys;
 	for (DWORD i = 0; i < map->capacity; i++) map->buckets[i] = susNewVectorSized(keySize + valueSize);
 	return map;
 }
@@ -29,7 +30,7 @@ SUS_HASHMAP SUSAPI susMapCopy(_In_ SUS_HASHMAP source, _In_ DWORD initCount)
 {
 	SUS_PRINTDL("Copying a hash table");
 	SUS_ASSERT(source);
-	SUS_HASHMAP map = susNewMapEx(source->keySize, source->valueSize, source->getHash, initCount);
+	SUS_HASHMAP map = susNewMapEx(source->keySize, source->valueSize, source->getHash, source->cmpKeys, initCount);
 	if (!map) return NULL;
 	susMapForeach(source, entry) {
 		susMapAdd(&map, susMapKey(source, entry), susMapValue(source, entry));
@@ -61,27 +62,24 @@ VOID SUSAPI susMapCompress(_Inout_ SUS_LPHASHMAP lpMap)
 // -------------------------------------------------------------------
 
 // Get an item by key
-SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key)
+SUS_OBJECT SUSAPI susMapGetEntry(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key)
 {
 	SUS_PRINTDL("Getting a node from a hash table");
 	SUS_ASSERT(map && key);
 	SUS_VECTOR bucket = map->buckets[susMapGetIndex(map, key)];
 	susVecForeach(i, bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(bucket, i);
-		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
+		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
 			return susMapValue(map, entry);
 		}
 	}
 	return NULL;
 }
-
-// -------------------------------------------------------------------
-
 // Add a new key-value pair to the hash table
 SUS_OBJECT SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key, _In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value)
 {
 	SUS_PRINTDL("Adding a new key-value pair to a hash table");
-	SUS_ASSERT(lpMap && *lpMap && key && !susMapGet(*lpMap, key));
+	SUS_ASSERT(lpMap && *lpMap && key && !susMapGetEntry(*lpMap, key));
 	susMapReserve(lpMap);
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
@@ -102,7 +100,7 @@ VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->k
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
 	susVecForeach(i , *bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(*bucket, i);
-		if (sus_memcmp(susMapKey(map, entry), key, map->keySize)) {
+		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
 			susVectorErase(bucket, i);
 			return;
 		}

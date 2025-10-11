@@ -7,8 +7,6 @@
 extern "C" {
 #endif // !__cplusplus
 
-#include "vector.h"
-
 #pragma warning(push)
 #pragma warning(disable: 4200)
 
@@ -17,7 +15,9 @@ extern "C" {
 // Hash type
 typedef DWORD SUS_HASH_T;
 // Callback function for data hashing
-typedef SUS_HASH_T(SUSAPI* SUS_GET_HASH)(SUS_DATAVIEW key);
+typedef SUS_HASH_T(SUSAPI* SUS_GET_HASH_CALLBACK)(SUS_DATAVIEW key);
+// Callback function for data hashing
+typedef BOOL(SUSAPI* SUS_CMP_KEYS_CALLBACK)(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size);
 
 #define	SUS_FNV_OFFSET (SUS_HASH_T)2166136261u
 #define	SUS_FNV_PRIME (SUS_HASH_T)16777619u
@@ -44,6 +44,35 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
 	SUS_ASSERT(key.data);
 	return *(SUS_HASH_T*)key.data;
 }
+// Get a hash by key
+SUS_INLINE SUS_HASH_T SUSAPI susDefGetStringHashA(SUS_DATAVIEW key) {
+	SUS_ASSERT(key.data);
+	return susDefGetHash((SUS_DATAVIEW) { .data = (LPBYTE)(*(LPSTR*)key.data), .size = lstrlenA(*(LPSTR*)key.data) * sizeof(CHAR) });
+}
+// Get a hash by key
+SUS_INLINE SUS_HASH_T SUSAPI susDefGetStringHashW(SUS_DATAVIEW key) {
+	SUS_ASSERT(key.data);
+	return susDefGetHash((SUS_DATAVIEW) { .data = (LPBYTE)(*(LPWSTR*)key.data), .size = lstrlenW(*(LPWSTR*)key.data) * sizeof(WCHAR) });
+}
+
+// Default Key Comparison
+SUS_INLINE BOOL SUSAPI susDefCmpKeys(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
+	SUS_ASSERT(key1 && key2 && size);
+	return !lstrcmpW(*(LPCWSTR*)key1, *(LPCWSTR*)key2);
+}
+// Default Key Comparison
+SUS_INLINE BOOL SUSAPI susDefCmpStringKeysA(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
+	UNREFERENCED_PARAMETER(size);
+	SUS_ASSERT(key1 && key2);
+	return !lstrcmpA(*(LPCSTR*)key1, *(LPCSTR*)key2);
+}
+// Default Key Comparison
+SUS_INLINE BOOL SUSAPI susDefCmpStringKeysW(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
+	UNREFERENCED_PARAMETER(size);
+	SUS_ASSERT(key1 && key2);
+	return !lstrcmpW(*(LPCWSTR*)key1, *(LPCWSTR*)key2);
+}
+
 
 // ================================================================================================
 
@@ -55,20 +84,36 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
 
 // Hash table
 typedef struct sus_hashmap{
-	SUS_GET_HASH	getHash;	// Hashing function
-	SIZE_T			keySize;	// Key size in bytes
-	SIZE_T			valueSize;	// Value size in bytes
-	DWORD			capacity;	// Number of buckets
-	DWORD			count;		// Total number of table elements
-	SUS_VECTOR		buckets[];	// Buckets
+	SUS_GET_HASH_CALLBACK	getHash;	// Hashing function
+	SUS_CMP_KEYS_CALLBACK	cmpKeys;	// Key comparison function
+	SIZE_T					keySize;	// Key size in bytes
+	SIZE_T					valueSize;	// Value size in bytes
+	DWORD					capacity;	// Number of buckets
+	DWORD					count;		// Total number of table elements
+	SUS_VECTOR				buckets[];	// Buckets
 } SUS_HASHMAP_STRUCT, *SUS_HASHMAP, **SUS_LPHASHMAP;
+
+// Get the entry from the hash table node
+#define susMapEntry(bucket, i) (SUS_OBJECT)susVectorGet(bucket, i)
+// Get the key from the hash table node
+#define susMapKey(map, entry) (entry)
+// Get the value from the hash table node
+#define susMapValue(map, entry) ((SUS_OBJECT)((LPBYTE)(entry) + ((SUS_HASHMAP)(map))->keySize))
+// Iterate over all elements of the hash table
+#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
 // ---------------------------------------------------------
 
 // Create a hash table
-SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_opt_ SUS_GET_HASH getHash, _In_opt_ DWORD initCount);
+SUS_HASHMAP SUSAPI susNewMapEx(
+	_In_ SIZE_T keySize,
+	_In_ SIZE_T valueSize,
+	_In_opt_ SUS_GET_HASH_CALLBACK getHash,
+	_In_opt_ SUS_CMP_KEYS_CALLBACK cmpKeys,
+	_In_opt_ DWORD initCount
+);
 // Create a hash table
-#define susNewMapSized(keySize, valueSize) susNewMapEx(keySize, valueSize, NULL, 0)
+#define susNewMapSized(keySize, valueSize) susNewMapEx(keySize, valueSize, NULL, NULL, 0)
 // Create a hash table
 #define susNewMap(keyType, valueType) susNewMapSized(sizeof(keyType), sizeof(valueType))
 // Destroy the hash table
@@ -108,19 +153,20 @@ SUS_INLINE DWORD SUSAPI susMapGetIndex(SUS_HASHMAP map, LPBYTE key) {
 	return map->getHash((SUS_DATAVIEW) { .data = key, map->keySize }) % map->capacity;
 }
 // Get an item by key
-SUS_OBJECT SUSAPI susMapGet(
+SUS_OBJECT SUSAPI susMapGetEntry(
 	_In_ SUS_HASHMAP map,
 	_In_bytecount_(map->valueSize) SUS_OBJECT key
 );
-#define susMapFind(map, key) (BOOL)(susMapGet(map, key) != NULL)
-// Get the entry from the hash table node
-#define susMapEntry(bucket, i) (SUS_OBJECT)susVectorGet(bucket, i)
-// Get the key from the hash table node
-#define susMapKey(map, entry) (entry)
-// Get the value from the hash table node
-#define susMapValue(map, entry) ((SUS_OBJECT)((LPBYTE)(entry) + ((SUS_HASHMAP)(map))->keySize))
-// Iterate over all elements of the hash table
-#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
+// Get an item by key
+SUS_INLINE SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key) {
+	SUS_OBJECT entry = susMapGetEntry(map, key);
+	return entry ? susMapValue(map, entry) : NULL;
+}
+// Get an item by key
+SUS_INLINE SUS_OBJECT SUSAPI susMapGetKey(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key) {
+	SUS_OBJECT entry = susMapGetEntry(map, key);
+	return entry ? susMapKey(map, entry) : NULL;
+}
 
 // ---------------------------------------------------------
 
