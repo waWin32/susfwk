@@ -193,7 +193,7 @@ BOOL susLoadResourceToFileA(
         return FALSE;
     }
     if (!sus_fwrite(hFres, pData, dwSize)) {
-        susDeleteFileA(lpFileName);
+        sus_fremoveA(lpFileName);
         sus_fclose(hFres);
         SUS_PRINTDE("Error: Could not write to the file!");
         return FALSE;
@@ -223,7 +223,7 @@ BOOL susLoadResourceToFileW(
         return FALSE;
     }
     if (!sus_fwrite(hFres, pData, dwSize)) {
-        susDeleteFileW(lpFileName);
+        sus_fremoveW(lpFileName);
         sus_fclose(hFres);
         SUS_PRINTDE("Error: Could not write to the file!");
         return FALSE;
@@ -258,7 +258,7 @@ SUS_FILE susLoadResourceToTmpFileA(
     }
     if (!sus_fwrite(hFile, pData, dwSize)) {
         sus_fclose(hFile);
-        if (!(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE)) susDeleteFileA(lpTempFileName);
+        if (!(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE)) sus_fremoveA(lpTempFileName);
         SUS_PRINTDE("Failed to load resource");
         return NULL;
     }
@@ -291,7 +291,7 @@ SUS_FILE susLoadResourceToTmpFileW(
     }
     if (!sus_fwrite(hFile, pData, dwSize)) {
         sus_fclose(hFile);
-        if (!(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE)) susDeleteFileW(lpTempFileName);
+        if (!(flags & SUS_TEMP_FILE_DELETE_ON_CLOSE)) sus_fremoveW(lpTempFileName);
         SUS_PRINTDE("Failed to load resource");
         return NULL;
     }

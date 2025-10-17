@@ -48,6 +48,14 @@ typedef unsigned int sus_uint, *sus_puint;
 typedef long sus_long, *sus_plong;
 typedef float sus_float, *sus_pfloat;
 
+typedef char sus_char;
+typedef unsigned short sus_wchar;
+
+typedef _Null_terminated_ sus_char* sus_str;
+typedef _Null_terminated_ const sus_char* sus_cstr;
+typedef _Null_terminated_ sus_wchar* sus_wstr;
+typedef _Null_terminated_ const sus_wchar* sus_cwstr;
+
 // =========================================================
 // Wrapper data types
 // =========================================================

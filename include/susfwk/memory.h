@@ -49,16 +49,27 @@ SUS_INLINE BOOL SUSAPI sus_memcmp(
 	return RtlCompareMemory(lpBuf1, lpBuf2, size) == size ? TRUE : FALSE;
 }
 // Copy the memory
-SUS_INLINE VOID SUSAPI sus_memcpy(
+SUS_INLINE LPBYTE SUSAPI sus_memcpy(
 	_Out_writes_bytes_all_(size) LPBYTE buff,
 	_In_reads_bytes_(size) CONST LPBYTE source,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(buff && source && !(buff > source && buff < source + size));
 	__movsb(buff, source, size);
+	return buff;
 }
 // Copy the memory
-SUS_INLINE VOID SUSAPI sus_memmove(
+SUS_INLINE LPWORD SUSAPI sus_wmemcpy(
+	_Out_writes_all_(count) LPWORD buff,
+	_In_reads_(count) CONST LPWORD source,
+	_In_ SIZE_T count)
+{
+	SUS_ASSERT(buff && source && !(buff > source && buff < source + count));
+	__movsw(buff, source, count);
+	return buff;
+}
+// Copy the memory
+SUS_INLINE LPBYTE SUSAPI sus_memmove(
 	_Out_writes_bytes_all_(size) LPBYTE buff,
 	_In_reads_bytes_(size) CONST LPBYTE source,
 	_In_ SIZE_T size)
@@ -66,6 +77,7 @@ SUS_INLINE VOID SUSAPI sus_memmove(
 	SUS_ASSERT(buff != NULL && source != NULL);
 	if (buff > source && buff < source + size) for (SIZE_T i = size; i > 0; --i) buff[i - 1] = source[i - 1];
 	else __movsb(buff, source, size);
+	return buff;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -91,7 +103,7 @@ SUS_LPMEMORY SUSAPI sus_free(
 	_In_ SUS_LPMEMORY block
 );
 
-	// Fast memory allocation
+// Fast memory allocation
 #define sus_fmalloc(size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), 0, size)
 // Fast allocating a memory array
 #define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size * count)
@@ -112,7 +124,6 @@ typedef struct sus_data_view {
 
 // Create new dynamic memory
 SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
-	SUS_ASSERT(size);
 	return (SUS_DATAVIEW) {
 		.data = sus_fmalloc(size),
 		.size = size
@@ -122,6 +133,36 @@ SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
 SUS_INLINE VOID SUSAPI susDataDestroy(_In_ SUS_DATAVIEW data) {
 	SUS_ASSERT(data.data);
 	sus_free(data.data);
+}
+// Convert a string to binary data
+SUS_INLINE SUS_DATAVIEW SUSAPI susDataFromCStr(_In_ LPCSTR str) {
+	SUS_ASSERT(str);
+	return (SUS_DATAVIEW) { .data = (LPBYTE)str, .size = (lstrlenA(str) + 1) * sizeof(CHAR) };
+}
+// Convert a string to binary data
+SUS_INLINE SUS_DATAVIEW SUSAPI susDataFromCWStr(_In_ LPCWSTR str) {
+	SUS_ASSERT(str);
+	return (SUS_DATAVIEW) { .data = (LPBYTE)str, .size = (lstrlenW(str) + 1) * sizeof(WCHAR) };
+}
+
+// Create a dynamic string
+SUS_INLINE LPSTR SUSAPI sus_strdup(_In_ LPCSTR str) {
+	SUS_ASSERT(str);
+	INT count = lstrlenA(str) + 1;
+	LPBYTE buff = sus_fmalloc(count * sizeof(CHAR));
+	return buff ? (LPSTR)sus_memcpy(buff, (LPBYTE)str, count) : NULL;
+}
+// Create a dynamic wide string
+SUS_INLINE LPWSTR SUSAPI sus_wcsdup(_In_ LPCWSTR str) {
+	SUS_ASSERT(str);
+	INT count = lstrlenW(str) + 1;
+	LPWORD buff = sus_fmalloc(count * sizeof(WCHAR));
+	return buff ? (LPWSTR)sus_wmemcpy(buff, (LPWORD)str, count) : NULL;
+}
+// Delete a dynamic string
+SUS_INLINE VOID SUSAPI sus_strfree(_In_ LPSTR str) {
+	SUS_ASSERT(str);
+	sus_free(str);
 }
 
 //////////////////////////////////////////////////////////////////

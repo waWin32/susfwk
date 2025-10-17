@@ -1,8 +1,9 @@
-// httprequest.h
+// httprequest.c
 //
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/memory.h"
+#include "include/susfwk/vector.h"
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/httprequest.h"
 
@@ -25,12 +26,15 @@ typedef struct sus_http_url {
 // Parse the URL
 static BOOL SUSAPI susHttpParseUrl(_In_ LPCWSTR textUrl, _Out_ SUS_LPHTTP_URL url)
 {
-	SUS_ASSERT(textUrl && url);
+	SUS_PRINTDL("Parsing the URL of an http request");
+	SUS_ASSERT(textUrl && *textUrl && url && lstrlenW(textUrl) < 512);
+	*url = (SUS_HTTP_URL){ 0 };
 	URL_COMPONENTS uc = { 0 };
 	uc.dwStructSize = sizeof(uc);
 	uc.dwHostNameLength = uc.dwUrlPathLength = uc.dwExtraInfoLength = 1;
 	if (!WinHttpCrackUrl(textUrl, 0, 0, &uc)) {
-		*url = (SUS_HTTP_URL){ 0 };
+		SUS_PRINTDE("Request url could not be parsed");
+		SUS_PRINTDC(GetLastError());
 		return FALSE;
 	}
 	if (uc.lpszHostName) {
@@ -54,6 +58,7 @@ static BOOL SUSAPI susHttpParseUrl(_In_ LPCWSTR textUrl, _Out_ SUS_LPHTTP_URL ur
 	}
 	else url->path[0] = L'\0';
 	url->port = uc.nPort;
+	SUS_PRINTDL("The request URL has been successfully parsed");
 	return TRUE;
 }
 
@@ -116,38 +121,45 @@ static VOID SUSAPI susHttpQueryTime(_In_ HINTERNET hRequest, _Out_ LPSYSTEMTIME 
 	);
 }
 // Get the content type
-static BOOL SUSAPI susHttpQueryContentType(_In_ HINTERNET hRequest, _Out_ LPWSTR type, _In_ DWORD size) {
-	SUS_ASSERT(hRequest && type);
-	*type = L'\0';
+static SUS_HTTP_CONTENT_TYPE SUSAPI susHttpQueryContentType(_In_ HINTERNET hRequest) {
+	SUS_ASSERT(hRequest);
+	WCHAR buff[32] = { 0 };
+	DWORD size = sizeof(buff);
 	if (!WinHttpQueryHeaders(hRequest,
 		WINHTTP_QUERY_CONTENT_TYPE,
-		WINHTTP_HEADER_NAME_BY_INDEX, type,
+		WINHTTP_HEADER_NAME_BY_INDEX, buff,
 		&size, WINHTTP_NO_HEADER_INDEX)
-		) {
+	) {
 		SUS_PRINTDW("Couldn't get the content type");
-		return FALSE;
+		return SUS_HTTP_CONTENT_TYPE_TEXT;
 	}
-	*((LPWSTR)((LPBYTE)type + size)) = L'\0';
-	return TRUE;
+	*((LPWSTR)((LPBYTE)buff + size)) = L'\0';
+	static LPCWSTR templates[] = { L"text/plain", L"text/http", L"text/css", L"image/jpeg", L"audio/mpeg", L"application/javascript", L"application/json", L"application/problem+json", L"application/pdf" };
+	for (DWORD i = 0; i < SUS_COUNT_OF(templates); i++) if (lstrcmpiW(buff, templates[i]) == 0) return (SUS_HTTP_CONTENT_TYPE)i;
+	return SUS_HTTP_CONTENT_TYPE_TEXT;
 }
 // Get content encryption
-static BOOL SUSAPI susHttpQueryContentEncoding(_In_ HINTERNET hRequest, _Out_ LPWSTR encoding, _In_ DWORD size) {
-	SUS_ASSERT(hRequest && encoding);
-	*encoding = L'\0';
+static SUS_HTTP_CONTENT_ENCODING SUSAPI susHttpQueryContentEncoding(_In_ HINTERNET hRequest) {
+	SUS_ASSERT(hRequest);
+	WCHAR buff[32] = { 0 };
+	DWORD size = sizeof(buff);
 	if (!WinHttpQueryHeaders(hRequest,
 		WINHTTP_QUERY_CONTENT_ENCODING,
-		WINHTTP_HEADER_NAME_BY_INDEX, encoding,
+		WINHTTP_HEADER_NAME_BY_INDEX, buff,
 		&size, WINHTTP_NO_HEADER_INDEX)
-		) {
+	) {
 		SUS_PRINTDW("Couldn't get the encryption type");
-		return FALSE;
+		return SUS_HTTP_CONTENT_ENCODING_DEFAULT;
 	}
-	*((LPWSTR)((LPBYTE)encoding + size)) = L'\0';
-	return TRUE;
+	*((LPWSTR)((LPBYTE)buff + size)) = L'\0';
+	static LPCWSTR templates[] = { L"identity", L"gzip", L"deflate", L"br" };
+	for (DWORD i = 0; i < SUS_COUNT_OF(templates); i++) if (lstrcmpiW(buff, templates[i]) == 0) return (SUS_HTTP_CONTENT_ENCODING)i;
+	return SUS_HTTP_CONTENT_ENCODING_DEFAULT;
 }
 // Request response headers
 static BOOL SUSAPI susHttpQueryHeaders(_In_ HINTERNET hRequest, _Inout_ SUS_LPHASHMAP headers) {
 	SUS_ASSERT(hRequest && headers);
+	SUS_PRINTDL("HTTP header processing");
 	DWORD dwHeaderSize = 0;
 	*headers = susNewMap(WCHAR[32], SUS_BUFFER);
 	if (!WinHttpQueryHeaders(hRequest,
@@ -172,18 +184,22 @@ static BOOL SUSAPI susHttpQueryHeaders(_In_ HINTERNET hRequest, _Inout_ SUS_LPHA
 	return FALSE;
 }
 // Request a response body
-static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPBUFFER body) {
+static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPDATAVIEW body) {
 	SUS_ASSERT(hRequest && body);
-	*body = susNewBuffer(256);
+	*body = (SUS_DATAVIEW){ 0 };
+	SUS_BUFFER buff = susNewBuffer(1024);
 	DWORD dwAvailable = 0;
 	while (WinHttpQueryDataAvailable(hRequest, &dwAvailable) && dwAvailable) {
 		DWORD read = 0;
-		if (!WinHttpReadData(hRequest, susBufferAppend(body, NULL, dwAvailable), dwAvailable, &read) || !read) {
-			susBufferDestroy(*body);
+		if (!WinHttpReadData(hRequest, susBufferAppend(&buff, NULL, dwAvailable), dwAvailable, &read) || !read) {
+			susBufferDestroy(buff);
 			SUS_PRINTDE("Couldn't read response body data");
 			return FALSE;
 		}
 	}
+	*body = susNewData(buff->size);
+	sus_memcpy(body->data, buff->data, buff->size);
+	susBufferDestroy(buff);
 	return TRUE;
 }
 
@@ -196,12 +212,12 @@ static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPBUFFER 
 // ------------------------------------------------------------
 
 // Creating an http session
-BOOL SUSAPI susHttpSessionSetup(_In_opt_z_ LPCWSTR pszAgentW, _In_opt_ DWORD dwTimeOut)
+BOOL SUSAPI susHttpSessionSetup(_In_opt_z_ LPCWSTR pszAgentW, _In_opt_ DWORD dwTimeOut, _In_ BOOL useHttp2)
 {
 	SUS_PRINTDL("Opening of the http session");
 	SUS_ASSERT(!hSession);
 	hSession = WinHttpOpen(
-		pszAgentW,
+		pszAgentW ? pszAgentW : L"SUSAgent",
 		WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
 		WINHTTP_NO_PROXY_NAME,
 		WINHTTP_NO_PROXY_BYPASS,
@@ -213,9 +229,18 @@ BOOL SUSAPI susHttpSessionSetup(_In_opt_z_ LPCWSTR pszAgentW, _In_opt_ DWORD dwT
 		return FALSE;
 	}
 	if (dwTimeOut) {
+		SUS_PRINTDL("Setting the timeout");
 		if (!WinHttpSetTimeouts(hSession, dwTimeOut, dwTimeOut, dwTimeOut, dwTimeOut)) {
 			WinHttpCloseHandle(hSession);
-			SUS_PRINTDE("Failed to initialize the session");
+			SUS_PRINTDE("The timeout could not be set");
+			SUS_PRINTDC(GetLastError());
+		}
+	}
+	if (useHttp2) {
+		SUS_PRINTDL("Installing HTTP/2");
+		DWORD http2 = WINHTTP_PROTOCOL_FLAG_HTTP2;
+		if (!WinHttpSetOption(hSession, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, &http2, (DWORD)sizeof(http2))) {
+			SUS_PRINTDE("Couldn't install HTTP/2 protocol");
 			SUS_PRINTDC(GetLastError());
 			return FALSE;
 		}
@@ -260,6 +285,7 @@ SUS_HTTP_REQUEST SUSAPI susHttpRequestSetup(_In_ LPCWSTR method, _In_ LPCWSTR lp
 		SUS_PRINTDE("Failed to create a request");
 		return (SUS_HTTP_REQUEST) { 0 };
 	}
+	SUS_PRINTDL("The request was created successfully!");
 	return req;
 }
 
@@ -278,6 +304,7 @@ BOOL SUSAPI susHttpSetHeader(_Inout_ HINTERNET hRequest, _In_ LPCWSTR key, _In_ 
 		return FALSE;
 	}
 	sus_free(header);
+	SUS_PRINTDL("Headers have been successfully installed");
 	return TRUE;
 }
 
@@ -317,13 +344,13 @@ SUS_HTTP_RESPONSE SUSAPI susHttpReceiveResponse(_In_ HINTERNET hRequest)
 		SUS_PRINTDC(GetLastError());
 		return (SUS_HTTP_RESPONSE) { 0 };
 	}
-	susHttpQueryBody(hRequest, &res.body.buff);
+	susHttpQueryBody(hRequest, &res.body.content);
 	susHttpQueryHeaders(hRequest, &res.headers);
 	susHttpQueryStatusCode(hRequest, (LPDWORD)&res.dwStatus);
 	susHttpQueryStatusMessage(hRequest, res.message, sizeof(res.message));
 	susHttpQueryTime(hRequest, &res.stTime);
-	susHttpQueryContentType(hRequest, res.body.type, sizeof(res.body.type));
-	susHttpQueryContentEncoding(hRequest, res.body.encoding, sizeof(res.body.encoding));
+	res.body.type = susHttpQueryContentType(hRequest);
+	res.body.encoding = susHttpQueryContentEncoding(hRequest);
 	return res;
 }
 
@@ -336,11 +363,13 @@ SUS_HTTP_RESPONSE SUSAPI susHttpRequest(_In_ LPCWSTR method, _In_ LPCWSTR url, _
 	if (!req.hConnect || !req.hRequest) return (SUS_HTTP_RESPONSE) { 0 };
 	if (!susHttpRequestExecute(req.hRequest, lpszHeaders, body)) {
 		susHttpRequestClose(&req);
+		SUS_PRINTDE("Couldn't make a request");
 		return (SUS_HTTP_RESPONSE) { 0 };
 	}
 	SUS_HTTP_RESPONSE res = susHttpReceiveResponse(req.hRequest);
 	if (!res.dwStatus) {
 		susHttpRequestClose(&req);
+		SUS_PRINTDE("Couldn't make a request");
 		return (SUS_HTTP_RESPONSE) { 0 };
 	}
 	susHttpRequestClose(&req);
@@ -348,3 +377,25 @@ SUS_HTTP_RESPONSE SUSAPI susHttpRequest(_In_ LPCWSTR method, _In_ LPCWSTR url, _
 }
 
 // ------------------------------------------------------------
+
+// Close the http request
+VOID SUSAPI susHttpRequestClose(_Inout_ SUS_LPHTTP_REQUEST req)
+{
+	WinHttpCloseHandle(req->hRequest);
+	req->hRequest = NULL;
+	WinHttpCloseHandle(req->hConnect);
+	req->hConnect = NULL;
+}
+// Clear the response data
+VOID SUSAPI susHttpResponseCleanup(_Inout_ SUS_LPHTTP_RESPONSE res)
+{
+	if (res->headers) {
+		susMapForeach(res->headers, entry) {
+			susBufferDestroy(*(SUS_BUFFER*)susMapValue(res->headers, entry));
+		}
+		susMapDestroy(res->headers);
+	}
+	res->headers = NULL;
+	if (res->body.content.data) susDataDestroy(res->body.content);
+	res->body.content.data = NULL;
+}

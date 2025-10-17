@@ -263,22 +263,6 @@ typedef struct sus_widget_structW {
 #define SUS_LPWIDGET SUS_LPWIDGETA
 #endif // !UNICODE
 
-typedef SUS_WIDGET SUS_WGBUTTON;
-typedef SUS_WIDGETA SUS_WGBUTTONA;
-typedef SUS_WIDGETW SUS_WGBUTTONW;
-
-typedef SUS_WIDGET SUS_WGEDIT;
-typedef SUS_WIDGETA SUS_WGEDITA;
-typedef SUS_WIDGETW SUS_WGEDITW;
-
-typedef SUS_WIDGET SUS_WGPANEL;
-typedef SUS_WIDGETA SUS_WGPANELA;
-typedef SUS_WIDGETW SUS_WGPANELW;
-
-typedef SUS_WIDGET SUS_WGTOOLBAR;
-typedef SUS_WIDGETA SUS_WGTOOLBARA;
-typedef SUS_WIDGETW SUS_WGTOOLBARW;
-
 // Setup a custom widget
 SUS_WIDGETA SUSAPI susWidgetSetupA(
 	_In_opt_ LPCSTR lpTitle,
@@ -301,11 +285,11 @@ SUS_WIDGETW SUSAPI susWidgetSetupW(
 #endif // !UNICODE
 
 // Setup a button
-SUS_INLINE SUS_WGBUTTONA SUSAPI susWgButtonSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETA SUSAPI susWgButtonSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupA(lpTitle, id, "BUTTON", BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER);
 }
 // Setup a button
-SUS_INLINE SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETW SUSAPI susWgButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupW(lpTitle, id, L"BUTTON", BS_DEFPUSHBUTTON | BS_CENTER | BS_VCENTER);
 }
 
@@ -316,11 +300,11 @@ SUS_INLINE SUS_WGBUTTONW SUSAPI susWgButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_
 #endif // !UNICODE
 
 // Setup a edit widget
-SUS_INLINE SUS_WGEDITA SUSAPI susWgEditSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETA SUSAPI susWgEditSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupA(lpTitle, id, "EDIT", ES_AUTOHSCROLL);
 }
 // Setup a edit widget
-SUS_INLINE SUS_WGEDITW SUSAPI susWgEditSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETW SUSAPI susWgEditSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupW(lpTitle, id, L"EDIT", ES_AUTOHSCROLL);
 }
 
@@ -331,11 +315,11 @@ SUS_INLINE SUS_WGEDITW SUSAPI susWgEditSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT
 #endif // !UNICODE
 
 // Setup a static widget
-SUS_INLINE SUS_WGPANELA SUSAPI susWgPanelSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETA SUSAPI susWgPanelSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupA(lpTitle, id, "STATIC", 0);
 }
 // Setup a static widget
-SUS_INLINE SUS_WGPANELW SUSAPI susWgPanelSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETW SUSAPI susWgPanelSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupW(lpTitle, id, L"STATIC", 0);
 }
 
@@ -343,6 +327,81 @@ SUS_INLINE SUS_WGPANELW SUSAPI susWgPanelSetupW(_In_opt_ LPCWSTR lpTitle, _In_ I
 #define susWgPanelSetup	susWgPanelSetupW
 #else
 #define susWgPanelSetup	susWgPanelSetupA
+#endif // !UNICODE
+
+// Setup a radio button widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWgRadioButtonSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, "BUTTON", BS_AUTORADIOBUTTON | WS_TABSTOP);
+}
+// Setup a radio button widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWgRadioButtonSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, L"BUTTON", BS_AUTORADIOBUTTON | WS_TABSTOP);
+}
+
+#ifdef UNICODE
+#define susWgRadioButtonSetup	susWgRadioButtonSetupW
+#else
+#define susWgRadioButtonSetup	susWgRadioButtonSetupA
+#endif // !UNICODE
+
+// Setup a check box widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWgCheckBoxSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, "BUTTON", BS_AUTOCHECKBOX | WS_TABSTOP);
+}
+// Setup a check box widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWgCheckBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, L"BUTTON", BS_AUTOCHECKBOX | WS_TABSTOP);
+}
+
+#ifdef UNICODE
+#define susWgCheckBoxSetup	susWgCheckBoxSetupW
+#else
+#define susWgCheckBoxSetup	susWgCheckBoxSetupA
+#endif // !UNICODE
+
+// Setup a list box widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWgListBoxSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, "LISTBOX", LBS_NOTIFY | WS_VSCROLL | WS_BORDER);
+}
+// Setup a list box widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWgListBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, L"LISTBOX", LBS_NOTIFY | WS_VSCROLL | WS_BORDER);
+}
+
+#ifdef UNICODE
+#define susWgListBoxSetup	susWgListBoxSetupW
+#else
+#define susWgListBoxSetup	susWgListBoxSetupA
+#endif // !UNICODE
+
+// Setup a combo box widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWComboBoxSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, "COMBOBOX", CBS_DROPDOWN | WS_VSCROLL);
+}
+// Setup a combo box widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWComboBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, L"COMBOBOX", CBS_DROPDOWN | WS_VSCROLL);
+}
+
+#ifdef UNICODE
+#define susWComboBoxSetup	susWComboBoxSetupW
+#else
+#define susWComboBoxSetup	susWComboBoxSetupA
+#endif // !UNICODE
+
+// Setup a scroll box widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWScrollBarSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, "SCROLLBAR", SBS_HORZ);
+}
+// Setup a scroll box widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWScrollBarSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, L"SCROLLBAR", SBS_HORZ);
+}
+
+#ifdef UNICODE
+#define susWScrollBarSetup	susWScrollBarSetupW
+#else
+#define susWScrollBarSetup	susWScrollBarSetupA
 #endif // !UNICODE
 
 // Build a widget

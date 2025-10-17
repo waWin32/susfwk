@@ -1,9 +1,10 @@
-// networkCore.h
+// network.h
 //
 #ifndef _SUS_NETWORK_CORE_
 #define _SUS_NETWORK_CORE_
 
 #include <WinSock2.h>
+#include "json.h"
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma warning(disable: 4996)
@@ -20,12 +21,13 @@
 
 // Socket Messages
 typedef enum sus_socket_message {
-	SUS_SM_CREATE = 1,		// Called after creating a socket
-	SUS_SM_START,			// Called after connecting to the host
-	SUS_SM_DATA,			// Called when data is received
-	SUS_SM_ERROR,			// Called when an error occurs
-	SUS_SM_CLOSE,			// Called when the connection is closed
-	SUS_SM_END			// Called after the connection is closed
+	SUS_SM_UNKNOWN,	// Unknown
+	SUS_SM_CREATE,	// Called after creating a socket
+	SUS_SM_START,	// Called after connecting to the host
+	SUS_SM_DATA,	// Called when data is received
+	SUS_SM_ERROR,	// Called when an error occurs
+	SUS_SM_CLOSE,	// Called when the connection is closed
+	SUS_SM_END		// Called after the connection is closed
 } SUS_SOCKET_MESSAGE;
 // Socket processing function
 typedef VOID(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam);
@@ -130,12 +132,33 @@ SIZE_T SUSAPI susSocketFlush(
 );
 // Check the availability of data to send
 SUS_INLINE INT SUSAPI susSocketHasSendData(_Inout_ SUS_SOCKET sock) {
+	SUS_ASSERT(sock && sock->writeBuffer);
 	return (INT)susBufferSize(sock->writeBuffer);
 }
 // Send data to the socket
-SUS_INLINE VOID SUSAPI susSocketWrite(_Inout_ SUS_SOCKET sock, LPBYTE data, SIZE_T size) {
-	SUS_ASSERT(data && size);
+SUS_INLINE VOID SUSAPI susSocketWrite(_Inout_ SUS_SOCKET sock, _In_bytecount_(size) CONST LPBYTE data, _In_ SIZE_T size) {
+	SUS_ASSERT(sock && sock->writeBuffer && data && size);
 	susBufferAppend(&sock->writeBuffer, data, size);
+}
+
+// Send text to the socket
+SUS_INLINE VOID SUSAPI susSocketSendText(_Inout_ SUS_SOCKET sock, _In_ LPCSTR text) {
+	SUS_ASSERT(sock && text);
+	susSocketWrite(sock, (LPBYTE)text, (SIZE_T)lstrlenA(text) + 1);
+}
+// Send text to the socket
+SUS_INLINE VOID SUSAPI susSocketSendWText(_Inout_ SUS_SOCKET sock, _In_ LPCWSTR text) {
+	SUS_ASSERT(sock && text);
+	susSocketWrite(sock, (LPBYTE)text, ((SIZE_T)lstrlenW(text) + 1) * sizeof(WCHAR));
+}
+// Send json to the socket
+BOOL SUSAPI susJnetSend(_Inout_ SUS_SOCKET sock, _In_ SUS_JSON json) {
+	SUS_ASSERT(sock);
+	LPSTR jsonText = susJsonStringify(json);
+	if (!jsonText) return FALSE;
+	susSocketSendText(sock, jsonText);
+	sus_strfree(jsonText);
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -207,5 +230,61 @@ BOOL SUSAPI susSocketUpdate(
 BOOL SUSAPI susServerUpdate(
 	_In_ SUS_SERVER_SOCKET server
 );
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//											Code examples											//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Example of the server code
+
+VOID SUSAPI ClientHandler(SUS_SOCKET sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case SUS_SM_DATA: {
+		SUS_PRINTDL("Received data from the client:");
+		sus_cwrite(GetStdHandle(STD_OUTPUT_HANDLE), lParam, wParam);
+		sus_printf("\n");
+	} break;
+	case SUS_SM_END: {
+		SUS_PRINTDL("the client has disconnected");
+	} break;
+	case SUS_SM_ERROR: {
+		SUS_PRINTDE("Client error: %d", wParam);
+	} break;
+	}
+}
+VOID SUSAPI ServerHandler(SUS_SOCKET server, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case SUS_SM_CREATE: {
+		SUS_PRINTDL("The server is running, waiting for connections...");
+	} break;
+	case SUS_SM_START: {
+		SUS_PRINTDL("%s join to server", inet_ntoa(((LPSOCKADDR_IN)wParam)->sin_addr));
+	} break;
+	case SUS_SM_END: {
+		SUS_PRINTDL("The server is closed");
+	} break;
+	case SUS_SM_ERROR: {
+		SUS_PRINTDE("Server error: %d", wParam);
+	} break;
+	}
+}
+
+int main()
+{
+	SUS_CONSOLE_DEBUGGING();
+	susNetworkSetup();
+	SUS_SERVER_SOCKET_STRUCT server = susServerSetup(ServerHandler, ClientHandler, NULL);
+	susServerListen(&server, 8000);
+	if (!susServerListen(&server, 8000)) return 1;
+	while (susServerUpdate(&server));
+	susNetworkCleanup();
+	ExitProcess(0);
+}
+
+*/
 
 #endif /* !_SUS_NETWORK_CORE_ */

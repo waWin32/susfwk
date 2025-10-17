@@ -61,7 +61,22 @@ SUS_INLINE VOID SUSAPI susBufferZero(_Inout_ SUS_BUFFER buff) {
 }
 // Get the number of bytes in the buffer
 SUS_INLINE SIZE_T SUSAPI susBufferSize(_In_ SUS_BUFFER buff) {
+	SUS_ASSERT(buff);
 	return buff->size;
+}
+// Convert the buffer to a C string
+SUS_INLINE LPSTR SUSAPI susBufferToCStr(_In_ SUS_BUFFER buff) {
+	SUS_ASSERT(buff && buff->data);
+	LPSTR str = sus_strdup((LPSTR)buff->data);
+	susBufferDestroy(buff);
+	return str;
+}
+// Convert the buffer to a C string
+SUS_INLINE LPWSTR SUSAPI susBufferToCWStr(_In_ SUS_BUFFER buff) {
+	SUS_ASSERT(buff && buff->data);
+	LPWSTR str = sus_wcsdup((LPWSTR)buff->data);
+	susBufferDestroy(buff);
+	return str;
 }
 
 // -------------------------------------
@@ -130,33 +145,32 @@ SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
 
 // -------------------------------------
 
+// Vector element comparison function
+typedef BOOL(SUSAPI* SUS_VECTOR_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
 // Dynamic array
 typedef struct sus_vector {
 	SIZE_T	isize;		// The size of the type in the array
+	DWORD	length;		// Length of the array
 	SUS_BUFFER_STRUCT;	// Vector data
 } SUS_VECTOR_STRUCT, *SUS_VECTOR, **SUS_LPVECTOR;
 
 // -------------------------------------
 
-// Get the array size
-#define susVectorData(array, type) ((type*)((array)->data))
-// Get the array size
-#define susVectorTypeSize(array) ((array)->isize)
-// Get the array count
-#define susVectorCount(array) (UINT)((array)->size / susVectorTypeSize(array))
 // Get the array buffer
 #define susVectorBuffer(array) ((SUS_BUFFER)((LPBYTE)(array) + array->offset))
 // Get the array buffer
 #define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
 // Go through all the elements of the array
-#define susVecForeach(i, vec) for (UINT i = susVectorCount(vec) - 1; i != (UINT)-1; i--)
+#define susVecForeach(i, vec) for (UINT i = 0; i < (vec)->length; i++)
+// Go through all the elements of the array
+#define susVecForeachReverse(i, vec) for (UINT i = (vec)->length - 1; i != (UINT)-1; i--)
 
 // -------------------------------------
 
 // Create a dynamic array
-SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset);
+SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize);
 // Create a dynamic array
-#define susNewVectorSized(typeSize) susNewVectorEx(typeSize, 0)
+#define susNewVectorSized(typeSize) susNewVectorEx(typeSize)
 // Create a dynamic array
 #define susNewVector(type) susNewVectorSized(sizeof(type))
 // Destroy the dynamic array
@@ -168,28 +182,44 @@ SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
 
 // -------------------------------------
 
+// Find the element's index
+INT SUSAPI susVectorIndexOf(
+	_In_ SUS_VECTOR array,
+	_In_ SUS_OBJECT obj,
+	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
+);
+// Find the element's index
+INT SUSAPI susVectorLastIndexOf(
+	_In_ SUS_VECTOR array,
+	_In_ SUS_OBJECT obj,
+	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
+);
+
+
+// -------------------------------------
+
 // Accessing an array element
-SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR array, _In_ UINT index) {
-	SUS_ASSERT(array && array->size);
-	return index >= susVectorCount(array) ? (SUS_OBJECT)NULL : (SUS_OBJECT)(susVectorData(array, BYTE) + index * array->isize);
+SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR vector, _In_ UINT index) {
+	SUS_ASSERT(vector && vector->size && index < vector->length);
+	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->isize);
 }
 // Accessing an array element
-SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR array, _In_ INT index) {
-	SUS_ASSERT(array && array->size);
-	DWORD count = susVectorCount(array);
-	index = index < 0 ? count - (-index % count) : index % count;
-	return (SUS_OBJECT)(susVectorData(array, BYTE) + index * array->isize);
+SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR vector, _In_ INT index) {
+	SUS_ASSERT(vector && vector->size);
+	index = index < 0 ? vector->length - (-index % vector->length) : index % vector->length;
+	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->isize);
 }
 // Get the first element of the array
-SUS_INLINE SUS_OBJECT SUSAPI susVectorFront(_Inout_ SUS_VECTOR array) {
-	SUS_ASSERT(array);
-	return susVectorData(array, VOID);
+SUS_INLINE SUS_OBJECT SUSAPI susVectorFront(_Inout_ SUS_VECTOR vector) {
+	SUS_ASSERT(vector);
+	return vector->data;
 }
 // Get the last element of the array
-SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR array) {
-	SUS_ASSERT(array);
-	return susVectorAt(array, -1);
+SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR vector) {
+	SUS_ASSERT(vector);
+	return susVectorAt(vector, -1);
 }
+
 
 // -------------------------------------
 
@@ -214,8 +244,12 @@ SUS_OBJECT SUSAPI susVectorAppend(
 SUS_OBJECT SUSAPI susVectorInsert(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_ UINT index,
-	_In_ SUS_OBJECT object
+	_In_opt_ SUS_OBJECT object
 );
+// Delete the last element of the array
+SUS_INLINE SUS_OBJECT SUSAPI susVectorPushFront(_Inout_ SUS_LPVECTOR array, _In_ SUS_OBJECT object) {
+	susVectorInsert(array, 0, object);
+}
 
 
 // -------------------------------------
@@ -230,17 +264,26 @@ VOID SUSAPI susVectorErase(
 	_In_ DWORD i
 );
 // Swap places and Delete
-SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR array, _In_ DWORD i) {
-	susVectorSwap(array, i, susVectorCount(*array) - 1);
-	susVectorPopBack(array);
-	return susVectorGet(*array, i);
+SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR pVector, _In_ DWORD i) {
+	susVectorSwap(pVector, i, (*pVector)->length - 1);
+	susVectorPopBack(pVector);
+	return susVectorGet(*pVector, i);
 }
 // Delete all elements of the array
-SUS_INLINE VOID SUSAPI susVectorClear(_Inout_ SUS_VECTOR array)
-{
-	SUS_ASSERT(array);
-	susBufferClear(susVectorBuffer(array));
+SUS_INLINE VOID SUSAPI susVectorClear(_In_ SUS_VECTOR vector) {
+	SUS_ASSERT(vector);
+	susBufferClear(susVectorBuffer(vector));
 }
+// Delete the last element of the array
+SUS_INLINE VOID SUSAPI susVectorPopFront(_Inout_ SUS_LPVECTOR pVector) {
+	susVectorErase(pVector, 0);
+}
+// Replace the value in the vector
+SUS_INLINE SUS_OBJECT SUSAPI susVectorReplace(_Inout_ SUS_LPVECTOR pVector, _In_ UINT index, _In_opt_ SUS_OBJECT object) {
+	susVectorErase(pVector, index);
+	return susVectorInsert(pVector, index, object);
+}
+
 
 // -------------------------------------
 

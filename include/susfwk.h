@@ -27,6 +27,8 @@ Abstract:
 * SUSNOTCRYPTO
 * SUSNOTTHRPROCESSAPI
 * SUSNOTNETWORK
+* SUSNOTHTTP
+* SUSNOTJSON
 */
 
 #include "susfwk/core.h"
@@ -61,6 +63,12 @@ Abstract:
     #ifndef SUSNOTNETWORK
     #include "susfwk/network.h"
     #endif // !SUSNOTNETWORK
+    #ifndef SUSNOTHTTP
+    #include "susfwk/httprequest.h"
+    #endif // !SUSNOTHTTP
+    #ifndef SUSNOTJSON
+    #include "susfwk/json.h"
+    #endif // !SUSNOTJSON
 #endif // !SSUSINIMAL
 
 #endif /* !_SUS_FRAMEWORK_ */

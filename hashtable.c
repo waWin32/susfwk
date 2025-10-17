@@ -70,7 +70,7 @@ SUS_OBJECT SUSAPI susMapGetEntry(_In_ SUS_HASHMAP map, _In_bytecount_(map->value
 	susVecForeach(i, bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(bucket, i);
 		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
-			return susMapValue(map, entry);
+			return entry;
 		}
 	}
 	return NULL;
@@ -95,13 +95,15 @@ SUS_OBJECT SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)
 VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key)
 {
 	SUS_PRINTDL("Deleting an item from a table");
-	SUS_ASSERT(lpMap && *lpMap && key);
+	SUS_ASSERT(lpMap && *lpMap && key && susMapGet(*lpMap, key));
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
-	susVecForeach(i , *bucket) {
+	susVecForeach(i, *bucket) {
 		LPBYTE entry = (LPBYTE)susVectorGet(*bucket, i);
 		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
 			susVectorErase(bucket, i);
+			map->count--;
+			susMapCompress(lpMap);
 			return;
 		}
 	}

@@ -14,8 +14,8 @@ SUS_INLINE INT SUSAPI sus_writeA(_In_ SUS_FILE hOut, LPCSTR text, INT len)
 	if (len < 0) len = lstrlenA(text);
 	DWORD mode;
 	if (GetConsoleMode(hOut, &mode))
-		return susWriteConsoleA(hOut, text, len);
-	return susWriteFile(hOut, (CONST LPBYTE)text, len * sizeof(CHAR));
+		return sus_cwriteA(hOut, text, len);
+	return sus_fwrite(hOut, (CONST LPBYTE)text, len * sizeof(CHAR));
 }
 // Write data to a file
 SUS_INLINE INT SUSAPI sus_writeW(_In_ SUS_FILE hOut, LPCWSTR text, INT len)
@@ -23,8 +23,8 @@ SUS_INLINE INT SUSAPI sus_writeW(_In_ SUS_FILE hOut, LPCWSTR text, INT len)
 	if (len < 0) len = lstrlenW(text);
 	DWORD mode;
 	if (GetConsoleMode(hOut, &mode))
-		return susWriteConsoleW(hOut, text, len);
-	return susWriteFile(hOut, (CONST LPBYTE)text, len * sizeof(WCHAR));
+		return sus_cwriteW(hOut, text, len);
+	return sus_fwrite(hOut, (CONST LPBYTE)text, len * sizeof(WCHAR));
 }
 
 #ifdef UNICODE
@@ -38,16 +38,16 @@ SUS_INLINE INT SUSAPI sus_readA(_In_ SUS_FILE hIn, LPSTR buff, INT len)
 {
 	DWORD mode;
 	if (GetConsoleMode(hIn, &mode))
-		return susReadConsoleA(hIn, buff, len);
-	return susReadFileEx(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(CHAR));
+		return sus_creadA(hIn, buff, len);
+	return sus_freadex(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(CHAR));
 }
 // Read data in a file
 SUS_INLINE INT SUSAPI sus_readW(_In_ SUS_FILE hIn, LPWSTR buff, INT len)
 {
 	DWORD mode;
 	if (GetConsoleMode(hIn, &mode))
-		return susReadConsoleW(hIn, buff, len);
-	return susReadFileEx(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(WCHAR));
+		return sus_creadW(hIn, buff, len);
+	return sus_freadex(hIn, (LPBYTE)buff, (DWORD)len * (DWORD)sizeof(WCHAR));
 }
 
 #ifdef UNICODE

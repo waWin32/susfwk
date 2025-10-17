@@ -37,7 +37,7 @@ SUS_BUFFER SUSAPI susBufferCopy(_In_ SUS_BUFFER src, _In_ SIZE_T offset)
 // -------------------------------------
 
 // Guaranteed buffer size
-SUS_INLINE SUS_STATIC VOID SUSAPI susBufferReserve(
+inline static VOID SUSAPI susBufferReserve(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T required)
 {
@@ -52,7 +52,7 @@ SUS_INLINE SUS_STATIC VOID SUSAPI susBufferReserve(
 	*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
 }
 // Shrink the buffer to the minimum size
-SUS_INLINE SUS_STATIC VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
+inline static VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
 {
 	SUS_ASSERT(pBuff && *pBuff);
 	SUS_BUFFER buff = *pBuff;
@@ -178,13 +178,14 @@ VOID SUSAPI susBufferClear(_Inout_ SUS_BUFFER buff)
 // -------------------------------------
 
 // Create a dynamic array
-SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize, _In_ SIZE_T offset) {
+SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize) {
 	SUS_PRINTDL("Creating a new array");
-	offset = SUS_OFFSET_OF(SUS_VECTOR_STRUCT, offset) + offset;
+	SIZE_T offset = SUS_OFFSET_OF(SUS_VECTOR_STRUCT, offset);
 	SUS_BUFFER buff = susNewBufferEx(isize * 4, offset);
 	if (!buff) return NULL;
 	SUS_VECTOR array = (SUS_VECTOR)((LPBYTE)buff - offset);
 	array->isize = isize;
+	array->length = 0;
 	return array;
 }
 
@@ -211,10 +212,11 @@ SUS_OBJECT SUSAPI susVectorPushBack(
 {
 	SUS_PRINTDL("Adding an element to the end of an array");
 	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_VECTOR vector = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
-	SUS_OBJECT obj = (SUS_OBJECT)susBufferAppend(&buff, object, array->isize);
+	vector->length++;
+	SUS_OBJECT obj = (SUS_OBJECT)susBufferAppend(&buff, object, vector->isize);
 	susVectorSyncBuffer(buff, offset, pVector);
 	return obj;
 }
@@ -226,9 +228,10 @@ SUS_OBJECT SUSAPI susVectorAppend(
 {
 	SUS_PRINTDL("Adding an element to the end of an array");
 	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_VECTOR vector = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
+	vector->length += (DWORD)((size + vector->isize - 1) / vector->isize);
 	SUS_OBJECT obj = (SUS_OBJECT)susBufferAppend(&buff, data, size);
 	susVectorSyncBuffer(buff, offset, pVector);
 	return obj;
@@ -237,17 +240,44 @@ SUS_OBJECT SUSAPI susVectorAppend(
 SUS_OBJECT SUSAPI susVectorInsert(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_ UINT index,
-	_In_ SUS_OBJECT object)
+	_In_opt_ SUS_OBJECT object)
 {
 	SUS_PRINTDL("Inserting an element in an array");
 	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_VECTOR vector = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
-	SUS_OBJECT obj = (SUS_OBJECT)susBufferInsert(&buff, index * array->isize, object, array->isize);
+	vector->length++;
+	SUS_OBJECT obj = (SUS_OBJECT)susBufferInsert(&buff, index * vector->isize, object, vector->isize);
 	susVectorSyncBuffer(buff, offset, pVector);
 	return obj;
 }
+
+// -------------------------------------
+
+// The default vector element comparison function
+static BOOL SUSAPI susDefVectorSearcher(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size) {
+	return sus_memcmp(obj, sought, size);
+}
+// Find the first element and get the index
+INT SUSAPI susVectorIndexOf(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher) {
+	SUS_ASSERT(vector && obj);
+	searcher = searcher ? searcher : susDefVectorSearcher;
+	susVecForeach(i, vector) {
+		if (searcher(susVectorGet(vector, i), obj, vector->isize)) return i;
+	}
+	return -1;
+}
+// Find the last element and get the index
+INT SUSAPI susVectorLastIndexOf(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher) {
+	SUS_ASSERT(vector && obj);
+	searcher = searcher ? searcher : susDefVectorSearcher;
+	susVecForeachReverse(i, vector) {
+		if (searcher(susVectorGet(vector, i), obj, vector->isize)) return i;
+	}
+	return -1;
+}
+
 
 // -------------------------------------
 
@@ -257,10 +287,11 @@ VOID SUSAPI susVectorPopBack(
 {
 	SUS_PRINTDL("Deleting the last element from a dynamic array");
 	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_VECTOR vector = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
-	susBufferTruncate(&buff, array->isize);
+	vector->length--;
+	susBufferTruncate(&buff, vector->isize);
 	susVectorSyncBuffer(buff, offset, pVector);
 
 }
@@ -271,9 +302,10 @@ VOID SUSAPI susVectorErase(
 {
 	SUS_PRINTDL("Deleting an element from a dynamic array");
 	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_VECTOR vector = *pVector;
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
-	susBufferErase(&buff, i * array->isize, array->isize);
+	vector->length--;
+	susBufferErase(&buff, i * vector->isize, vector->isize);
 	susVectorSyncBuffer(buff, offset, pVector);
 }

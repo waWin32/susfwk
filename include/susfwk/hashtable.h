@@ -58,7 +58,7 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetStringHashW(SUS_DATAVIEW key) {
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpKeys(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
 	SUS_ASSERT(key1 && key2 && size);
-	return !lstrcmpW(*(LPCWSTR*)key1, *(LPCWSTR*)key2);
+	return sus_memcmp(key1, key2, size);
 }
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpStringKeysA(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
@@ -198,7 +198,7 @@ SUS_INLINE VOID SUSAPI susMapPrint(_In_ SUS_HASHMAP map) {
 		SUS_PRINTDL("bucket [%d]:", i);
 		susVecForeach(j, bucket) {
 			LPBYTE entry = (LPBYTE)susMapEntry(bucket, j);
-			SUS_PRINTDL("\tkey: '%s' -> '%s'", susMapKey(map, entry), susMapValue(map, entry));
+			SUS_PRINTDL("\tkey: '%s' -> '%s'", *(LPSTR*)susMapKey(map, entry), susMapValue(map, entry));
 		}
 	}
 	SUS_PRINTDL("Count %d:", map->count);

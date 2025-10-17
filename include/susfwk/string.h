@@ -148,12 +148,42 @@ VOID SUSAPI sus_substringW(
 #endif // !UNICODE
 
 // Separation from spaces
-LPSTR SUSAPI sus_trimA(
+LPSTR SUSAPI sus_trimlA(
+	_Inout_ LPSTR* str
+);
+// Separation from spaces
+LPWSTR SUSAPI sus_trimlW(
+	_Inout_ LPWSTR* str
+);
+
+#ifdef UNICODE
+#define sus_triml	sus_trimlW
+#else
+#define sus_triml	sus_trimlA
+#endif // !UNICODE
+
+// Separation from spaces
+LPSTR SUSAPI sus_trimrA(
 	_Inout_ LPSTR str
 );
 // Separation from spaces
-LPWSTR SUSAPI sus_trimW(
+LPWSTR SUSAPI sus_trimrW(
 	_Inout_ LPWSTR str
+);
+
+#ifdef UNICODE
+#define sus_trimr	sus_trimrW
+#else
+#define sus_trimr	sus_trimrA
+#endif // !UNICODE
+
+// Separation from spaces
+LPSTR SUSAPI sus_trimA(
+	_Inout_ LPSTR* str
+);
+// Separation from spaces
+LPWSTR SUSAPI sus_trimW(
+	_Inout_ LPWSTR* str
 );
 
 #ifdef UNICODE

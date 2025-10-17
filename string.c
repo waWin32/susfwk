@@ -102,12 +102,13 @@ LPSTR SUSAPI sus_ftoa(_Out_ LPSTR buffer, _In_ FLOAT value, _In_ DWORD precision
 	*buffer = '\0';
 	LPSTR ptr = sus_itoa(buffer, (int)value);
 	if (value < 0) value = -value;
-	*ptr++ = '.';
 	value -= (float)((int)value);
+	*ptr++ = '.';
 	for (DWORD i = 0; i < precision; i++) {
 		value *= 10.0f;
 		*ptr++ = (CHAR)((int)value + '0');
 		value -= (FLOAT)((int)value);
+		if (value < 0.001f) break;
 	}
 	*ptr = '\0';
 	return ptr;
@@ -118,12 +119,13 @@ LPWSTR SUSAPI sus_ftow(_Out_ LPWSTR buffer, _In_ FLOAT value, _In_ DWORD precisi
 	*buffer = L'\0';
 	LPWSTR ptr = sus_itow(buffer, (int)value);
 	if (value < 0) value = -value;
-	*ptr++ = L'.';
 	value -= (float)((int)value);
+	*ptr++ = L'.';
 	for (DWORD i = 0; i < precision; i++) {
 		value *= 10.0f;
 		*ptr++ = (WCHAR)((int)value + L'0');
 		value -= (FLOAT)((int)value);
+		if (value < 0.001f) break;
 	}
 	*ptr = L'\0';
 	return ptr;
@@ -223,25 +225,50 @@ VOID SUSAPI sus_substringW(_Out_ LPWSTR buffer, _In_ LPCWSTR str, _In_ DWORD sub
 	}
 	*buffer = L'\0';
 }
-// Separation from spaces
-LPSTR SUSAPI sus_trimA(_Inout_ LPSTR str)
+
+// Separation from spaces on the left
+LPSTR SUSAPI sus_trimlA(_Inout_ LPSTR* str)
 {
 	SUS_ASSERT(str);
-	while (sus_isspaceA(*str)) str++;
+	while (sus_isspaceA(**str)) (*str)++;
+	return *str;
+}
+// Separation from spaces on the left
+LPWSTR SUSAPI sus_trimlW(_Inout_ LPWSTR* str)
+{
+	SUS_ASSERT(str);
+	while (sus_isspaceW(**str)) (*str)++;
+	return *str;
+}
+// Separation from spaces on the right
+LPSTR SUSAPI sus_trimrA(_Inout_ LPSTR str)
+{
+	SUS_ASSERT(str);
 	LPSTR end = str + lstrlenA(str);
 	while (end > str && sus_isspaceA(*(end - 1))) end--;
 	*end = '\0';
 	return str;
 }
-// Separation from spaces
-LPWSTR SUSAPI sus_trimW(_Inout_ LPWSTR str)
+// Separation from spaces on the right
+LPWSTR SUSAPI sus_trimrW(_Inout_ LPWSTR str)
 {
 	SUS_ASSERT(str);
-	while (sus_isspaceW(*str)) str++;
 	LPWSTR end = str + lstrlenW(str);
 	while (end > str && sus_isspaceW(*(end - 1))) end--;
 	*end = L'\0';
 	return str;
+}
+// Separation from spaces
+LPSTR SUSAPI sus_trimA(_Inout_ LPSTR* str)
+{
+	SUS_ASSERT(str);
+	return sus_trimrA(sus_trimlA(str));
+}
+// Separation from spaces
+LPWSTR SUSAPI sus_trimW(_Inout_ LPWSTR* str)
+{
+	SUS_ASSERT(str);
+	return sus_trimrW(sus_trimlW(str));
 }
 
 // -----------------------------------------------------------------------------

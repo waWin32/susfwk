@@ -3,8 +3,10 @@
 #ifndef _SUS_HTTP_REQUEST_
 #define _SUS_HTTP_REQUEST_
 
+#if defined(_WIN32) || defined(_WIN64)
 #include <winhttp.h>
 #pragma comment(lib, "winhttp.lib")
+#endif // !_WIN32 _WIN64
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //								Basic http request structures							//
@@ -20,17 +22,38 @@ typedef struct sus_http_request {
 
 // ------------------------------------------------------------
 
+// Standard http body content data types
+typedef enum sus_http_content_type {
+	SUS_HTTP_CONTENT_TYPE_TEXT,			// text/plain
+	SUS_HTTP_CONTENT_TYPE_HTTP,			// text/http
+	SUS_HTTP_CONTENT_TYPE_CSS,			// text/css
+	SUS_HTTP_CONTENT_TYPE_IMAGE,		// image/jpeg
+	SUS_HTTP_CONTENT_TYPE_AUDIO,		// audio/mpeg
+	SUS_HTTP_CONTENT_TYPE_JAVASCRIPT,	// application/javascript
+	SUS_HTTP_CONTENT_TYPE_JSON,			// application/json
+	SUS_HTTP_CONTENT_TYPE_JSON_ERROR,	// application/problem+json
+	SUS_HTTP_CONTENT_TYPE_PDF			// application/pdf
+} SUS_HTTP_CONTENT_TYPE, *SUS_LPHTTP_CONTENT_TYPE;
+// The type of encryption for http content data
+typedef enum sus_http_content_encoding {
+	SUS_HTTP_CONTENT_ENCODING_DEFAULT,	// identity
+	SUS_HTTP_CONTENT_ENCODING_GZIP,		// gzip
+	SUS_HTTP_CONTENT_ENCODING_DEFLATE,	// deflate
+	SUS_HTTP_CONTENT_ENCODING_BROTLI	// br
+} SUS_HTTP_CONTENT_ENCODING, *SUS_LPHTTP_CONTENT_ENCODING;
+// Message body
+typedef struct sus_http_body {
+	SUS_HTTP_CONTENT_TYPE		type;		// Message Content Type
+	SUS_HTTP_CONTENT_ENCODING	encoding;	// The type of encoding of the message content
+	SUS_DATAVIEW				content;	// Content of the message body
+} SUS_HTTP_BODY, *SUS_LPHTTP_BODY;
 // HTTP response structure
 typedef struct sus_http_response {
 	DWORD		dwStatus;	// Numerical status from the server (0 - error)
 	WCHAR		message[32];// Message from the server
 	SYSTEMTIME	stTime;		// Response time
 	SUS_HASHMAP headers;	// WCHAR[32] -> SUS_BUFFER
-	struct sus_http_body {
-		WCHAR		type[32];		// Content Type
-		WCHAR		encoding[32];	// Content encryption
-		SUS_BUFFER	buff;			// Content data buffer
-	} body;	// Response body
+	SUS_HTTP_BODY body;		// The body received from the server
 } SUS_HTTP_RESPONSE, *SUS_LPHTTP_RESPONSE;
 
 // ------------------------------------------------------------
@@ -44,7 +67,8 @@ typedef struct sus_http_response {
 // Creating an http session
 BOOL SUSAPI susHttpSessionSetup(
 	_In_opt_z_ LPCWSTR pszAgentW,
-	_In_opt_ DWORD dwTimeOut
+	_In_opt_ DWORD dwTimeOut,
+	_In_ BOOL useHttp2			// Windows 10+
 );
 // Deleting an http session
 VOID SUSAPI susHttpSessionCleanup();
@@ -84,24 +108,13 @@ SUS_HTTP_RESPONSE SUSAPI susHttpRequest(
 // ------------------------------------------------------------
 
 // Close the http request
-SUS_INLINE VOID SUSAPI susHttpRequestClose(_Inout_ SUS_LPHTTP_REQUEST req) {
-	WinHttpCloseHandle(req->hRequest);
-	req->hRequest = NULL;
-	WinHttpCloseHandle(req->hConnect);
-	req->hConnect = NULL;
-}
+VOID SUSAPI susHttpRequestClose(
+	_Inout_ SUS_LPHTTP_REQUEST req
+);
 // Clear the response data
-SUS_INLINE VOID SUSAPI susHttpResponseCleanup(_Inout_ SUS_LPHTTP_RESPONSE res) {
-	if (res->headers) {
-		susMapForeach(res->headers, entry) {
-			susBufferDestroy(*(SUS_BUFFER*)susMapValue(res->headers, entry));
-		}
-		susMapDestroy(res->headers);
-	}
-	res->headers = NULL;
-	if (res->body.buff) susBufferDestroy(res->body.buff);
-	res->body.buff = NULL;
-}
+VOID SUSAPI susHttpResponseCleanup(
+	_Inout_ SUS_LPHTTP_RESPONSE res
+);
 
 // ------------------------------------------------------------
 
@@ -126,6 +139,10 @@ SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPut(_In_ LPCWSTR lpUrl, _In_opt_ LPCW
 // Send a DELETE request
 SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpDelete(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders) {
 	return susHttpRequest(L"DELETE", lpUrl, lpszHeaders, (SUS_DATAVIEW) { 0 });
+}
+// Send a PATCH request
+SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPatch(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_DATAVIEW body) {
+	return susHttpRequest(L"PATCH", lpUrl, lpszHeaders, body);
 }
 
 // ------------------------------------------------------------
