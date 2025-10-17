@@ -52,8 +52,11 @@
     <Filter Include="Файлы заголовков\api">
       <UniqueIdentifier>{0b506127-596d-48aa-b3a6-a484328506a8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\asm">
-      <UniqueIdentifier>{32e10ab9-fada-401b-9616-e180914bcf1e}</UniqueIdentifier>
+    <Filter Include="Файлы заголовков\network">
+      <UniqueIdentifier>{368a5ee0-b6ca-4e5a-a3f0-35cd809e4143}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\network">
+      <UniqueIdentifier>{ab6aa54a-7e1d-4bc3-a050-bc108cb96ac0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -93,9 +96,6 @@
     <ClInclude Include="include\susfwk\vector.h">
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\network.h">
-      <Filter>Файлы заголовков\system</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\regapi.h">
       <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
@@ -126,14 +126,17 @@
     <ClInclude Include="include\susfwk\debug.h">
       <Filter>Файлы заголовков\api</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\thread.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\httprequest.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\iostream.h">
       <Filter>Файлы заголовков\io</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\json.h">
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\network.h">
+      <Filter>Файлы заголовков\network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\httprequest.h">
+      <Filter>Файлы заголовков\network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -161,9 +164,6 @@
     <ClCompile Include="vector.c">
       <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
-    <ClCompile Include="network.c">
-      <Filter>Исходные файлы\system</Filter>
-    </ClCompile>
     <ClCompile Include="regapi.c">
       <Filter>Исходные файлы\system</Filter>
     </ClCompile>
@@ -188,11 +188,14 @@
     <ClCompile Include="ecs.c">
       <Filter>Исходные файлы\api</Filter>
     </ClCompile>
-    <ClCompile Include="thread.c">
-      <Filter>Исходные файлы\api</Filter>
+    <ClCompile Include="json.c">
+      <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
     <ClCompile Include="httprequest.c">
-      <Filter>Исходные файлы\api</Filter>
+      <Filter>Исходные файлы\network</Filter>
+    </ClCompile>
+    <ClCompile Include="network.c">
+      <Filter>Исходные файлы\network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

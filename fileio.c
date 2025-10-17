@@ -8,7 +8,7 @@
 // --------------------------------------------------------
 
 // Opening a file
-SUS_FILE SUSAPI susCreateFileA(
+SUS_FILE SUSAPI sus_fopenexA(
 	_In_ LPCSTR lpFileName,
 	_In_ DWORD dwDesiredAccess,
 	_In_ DWORD dwShareMode,
@@ -35,7 +35,7 @@ SUS_FILE SUSAPI susCreateFileA(
 	return hFile;
 }
 // Creating a file
-SUS_FILE SUSAPI susCreateFileW(
+SUS_FILE SUSAPI sus_fopenexW(
 	_In_ LPCWSTR lpFileName,
 	_In_ DWORD dwDesiredAccess,
 	_In_ DWORD dwShareMode,
@@ -90,12 +90,12 @@ SUS_FILE SUSAPI susCreateTempFileA(
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
-	susDeleteFileA(_tempFileName);
+	sus_fremoveA(_tempFileName);
 	if (lpFileExtension) {
 		LPSTR cur = sus_strrchrA(_tempFileName, '.');
 		if (cur) lstrcpyA(cur, lpFileExtension);
 	}
-	SUS_FILE hFile = susCreateFileA(
+	SUS_FILE hFile = sus_fopenexA(
 		_tempFileName, GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE, CREATE_ALWAYS,
 		FILE_ATTRIBUTE_TEMPORARY | flags
@@ -135,12 +135,12 @@ SUS_FILE SUSAPI susCreateTempFileW(
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
-	susDeleteFileW(_tempFileName);
+	sus_fremoveW(_tempFileName);
 	if (lpFileExtension) {
 		LPWSTR cur = sus_strrchrW(_tempFileName, L'.');
 		if (cur) lstrcpyW(cur, lpFileExtension);
 	}
-	SUS_FILE hFile = susCreateFileW(
+	SUS_FILE hFile = sus_fopenexW(
 		_tempFileName, GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE, CREATE_ALWAYS,
 		FILE_ATTRIBUTE_TEMPORARY | flags
@@ -158,7 +158,7 @@ SUS_FILE SUSAPI susCreateTempFileW(
 // --------------------------------------------------------
 
 // Delete a file
-BOOL SUSAPI susDeleteFileA(_In_ LPCSTR lpFileName)
+BOOL SUSAPI sus_fremoveA(_In_ LPCSTR lpFileName)
 {
 	SUS_PRINTDL("Deleting a file");
 	SUS_ASSERT(lpFileName);
@@ -171,7 +171,7 @@ BOOL SUSAPI susDeleteFileA(_In_ LPCSTR lpFileName)
 	return TRUE;
 }
 // Delete a file
-BOOL SUSAPI susDeleteFileW(_In_ LPCWSTR lpFileName)
+BOOL SUSAPI sus_fremoveW(_In_ LPCWSTR lpFileName)
 {
 	SUS_PRINTDL("Deleting a file");
 	SUS_ASSERT(lpFileName);
@@ -187,7 +187,7 @@ BOOL SUSAPI susDeleteFileW(_In_ LPCWSTR lpFileName)
 // --------------------------------------------------------
 
 // Reading data from a file
-DWORD SUSAPI susReadFileEx(
+INT SUSAPI sus_freadex(
 	_In_ SUS_FILE hFile,
 	_Out_ LPBYTE lpBuffer,
 	_In_ DWORD dwReadBufferSize)
@@ -204,24 +204,24 @@ DWORD SUSAPI susReadFileEx(
 	{
 		SUS_PRINTDE("Couldn't read data from the file");
 		SUS_PRINTDC(GetLastError());
-		return 0;
+		return -1;
 	}
 	SUS_PRINTDL("The data has been read successfully");
 	return bytesRead;
 }
 // Read the entire file
-SUS_DATAVIEW SUSAPI susReadFile(_In_ SUS_FILE hFile)
+SUS_DATAVIEW SUSAPI sus_fread(_In_ SUS_FILE hFile)
 {
 	SUS_PRINTDL("Reading the entire file");
-	SUS_DATAVIEW data = susNewData(susGetFileSize(hFile));
-	if (!susReadFileEx(hFile, data.data, (DWORD)data.size)) {
+	SUS_DATAVIEW data = susNewData(sus_fsize(hFile));
+	if (sus_freadex(hFile, data.data, (DWORD)data.size) < 0) {
 		susDataDestroy(data);
 		return (SUS_DATAVIEW) { 0 };
 	}
 	return data;
 }
 // Writing to a file
-DWORD SUSAPI susWriteFile(
+DWORD SUSAPI sus_fwrite(
 	_In_ SUS_FILE hFile,
 	_In_ CONST LPBYTE lpData,
 	_In_ DWORD dwNumberOfBytesWrite)
@@ -247,7 +247,7 @@ DWORD SUSAPI susWriteFile(
 // --------------------------------------------------------
 
 // Get the file size
-LONGLONG SUSAPI susGetFileSize(_In_ SUS_FILE hFile)
+LONGLONG SUSAPI sus_fsize(_In_ SUS_FILE hFile)
 {
 	SUS_PRINTDL("Getting the file size");
 	SUS_ASSERT(hFile);
@@ -261,7 +261,7 @@ LONGLONG SUSAPI susGetFileSize(_In_ SUS_FILE hFile)
 }
 
 // Get file statistics
-SUS_FSTAT SUSAPI susGetFileAttributesA(_In_ LPCSTR lpFileName)
+SUS_FSTAT SUSAPI sus_fstateA(_In_ LPCSTR lpFileName)
 {
 	SUS_PRINTDL("Getting file attributes");
 	WIN32_FILE_ATTRIBUTE_DATA attrData = { 0 };
@@ -279,7 +279,7 @@ SUS_FSTAT SUSAPI susGetFileAttributesA(_In_ LPCSTR lpFileName)
 	};
 }
 // Get file statistics
-SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName)
+SUS_FSTAT SUSAPI sus_fstateW(_In_ LPCWSTR lpFileName)
 {
 	SUS_PRINTDL("Getting file attributes");
 	WIN32_FILE_ATTRIBUTE_DATA attrData = { 0 };

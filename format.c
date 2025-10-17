@@ -238,7 +238,7 @@ INT SUSAPIV sus_formattingW(
 
 static SUS_INLINE BOOL SUSAPI parsing_handleA_d(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args) {
 	LPINT dest = skipAssignment ? NULL : sus_va_arg(*args, LPINT);
-	LPSTR end;
+	LPSTR end = NULL;
 	INT value = (INT)sus_atoi(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -247,7 +247,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleA_d(_In_ BOOLEAN skipAssignment, _In
 }
 static SUS_INLINE BOOL SUSAPI parsing_handleA_f(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args) {
 	PFLOAT dest = skipAssignment ? NULL : sus_va_arg(*args, PFLOAT);
-	LPSTR end;
+	LPSTR end = NULL;
 	FLOAT value = (FLOAT)sus_atof(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -256,7 +256,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleA_f(_In_ BOOLEAN skipAssignment, _In
 }
 static SUS_INLINE BOOL SUSAPI parsing_handleA_p(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args) {
 	SIZE_T* dest = skipAssignment ? NULL : sus_va_arg(*args, SIZE_T*);
-	LPSTR end;
+	LPSTR end = NULL;
 	SIZE_T value = (SIZE_T)sus_atoi(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -376,7 +376,7 @@ INT sus_parsingA(
 
 static SUS_INLINE BOOL SUSAPI parsing_handleW_d(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args) {
 	LPINT dest = skipAssignment ? NULL : sus_va_arg(*args, LPINT);
-	LPWSTR end;
+	LPWSTR end = NULL;
 	INT value = (INT)sus_wtoi(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -385,7 +385,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleW_d(_In_ BOOLEAN skipAssignment, _In
 }
 static SUS_INLINE BOOL SUSAPI parsing_handleW_f(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args) {
 	PFLOAT dest = skipAssignment ? NULL : sus_va_arg(*args, PFLOAT);
-	LPWSTR end;
+	LPWSTR end = NULL;
 	FLOAT value = (FLOAT)sus_wtof(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -394,7 +394,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleW_f(_In_ BOOLEAN skipAssignment, _In
 }
 static SUS_INLINE BOOL SUSAPI parsing_handleW_p(_In_ BOOLEAN skipAssignment, _Inout_ LPCWSTR* str, _Inout_ sus_va_list* args) {
 	SIZE_T* dest = skipAssignment ? NULL : sus_va_arg(*args, SIZE_T*);
-	LPWSTR end;
+	LPWSTR end = NULL;
 	SIZE_T value = (SIZE_T)sus_wtoi(*str, &end);
 	if (*str == end) return FALSE;
 	*str = end;
@@ -509,4 +509,153 @@ INT sus_parsingW(
 	INT res = sus_vparsingW(str, format, args);
 	sus_va_end(args);
 	return res;
+}
+
+// parsing a string with special characters in the esc sequence
+DWORD SUSAPI sus_escapeA(_Out_opt_ LPSTR buff, _In_ LPCSTR src)
+{
+	DWORD length = 0;
+	while (*src) {
+		if (*src < 32 || *src == '"' || *src == '\\') {
+			if (buff) *buff++ = '\\';
+			switch (*src++)
+			{
+			case '\"': if (buff) *buff++ = '"'; break;
+			case '\\': if (buff) *buff++ = '\\'; break;
+			case '\t': if (buff) *buff++ = 't'; break;
+			case '\n': if (buff) *buff++ = 'n'; break;
+			case '\v': if (buff) *buff++ = 'v'; break;
+			case '\r': if (buff) *buff++ = 'r'; break;
+			case '\f': if (buff) *buff++ = 'f'; break;
+			case '\a': if (buff) *buff++ = 'a'; break;
+			case '\b': if (buff) *buff++ = 'b'; break;
+			case '\0': if (buff) *buff++ = '0'; break;
+			default: {
+				*(buff - 1) = *(src - 1);
+				length--;
+			} break;
+			}
+			length += 2;
+		}
+		else {
+			if (buff) *buff++ = *src++;
+			else src++;
+			length++;
+		}
+	}
+	if (buff) *buff = '\0';
+	return length;
+}
+// parsing a string with special characters in the esc sequence
+DWORD SUSAPI sus_escapeW(_Out_opt_ LPWSTR buff, _In_ LPCWSTR src)
+{
+	DWORD length = 0;
+	while (*src) {
+		if (*src < 32 || *src == L'"' || *src == L'\\') {
+			if (buff) *buff++ = L'\\';
+			switch (*src++)
+			{
+			case L'\"': if (buff) *buff++ = L'"'; break;
+			case L'\\': if (buff) *buff++ = L'\\'; break;
+			case L'\t': if (buff) *buff++ = L't'; break;
+			case L'\n': if (buff) *buff++ = L'n'; break;
+			case L'\v': if (buff) *buff++ = L'v'; break;
+			case L'\r': if (buff) *buff++ = L'r'; break;
+			case L'\f': if (buff) *buff++ = L'f'; break;
+			case L'\a': if (buff) *buff++ = L'a'; break;
+			case L'\b': if (buff) *buff++ = L'b'; break;
+			case L'\0': if (buff) *buff++ = L'0'; break;
+			default: {
+				*(buff - 1) = *(src - 1);
+				length--;
+			} break;
+			}
+			length += 2;
+		}
+		else {
+			if (buff) *buff++ = *src++;
+			else src++;
+			length++;
+		}
+	}
+	if (buff) *buff = L'\0';
+	return length;
+}
+// parsing a string with esc characters into special characters
+DWORD SUSAPI sus_unescapeA(_Out_opt_ LPSTR buff, _In_ LPCSTR src)
+{
+	DWORD length = 0;
+	while (*src) {
+		if (*src == '\\') {
+			src++;
+			if (!*src) break;
+			switch (*(src++))
+			{
+			case '"': if (buff) *buff++ = '\"'; break;
+			case 't': if (buff) *buff++ = '\t'; break;
+			case 'n': if (buff) *buff++ = '\n'; break;
+			case 'v': if (buff) *buff++ = '\v'; break;
+			case 'r': if (buff) *buff++ = '\r'; break;
+			case 'f': if (buff) *buff++ = '\f'; break;
+			case 'a': if (buff) *buff++ = '\a'; break;
+			case 'b': if (buff) *buff++ = '\b'; break;
+			case '0': if (buff) *buff++ = '\0'; break;
+			case '\\': if (buff) *buff++ = '\\'; break;
+			default: {
+				if (buff) {
+					*buff++ = '\\';
+					*buff++ = *(src - 1);
+				}
+				length += 1;
+			} break;
+			}
+			length++;
+		}
+		else {
+			if (buff) *buff++ = *src++;
+			else src++;
+			length++;
+		}
+	}
+	if (buff) *buff = '\0';
+	return length;
+}
+// parsing a string with esc characters into special characters
+DWORD SUSAPI sus_unescapeW(_Out_opt_ LPWSTR buff, _In_ LPCWSTR src)
+{
+	DWORD length = 0;
+	while (*src) {
+		if (*src == L'\\') {
+			src++;
+			if (!*src) break;
+			switch (*(src++))
+			{
+			case L'"': if (buff) *buff++ = L'\"'; break;
+			case L't': if (buff) *buff++ = L'\t'; break;
+			case L'n': if (buff) *buff++ = L'\n'; break;
+			case L'v': if (buff) *buff++ = L'\v'; break;
+			case L'r': if (buff) *buff++ = L'\r'; break;
+			case L'f': if (buff) *buff++ = L'\f'; break;
+			case L'a': if (buff) *buff++ = L'\a'; break;
+			case L'b': if (buff) *buff++ = L'\b'; break;
+			case L'0': if (buff) *buff++ = L'\0'; break;
+			case L'\\': if (buff) *buff++ = L'\\'; break;
+			default: {
+				if (buff) {
+					*buff++ = L'\\';
+					*buff++ = *(src - 1);
+				}
+				length += 1;
+			} break;
+			}
+			length++;
+		}
+		else {
+			if (buff) *buff++ = *src++;
+			else src++;
+			length++;
+		}
+	}
+	if (buff) *buff = L'\0';
+	return length;
 }

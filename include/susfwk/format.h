@@ -136,4 +136,38 @@ INT sus_parsingW(
 #define sus_parsing	sus_parsingA
 #endif // !UNICODE
 
+// parsing a string with special characters in the esc sequence
+DWORD SUSAPI sus_escapeA(
+	_Out_opt_ LPSTR buff,
+	_In_ LPCSTR src
+);
+// parsing a string with special characters in the esc sequence
+DWORD SUSAPI sus_escapeW(
+	_Out_opt_ LPWSTR buff,
+	_In_ LPCWSTR src
+);
+
+#ifdef UNICODE
+#define sus_escape	sus_escapeW
+#else
+#define sus_escape	sus_escapeA
+#endif // !UNICODE
+
+// parsing a string with esc characters into special characters
+DWORD SUSAPI sus_unescapeA(
+	_Out_opt_ LPSTR buff,
+	_In_ LPCSTR src
+);
+// parsing a string with esc characters into special characters
+DWORD SUSAPI sus_unescapeW(
+	_Out_opt_ LPWSTR buff,
+	_In_ LPCWSTR src
+);
+
+#ifdef UNICODE
+#define sus_unescape	sus_unescapeW
+#else
+#define sus_unescape	sus_unescapeA
+#endif // !UNICODE
+
 #endif /* !_SUS_FORMAT_ */

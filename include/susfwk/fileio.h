@@ -6,7 +6,7 @@
 // --------------------------------------------------------
 
 // Opening a file
-SUS_FILE SUSAPI susCreateFileA(
+SUS_FILE SUSAPI sus_fopenexA(
 	_In_ LPCSTR lpFileName,
 	_In_ DWORD dwDesiredAccess,
 	_In_ DWORD dwShareMode,
@@ -14,7 +14,7 @@ SUS_FILE SUSAPI susCreateFileA(
 	_In_ DWORD dwFlagsAndAttributes
 );
 // Creating a file
-SUS_FILE SUSAPI susCreateFileW(
+SUS_FILE SUSAPI sus_fopenexW(
 	_In_ LPCWSTR lpFileName,
 	_In_ DWORD dwDesiredAccess,
 	_In_ DWORD dwShareMode,
@@ -23,19 +23,19 @@ SUS_FILE SUSAPI susCreateFileW(
 );
 
 #ifdef UNICODE
-#define susCreateFile	susCreateFileW
+#define sus_fopenex	sus_fopenexW
 #else
-#define susCreateFile	susCreateFileA
+#define sus_fopenex	sus_fopenexA
 #endif // !UNICODE
 
 // Opening a file
-#define sus_fopenA(fileName, access) susCreateFileA(fileName, access, FILE_SHARE_READ, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL)
+#define sus_fopenA(fileName, access) sus_fopenexA(fileName, access, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
 // Opening a file
-#define sus_fopenW(fileName, access) susCreateFileW(fileName, access, FILE_SHARE_READ, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL)
+#define sus_fopenW(fileName, access) sus_fopenexW(fileName, access, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
 // Creating a new file
-#define sus_fcreateA(fileName, attributes) susCreateFileA(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
+#define sus_fcreateA(fileName, attributes) sus_fopenexA(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
 // Creating a new file
-#define sus_fcreateW(fileName, attributes) susCreateFileW(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
+#define sus_fcreateW(fileName, attributes) sus_fopenexW(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
 
 #ifdef UNICODE
 #define sus_fopen			sus_fopenW
@@ -48,18 +48,18 @@ SUS_FILE SUSAPI susCreateFileW(
 // --------------------------------------------------------
 
 // Delete a file
-BOOL SUSAPI susDeleteFileA(
+BOOL SUSAPI sus_fremoveA(
 	_In_ LPCSTR lpFileName
 );
 // Delete a file
-BOOL SUSAPI susDeleteFileW(
+BOOL SUSAPI sus_fremoveW(
 	_In_ LPCWSTR lpFileName
 );
 
 #ifdef UNICODE
-#define susDeleteFile	susDeleteFileW
+#define sus_fremove	sus_fremoveW
 #else
-#define susDeleteFile	susDeleteFileA
+#define sus_fremove	sus_fremoveA
 #endif // !UNICODE
 
 // --------------------------------------------------------
@@ -101,32 +101,27 @@ SUS_FILE SUSAPI susCreateTempFileW(
 // --------------------------------------------------------
 
 // Reading data from a file
-DWORD SUSAPI susReadFileEx(
+INT SUSAPI sus_freadex(
 	_In_ SUS_FILE hFile,
 	_Out_ LPBYTE lpBuffer,
 	_In_ DWORD dwReadBufferSize
 );
 // Read the entire file
-SUS_DATAVIEW SUSAPI susReadFile(_In_ SUS_FILE hFile);
-// Reading data from a file
-#define sus_fread(file)	susReadFile(file)
+SUS_DATAVIEW SUSAPI sus_fread(_In_ SUS_FILE hFile);
 
 // Writing to a file
-DWORD SUSAPI susWriteFile(
+DWORD SUSAPI sus_fwrite(
 	_In_ SUS_FILE hFile,
 	_In_ CONST LPBYTE lpData,
 	_In_ DWORD dwNumberOfBytesWrite
 );
-// Writing to a file
-#define sus_fwrite(file, lpData, dwNumberOfBytesWrite)	susWriteFile(file, lpData, dwNumberOfBytesWrite <= 0 ? lstrlenA(lpData) : dwNumberOfBytesWrite)
-
 // Move the pointer to the specified blend
 #define sus_fseek(hFile, offset, origin)	SetFilePointerEx(hFile, (LARGE_INTEGER) { .QuadPart = offset }, NULL origin)
 
 // --------------------------------------------------------
 
 // Get the file size
-LONGLONG SUSAPI susGetFileSize(
+LONGLONG SUSAPI sus_fsize(
 	_In_ SUS_FILE hFile
 );
 
@@ -139,20 +134,13 @@ typedef struct sus_file_stat {
 } SUS_FSTAT, *SUS_PFSTAT, *SUS_LPFSTAT;
 
 // Get file statistics
-SUS_FSTAT SUSAPI susGetFileAttributesA(_In_ LPCSTR lpFileName);
+SUS_FSTAT SUSAPI sus_fstateA(_In_ LPCSTR lpFileName);
 // Get file statistics
-SUS_FSTAT SUSAPI susGetFileAttributesW(_In_ LPCWSTR lpFileName);
-
-// Get file statistics
-#define sus_fstateA(fileName)	susGetFileAttributesA(fileName)
-// Get file statistics
-#define sus_fstateW(fileName)	susGetFileAttributesW(fileName)
+SUS_FSTAT SUSAPI sus_fstateW(_In_ LPCWSTR lpFileName);
 
 #ifdef UNICODE
-#define susGetFileAttributes	susGetFileAttributesW
 #define sus_fstate				sus_fstateW
 #else
-#define susGetFileAttributes	susGetFileAttributesA
 #define sus_fstate				sus_fstateA
 #endif // !UNICODE
 

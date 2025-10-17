@@ -41,7 +41,7 @@
     <ClInclude Include="include\susfwk\regapi.h" />
     <ClInclude Include="include\susfwk\resapi.h" />
     <ClInclude Include="include\susfwk\string.h" />
-    <ClInclude Include="include\susfwk\thread.h" />
+    <ClInclude Include="include\susfwk\json.h" />
     <ClInclude Include="include\susfwk\thrprocessapi.h" />
     <ClInclude Include="include\susfwk\vector.h" />
     <ClInclude Include="include\susfwk\windowapi.h" />
@@ -62,7 +62,7 @@
     <ClCompile Include="regapi.c" />
     <ClCompile Include="resapi.c" />
     <ClCompile Include="string.c" />
-    <ClCompile Include="thread.c" />
+    <ClCompile Include="json.c" />
     <ClCompile Include="thrprocessapi.c" />
     <ClCompile Include="vector.c" />
     <ClCompile Include="windowapi.c" />
