@@ -99,8 +99,6 @@ typedef struct sus_hashmap{
 #define susMapKey(map, entry) (entry)
 // Get the value from the hash table node
 #define susMapValue(map, entry) ((SUS_OBJECT)((LPBYTE)(entry) + ((SUS_HASHMAP)(map))->keySize))
-// Iterate over all elements of the hash table
-#define susMapForeach(map, entry) for (DWORD __i = 0; __i < map->capacity; __i++) susVecForeach(__j, (map)->buckets[__i]) for (LPBYTE entry = (LPBYTE)susVectorGet((map)->buckets[__i], __j); entry; entry = NULL)
 
 // ---------------------------------------------------------
 
@@ -222,6 +220,39 @@ SUS_INLINE VOID SUSAPI susMapPrintW(_In_ SUS_HASHMAP map) {
 #define susMapPrintW(map)
 #endif // !_DEBUG
 #endif // !SUS_DEBUGONLYERRORS
+
+// ---------------------------------------------------------
+
+// Hash Table Iterator
+typedef struct sus_map_iter {
+	SUS_HASHMAP map;
+	DWORD bucketIndex;
+	DWORD entryIndex;
+	DWORD count;
+} SUS_MAP_ITER, *SUS_LPMAP_ITER;
+
+// Start getting data from the hash table
+SUS_MAP_ITER SUSAPI susMapIterBegin(
+	_In_ SUS_HASHMAP map
+);
+// Go to the next element in the hash table
+BOOL SUSAPI susMapIterNext(
+	_Inout_ SUS_LPMAP_ITER iter
+);
+
+// Get the key of the current element in the iterator
+SUS_INLINE SUS_OBJECT SUSAPI susMapIterKey(SUS_MAP_ITER iter) {
+	SUS_ASSERT(iter.map);
+	return susMapKey(iter.map, susVectorGet(iter.map->buckets[iter.bucketIndex], iter.entryIndex));
+}
+// Get the value of the current element in the iterator
+SUS_INLINE SUS_OBJECT SUSAPI susMapIterValue(SUS_MAP_ITER iter) {
+	SUS_ASSERT(iter.map);
+	return susMapValue(iter.map, susVectorGet(iter.map->buckets[iter.bucketIndex], iter.entryIndex));
+}
+// Iterate over all elements of the hash table
+#define susMapForeach(map, i) for (SUS_MAP_ITER i = susMapIterBegin(map); i.count < map->count; susMapIterNext(&i))
+
 
 // ---------------------------------------------------------
 

@@ -32,8 +32,8 @@ SUS_HASHMAP SUSAPI susMapCopy(_In_ SUS_HASHMAP source, _In_ DWORD initCount)
 	SUS_ASSERT(source);
 	SUS_HASHMAP map = susNewMapEx(source->keySize, source->valueSize, source->getHash, source->cmpKeys, initCount);
 	if (!map) return NULL;
-	susMapForeach(source, entry) {
-		susMapAdd(&map, susMapKey(source, entry), susMapValue(source, entry));
+	susMapForeach(source, i) {
+		susMapAdd(&map, susMapIterKey(i), susMapIterValue(i));
 	}
 	return map;
 }
@@ -115,6 +115,31 @@ VOID SUSAPI susMapClear(_In_ SUS_HASHMAP map)
 		susVectorDestroy(map->buckets[i]);
 	}
 	map->count = 0;
+}
+
+// -------------------------------------------------------------------
+
+// Start getting data from the hash table
+SUS_MAP_ITER SUSAPI susMapIterBegin(_In_ SUS_HASHMAP map)
+{
+	SUS_ASSERT(map);
+	SUS_MAP_ITER iter = { .map = map, .bucketIndex = 0, .entryIndex = 0 };
+	while (iter.bucketIndex < iter.map->capacity && !iter.map->buckets[iter.bucketIndex]->size) iter.bucketIndex++;
+	return iter;
+}
+// Go to the next element in the hash table
+BOOL SUSAPI susMapIterNext(_Inout_ SUS_LPMAP_ITER iter)
+{
+	SUS_ASSERT(iter && iter->map);
+	if (iter->count >= iter->map->count) return FALSE;
+	iter->count++;
+	if (iter->entryIndex + 1 < iter->map->buckets[iter->bucketIndex]->length) {
+		iter->entryIndex++;
+		return TRUE;
+	}
+	iter->entryIndex = 0;
+	do iter->bucketIndex++; while (iter->bucketIndex < iter->map->capacity && !iter->map->buckets[iter->bucketIndex]->size);
+	return iter->bucketIndex < iter->map->capacity;
 }
 
 // -------------------------------------------------------------------
