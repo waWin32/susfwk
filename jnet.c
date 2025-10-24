@@ -60,7 +60,9 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 	}
 	else {
 		SUS_PRINTDL("Message received");
-		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, headers ? *headers : susJsonNull(), body ? *body : susJsonNull(), jNetSock->userData);
+		SUS_LPJSON path = susJsonObjectGet(json, "path");
+		if (!path || path->type != SUS_JSON_TYPE_STRING) goto incorrect_data;
+		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? *headers : susJsonNull(), body ? *body : susJsonNull(), jNetSock->userData);
 	}
 	susJsonDestroy(json);
 	return TRUE;
@@ -114,11 +116,12 @@ SUS_JSON SUSAPI susJnetRequestSetup(_In_ SUS_JSON id, _In_ SUS_JNET_METHOD metho
 	return req;
 }
 // Create a JNET message
-SUS_JSON SUSAPI susJnetNotificationSetup(_In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body)
+SUS_JSON SUSAPI susJnetNotificationSetup(_In_opt_ LPCSTR path, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body)
 {
 	SUS_PRINTDL("Creating a message");
 	SUS_JSON msg = susJsonObject();
 	if (!susJsonIsValid(msg)) return susJsonNull();
+	susJsonObjectSet(&msg, "path", susJsonString(path));
 	susJsonObjectSet(&msg, "headers", headers);
 	susJsonObjectSet(&msg, "body", body);
 	return msg;
