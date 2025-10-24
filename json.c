@@ -29,9 +29,9 @@ VOID SUSAPI susJsonDestroy(_In_ SUS_JSON json) {
 		susVectorDestroy(json.value.array);
 	} break;
 	case SUS_JSON_TYPE_OBJECT: {
-		susMapForeach(json.value.object, entry) {
-			susJsonDestroy(*(SUS_LPJSON)susMapValue(json.value.object, entry));
-			sus_free(*(LPSTR*)susMapKey(json.value.object, entry));
+		susMapForeach(json.value.object, i) {
+			susJsonDestroy(*(SUS_LPJSON)susMapIterValue(i));
+			sus_free(*(LPSTR*)susMapIterKey(i));
 		}
 		susMapDestroy(json.value.object);
 	} break;
@@ -57,8 +57,8 @@ SUS_JSON SUSAPI susJsonCopy(_In_ SUS_JSON json)
 	} break;
 	case SUS_JSON_TYPE_OBJECT: {
 		jsonCopy = susJsonObject();
-		susMapForeach(json.value.object, entry) {
-			susJsonObjectSet(&jsonCopy, *(LPSTR*)susMapKey(json.value.object, entry), susJsonCopy(*(SUS_LPJSON)susMapValue(json.value.object, entry)));
+		susMapForeach(json.value.object, i) {
+			susJsonObjectSet(&jsonCopy, *(LPSTR*)susMapIterKey(i), susJsonCopy(*(SUS_LPJSON)susMapIterValue(i)));
 		}
 	} break;
 	default: {
@@ -111,13 +111,12 @@ static VOID SUSAPI susJsonStringifyRecursively(_In_ SUS_LPJSON json, _Inout_ SUS
 	} break;
 	case SUS_JSON_TYPE_OBJECT: {
 		susBufferAppend(pBuffer, (LPBYTE)"{", sizeof(CHAR));
-		UINT i = 0;
-		susMapForeach(json->value.object, entry) {
-			susJsonStringStringify(*(LPSTR*)susMapKey(json->value.object, entry), pBuffer);
+		susMapForeach(json->value.object, i) {
+			susJsonStringStringify(*(LPSTR*)susMapIterKey(i), pBuffer);
 			susBufferAppend(pBuffer, (LPBYTE)": ", 2);
-			SUS_LPJSON obj = susMapValue(json->value.object, entry);
+			SUS_LPJSON obj = susMapIterValue(i);
 			susJsonStringifyRecursively(obj, pBuffer);
-			if (i++ < json->value.object->count - 1) susBufferAppend(pBuffer, (LPBYTE)", ", 2);
+			if (i.count < json->value.object->count - 1) susBufferAppend(pBuffer, (LPBYTE)", ", 2);
 		}
 		susBufferAppend(pBuffer, (LPBYTE)"}", sizeof(CHAR));
 	} break;
@@ -265,10 +264,10 @@ BOOL SUSAPI susJsonEquals(_In_ SUS_JSON a, _In_ SUS_JSON b)
 	} return TRUE;
 	case SUS_JSON_TYPE_OBJECT: {
 		if (a.value.object->count != b.value.object->count) return FALSE;
-		susMapForeach(a.value.object, entry) {
-			SUS_LPJSON json = susJsonObjectGet(b, *(LPSTR*)susMapKey(a.value.object, entry));
+		susMapForeach(a.value.object, i) {
+			SUS_LPJSON json = susJsonObjectGet(b, *(LPSTR*)susMapIterKey(i));
 			if (!json) return FALSE;
-			if (!susJsonEquals(*(SUS_JSON*)susMapValue(a.value.object, entry), *json)) return FALSE;
+			if (!susJsonEquals(*(SUS_JSON*)susMapIterValue(i), *json)) return FALSE;
 		}
 	} return TRUE;
 	default:
@@ -277,6 +276,12 @@ BOOL SUSAPI susJsonEquals(_In_ SUS_JSON a, _In_ SUS_JSON b)
 }
 
 // -----------------------------------------------
+
+// =======================================================================================
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//								       Working with json objects                                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // =======================================================================================
 

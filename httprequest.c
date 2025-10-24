@@ -390,8 +390,8 @@ VOID SUSAPI susHttpRequestClose(_Inout_ SUS_LPHTTP_REQUEST req)
 VOID SUSAPI susHttpResponseCleanup(_Inout_ SUS_LPHTTP_RESPONSE res)
 {
 	if (res->headers) {
-		susMapForeach(res->headers, entry) {
-			susBufferDestroy(*(SUS_BUFFER*)susMapValue(res->headers, entry));
+		susMapForeach(res->headers, i) {
+			susBufferDestroy(*(SUS_BUFFER*)susMapIterValue(i));
 		}
 		susMapDestroy(res->headers);
 	}
