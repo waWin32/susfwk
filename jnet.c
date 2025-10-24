@@ -5,6 +5,8 @@
 #include "include/susfwk/network.h"
 #include "include/susfwk/jnet.h"
 
+// ================================================================================================
+
 // Create a new JNET object
 SUS_JNET SUSAPI susNewJnet(_In_opt_ SUS_OBJECT userData)
 {
@@ -21,6 +23,9 @@ VOID SUSAPI susJnetDestroy(_In_ SUS_JNET jnet)
 	SUS_ASSERT(jnet);
 	sus_free(jnet);
 }
+
+// ================================================================================================
+
 // Incoming data handler
 static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 {
@@ -82,6 +87,8 @@ BOOL SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE
 	}
 }
 
+// ================================================================================================
+
 // Send json to the socket
 BOOL SUSAPI susJnetSend(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON json)
 {
@@ -138,3 +145,5 @@ VOID SUSAPI susJnetSetHandler(_Inout_ SUS_LPSOCKET sock, _In_opt_ SUS_JNET_RESPO
 	jnet->resHandler = resHandler;
 	jnet->msgHandler = msgHandler;
 }
+
+// ================================================================================================

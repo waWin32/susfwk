@@ -129,14 +129,17 @@
     <ClInclude Include="include\susfwk\iostream.h">
       <Filter>Файлы заголовков\io</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\json.h">
-      <Filter>Файлы заголовков\collections</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\network.h">
       <Filter>Файлы заголовков\network</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\httprequest.h">
       <Filter>Файлы заголовков\network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\jnet.h">
+      <Filter>Файлы заголовков\network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\json.h">
+      <Filter>Файлы заголовков\api</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -188,14 +191,17 @@
     <ClCompile Include="ecs.c">
       <Filter>Исходные файлы\api</Filter>
     </ClCompile>
-    <ClCompile Include="json.c">
-      <Filter>Исходные файлы\collections</Filter>
-    </ClCompile>
     <ClCompile Include="httprequest.c">
       <Filter>Исходные файлы\network</Filter>
     </ClCompile>
     <ClCompile Include="network.c">
       <Filter>Исходные файлы\network</Filter>
+    </ClCompile>
+    <ClCompile Include="jnet.c">
+      <Filter>Исходные файлы\network</Filter>
+    </ClCompile>
+    <ClCompile Include="json.c">
+      <Filter>Исходные файлы\api</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
