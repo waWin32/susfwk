@@ -527,9 +527,6 @@ DWORD SUSAPI sus_escapeA(_Out_opt_ LPSTR buff, _In_ LPCSTR src)
 			case '\v': if (buff) *buff++ = 'v'; break;
 			case '\r': if (buff) *buff++ = 'r'; break;
 			case '\f': if (buff) *buff++ = 'f'; break;
-			case '\a': if (buff) *buff++ = 'a'; break;
-			case '\b': if (buff) *buff++ = 'b'; break;
-			case '\0': if (buff) *buff++ = '0'; break;
 			default: {
 				*(buff - 1) = *(src - 1);
 				length--;
@@ -562,9 +559,6 @@ DWORD SUSAPI sus_escapeW(_Out_opt_ LPWSTR buff, _In_ LPCWSTR src)
 			case L'\v': if (buff) *buff++ = L'v'; break;
 			case L'\r': if (buff) *buff++ = L'r'; break;
 			case L'\f': if (buff) *buff++ = L'f'; break;
-			case L'\a': if (buff) *buff++ = L'a'; break;
-			case L'\b': if (buff) *buff++ = L'b'; break;
-			case L'\0': if (buff) *buff++ = L'0'; break;
 			default: {
 				*(buff - 1) = *(src - 1);
 				length--;
@@ -592,15 +586,12 @@ DWORD SUSAPI sus_unescapeA(_Out_opt_ LPSTR buff, _In_ LPCSTR src)
 			switch (*(src++))
 			{
 			case '"': if (buff) *buff++ = '\"'; break;
+			case '\\': if (buff) *buff++ = '\\'; break;
 			case 't': if (buff) *buff++ = '\t'; break;
 			case 'n': if (buff) *buff++ = '\n'; break;
 			case 'v': if (buff) *buff++ = '\v'; break;
 			case 'r': if (buff) *buff++ = '\r'; break;
 			case 'f': if (buff) *buff++ = '\f'; break;
-			case 'a': if (buff) *buff++ = '\a'; break;
-			case 'b': if (buff) *buff++ = '\b'; break;
-			case '0': if (buff) *buff++ = '\0'; break;
-			case '\\': if (buff) *buff++ = '\\'; break;
 			default: {
 				if (buff) {
 					*buff++ = '\\';
@@ -631,15 +622,12 @@ DWORD SUSAPI sus_unescapeW(_Out_opt_ LPWSTR buff, _In_ LPCWSTR src)
 			switch (*(src++))
 			{
 			case L'"': if (buff) *buff++ = L'\"'; break;
+			case L'\\': if (buff) *buff++ = L'\\'; break;
 			case L't': if (buff) *buff++ = L'\t'; break;
 			case L'n': if (buff) *buff++ = L'\n'; break;
 			case L'v': if (buff) *buff++ = L'\v'; break;
 			case L'r': if (buff) *buff++ = L'\r'; break;
 			case L'f': if (buff) *buff++ = L'\f'; break;
-			case L'a': if (buff) *buff++ = L'\a'; break;
-			case L'b': if (buff) *buff++ = L'\b'; break;
-			case L'0': if (buff) *buff++ = L'\0'; break;
-			case L'\\': if (buff) *buff++ = L'\\'; break;
 			default: {
 				if (buff) {
 					*buff++ = L'\\';

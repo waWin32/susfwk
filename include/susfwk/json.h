@@ -57,11 +57,18 @@ SUS_INLINE SUS_JSON SUSAPI susJsonNumber(_In_ FLOAT number) {
 	};
 }
 // Create string json
-SUS_INLINE SUS_JSON SUSAPI susJsonString(_In_ LPCSTR text) {
+SUS_INLINE SUS_JSON SUSAPI susJsonString(_In_opt_ LPCSTR text) {
 	return text ? (SUS_JSON) {
 		.type = SUS_JSON_TYPE_STRING,
 		.value.str = sus_strdup(text)
 	} : susJsonNull();
+}
+// Create string json
+SUS_INLINE SUS_JSON SUSAPI susJsonStaticString(_In_ LPCSTR text) {
+	return (SUS_JSON) {
+		.type = SUS_JSON_TYPE_STRING,
+		.value.str = (LPSTR)text
+	};
 }
 // Create Boolean json
 SUS_INLINE SUS_JSON SUSAPI susJsonBoolean(_In_ BOOL boolean) {
@@ -121,6 +128,10 @@ BOOL SUSAPI susJsonEquals(
 	_In_ SUS_JSON a,
 	_In_ SUS_JSON b
 );
+// Check whether the json is valid
+SUS_INLINE BOOL SUSAPI susJsonIsValid(_In_ SUS_JSON json) {
+	return json.type != SUS_JSON_TYPE_NULL;
+}
 
 // -----------------------------------------------
 

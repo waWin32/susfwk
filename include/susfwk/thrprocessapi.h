@@ -38,7 +38,7 @@ BOOL SUSAPI susCreateProcessW(
 	_Out_opt_ PROCESS_INFORMATION* ppi
 );
 // Run the command in the system
-SUS_INLINE BOOL SUSAPI sus_system(LPCSTR command) {
+SUS_INLINE BOOL SUSAPI sus_execute(LPCSTR command) {
 	PROCESS_INFORMATION ps = { 0 };
 	if (!susCreateProcessA(command, TRUE, NULL, &ps)) return FALSE;
 	WaitForSingleObject(ps.hProcess, 1000);

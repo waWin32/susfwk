@@ -4,7 +4,6 @@
 #define _SUS_HTTP_REQUEST_
 
 #if defined(_WIN32) || defined(_WIN64)
-#include <winhttp.h>
 #pragma comment(lib, "winhttp.lib")
 #endif // !_WIN32 _WIN64
 

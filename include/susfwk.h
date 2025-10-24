@@ -29,6 +29,7 @@ Abstract:
 * SUSNOTNETWORK
 * SUSNOTHTTP
 * SUSNOTJSON
+* SUSNOTJNET
 */
 
 #include "susfwk/core.h"
@@ -45,6 +46,7 @@ Abstract:
 #ifndef SSUSINIMAL
     #include "susfwk/regapi.h"
     #ifndef SUSNOTCRYPTO
+    #include <wincrypt.h>
     #include "susfwk/crypto.h"
     #endif // !SUSNOTCRYPTO
     #include "susfwk/resapi.h"
@@ -61,9 +63,14 @@ Abstract:
     #include "susfwk/ecs.h"
     #endif // !SUSNOTECS
     #ifndef SUSNOTNETWORK
+    #include <WinSock2.h>
     #include "susfwk/network.h"
+    #ifndef SUSNOTJNET
+    #include "susfwk/jnet.h"
+    #endif // !SUSNOTJNET
     #endif // !SUSNOTNETWORK
     #ifndef SUSNOTHTTP
+    #include <winhttp.h>
     #include "susfwk/httprequest.h"
     #endif // !SUSNOTHTTP
     #ifndef SUSNOTJSON
