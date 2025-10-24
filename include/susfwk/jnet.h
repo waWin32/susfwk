@@ -1,0 +1,100 @@
+// jnet.h
+//
+#ifndef _SUS_JNET_
+#define _SUS_JNET_
+
+#include "json.h"
+
+// JNET query methods
+typedef enum sus_jnet_method {
+	SUS_JNET_METHOD_UNKNOWN,
+	SUS_JNET_METHOD_GET,
+	SUS_JNET_METHOD_POST,
+	SUS_JNET_METHOD_PUT,
+	SUS_JNET_METHOD_PATCH,
+	SUS_JNET_METHOD_DELETE,
+	SUS_JNET_METHOD_COMMAND,
+	SUS_JNET_METHOD_SUBSCRIBE,
+	SUS_JNET_METHOD_UNSUBSCRIBE,
+	SUS_JNET_METHOD_PING,
+	SUS_JNET_METHOD_ERROR
+} SUS_JNET_METHOD;
+
+// JNET response handler
+typedef VOID(SUSAPI* SUS_JNET_RESPONSE_HANDLER)(SUS_LPSOCKET sock, SUS_JSON id, SUS_JSON status, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+// JNET request handler
+typedef SUS_JSON(SUSAPI* SUS_JNET_REQUEST_HANDLER)(SUS_LPSOCKET sock, SUS_JSON id, SUS_JNET_METHOD method, LPCSTR path, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+// JNET notification handler
+typedef VOID(SUSAPI* SUS_JNET_NOTIFICATION_HANDLER)(SUS_LPSOCKET sock, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+
+// Addition to SUS_SOCKET
+typedef struct sus_jnet {
+	SUS_JNET_RESPONSE_HANDLER		resHandler;
+	SUS_JNET_REQUEST_HANDLER		reqHandler;
+	SUS_JNET_NOTIFICATION_HANDLER	msgHandler;
+	SUS_OBJECT						userData;
+} SUS_JNET_STRUCT, *SUS_JNET;
+
+// Create a new JNET object
+SUS_JNET SUSAPI susNewJnet(
+	_In_opt_ SUS_OBJECT userData
+);
+// Delete a JNET object
+VOID SUSAPI susJnetDestroy(
+	_In_ SUS_JNET jnet
+);
+// JNET Socket Message Handler
+BOOL SUSAPI susJnetSocketHandler(
+	_In_ SUS_LPSOCKET sock,
+	_In_ SUS_SOCKET_MESSAGE uMsg,
+	_In_ WPARAM wParam,
+	_In_ LPARAM lParam
+);
+
+// Send json to the socket
+BOOL SUSAPI susJnetSend(
+	_Inout_ SUS_LPSOCKET sock,
+	_In_ SUS_JSON json
+);
+// Create a JNET request
+SUS_JSON SUSAPI susJnetRequestSetup(
+	_In_ SUS_JSON id,
+	_In_ SUS_JNET_METHOD method,
+	_In_opt_ LPCSTR path,
+	_In_opt_ SUS_JSON headers,
+	_In_opt_ SUS_JSON body
+);
+// Send a request
+SUS_INLINE BOOL SUSAPI susJnetRequest(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON id, _In_ SUS_JNET_METHOD method, _In_opt_ LPCSTR path, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
+	return susJnetSend(sock, susJnetRequestSetup(id, method, path, headers, body));
+}
+// Create a JNET message
+SUS_JSON SUSAPI susJnetNotificationSetup(
+	_In_opt_ SUS_JSON headers,
+	_In_opt_ SUS_JSON body
+);
+// Send a message
+SUS_INLINE BOOL SUSAPI susJnetNotification(_Inout_ SUS_LPSOCKET sock, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
+	return susJnetSend(sock, susJnetNotificationSetup(headers, body));
+}
+// Create a JNET response
+SUS_JSON SUSAPI susJnetResponseSetup(
+	_In_ SUS_JSON id,
+	_In_ INT status,
+	_In_opt_ SUS_JSON headers,
+	_In_opt_ SUS_JSON body
+);
+// Send a response
+SUS_INLINE BOOL SUSAPI susJnetResponse(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON id, _In_ INT status, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
+	return susJnetSend(sock, susJnetResponseSetup(id, status, headers, body));
+}
+
+// Install handlers for the jnet socket
+VOID SUSAPI susJnetSetHandler(
+	_Inout_ SUS_LPSOCKET sock,
+	_In_opt_ SUS_JNET_RESPONSE_HANDLER resHandler,
+	_In_opt_ SUS_JNET_REQUEST_HANDLER reqHandler,
+	_In_opt_ SUS_JNET_NOTIFICATION_HANDLER msgHandler
+);
+
+#endif /* !_SUS_JNET_ */
