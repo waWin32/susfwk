@@ -282,7 +282,7 @@ BOOL SUSAPI susBuildWidgetA(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETA widget)
 		widget->wStruct.hwndParent,
 		widget->wStruct.hMenu,
 		widget->wStruct.hInstance,
-		(LPVOID)susLoadWindowData(hWnd)
+		(LPVOID)susWindowLoadData(hWnd)
 	);
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");
@@ -311,7 +311,7 @@ BOOL SUSAPI susBuildWidgetW(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETW widget)
 		widget->wStruct.hwndParent,
 		widget->wStruct.hMenu,
 		widget->wStruct.hInstance,
-		(LPVOID)susLoadWindowData(hWnd)
+		(LPVOID)susWindowLoadData(hWnd)
 	);
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");

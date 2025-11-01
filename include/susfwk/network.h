@@ -11,9 +11,25 @@
 #define SUS_SOCKET_API_VERSION MAKEWORD(2, 2)
 #define SUS_SOCKET_INIT_READ_BUFFER_SIZE 1024
 #define SUS_SOCKET_INIT_WRITE_BUFFER_SIZE 1024
-#define SUS_SOCKET_POLL_TIMEOUT 100
+#define SUS_SOCKET_POLL_TIMEOUT 10
 #define SUS_SOCKET_CHUNK_BUFFER_SIZE 512
-#define SUS_SOCKET_MAX_MESSAGE_SIZE (SIZE_T)(1 << 20)
+#define SUS_SOCKET_MAX_MESSAGE_SIZE (SIZE_T)((1 << 20) * 20)
+
+// Socket errors
+typedef enum sus_socket_error {
+	SUS_SOCKET_ERROR_UNKNOWN,			// Unknown error
+	SUS_SOCKET_ERROR_FAILED_CREATE,		// Couldn't create socket
+	SUS_SOCKET_ERROR_FAILED_BIND,		// Failed to bind an address to a socket
+	SUS_SOCKET_ERROR_FAILED_LISTEN,		// Failed to start listening for incoming connections on the socket
+	SUS_SOCKET_ERROR_FAILED_START,		// Failed to establish a connection between sockets
+	SUS_SOCKET_ERROR_FAILED_CLOSE,		// Couldn't close connection
+	SUS_SOCKET_ERROR_FAILED_READ,		// Couldn't read the data
+	SUS_SOCKET_ERROR_BUFFER_OVERFLOW,	// The read buffer is full
+	SUS_SOCKET_ERROR_FAILED_WRITE,		// Couldn't send data
+	SUS_SOCKET_ERROR_FAILED_POLL,		// Failed to complete survey
+	SUS_SOCKET_ERROR_POLL,				// Error in the socket polling process
+	SUS_SOCKET_ERROR_USER				// User errors
+} SUS_SOCKET_ERROR;
 
 // -------------------------------------------------------------------------------------------------------------
 
@@ -45,6 +61,7 @@ typedef struct sus_socket {
 	SUS_BUFFER			writeBuffer;// Dynamic buffer for writing
 	SUS_VECTOR			timers;		// SUS_SOCKET_TIMER
 	SUS_OBJECT			userData;	// User data
+	SOCKADDR_IN			addr;		// Address socket
 } SUS_SOCKET, *SUS_LPSOCKET;
 // The structure of the server socket
 typedef struct sus_server_socket {
@@ -131,8 +148,7 @@ BOOL SUSAPI susSocketListen(
 // Accept connection
 BOOL SUSAPI susSocketAccept(
 	_In_ SUS_LPSERVER_SOCKET server,
-	_Out_ SUS_LPSOCKET client,
-	_Out_opt_ LPSOCKADDR_IN pAddr
+	_Out_ SUS_LPSOCKET client
 );
 // Connects to the server
 BOOL SUSAPI susSocketConnect(
@@ -160,7 +176,7 @@ SUS_INLINE INT SUSAPI susSocketHasSendData(_Inout_ SUS_LPSOCKET sock) {
 }
 // Send data to the socket (_Null_terminated_)
 SUS_INLINE VOID SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, _In_bytecount_(size) CONST LPBYTE data, _In_ SIZE_T size) {
-	SUS_ASSERT(sock && sock->writeBuffer && data && size);
+	SUS_ASSERT(sock && sock->writeBuffer && data && size && size < SUS_SOCKET_MAX_MESSAGE_SIZE);
 	susBufferAppend(&sock->writeBuffer, data, size);
 }
 
@@ -217,6 +233,13 @@ SUS_INLINE VOID SUSAPI susSocketSetUserData(_Inout_ SUS_LPSOCKET sock, _In_ SUS_
 SUS_INLINE VOID SUSAPI susSocketSetHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_HANDLER handler) {
 	SUS_ASSERT(sock);
 	sock->handler = handler;
+}
+// Get the socket address
+SUS_INLINE SOCKADDR_IN SUSAPI susSocketGetAddr(_In_ SUS_LPSOCKET sock) {
+	SUS_ASSERT(sock);
+	SOCKADDR_IN peerAddr = { 0 };
+	int peerAddrLen = sizeof(peerAddr);
+	return getpeername(sock->sock, (SOCKADDR*)&peerAddr, &peerAddrLen) ? (SOCKADDR_IN) { 0 } : peerAddr;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

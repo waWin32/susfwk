@@ -125,7 +125,7 @@ typedef struct sus_data_view {
 // Create new dynamic memory
 SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
 	return (SUS_DATAVIEW) {
-		.data = sus_fmalloc(size),
+		.data = sus_fcalloc(size, sizeof(BYTE)),
 		.size = size
 	};
 }

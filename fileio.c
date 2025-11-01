@@ -62,6 +62,31 @@ SUS_FILE SUSAPI sus_fopenexW(
 	return hFile;
 }
 
+// Create a folder
+BOOL SUSAPI sus_mkdirA(_In_ LPCSTR path)
+{
+	SUS_PRINTDL("Creating a directory");
+	if (!CreateDirectoryA(path, NULL)) {
+		SUS_PRINTDE("Couldn't create a directory");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	SUS_PRINTDL("The directory was created successfully");
+	return TRUE;
+}
+// Create a folder
+BOOL SUSAPI sus_mkdirW(_In_ LPCWSTR path)
+{
+	SUS_PRINTDL("Creating a directory");
+	if (!CreateDirectoryW(path, NULL)) {
+		SUS_PRINTDE("Couldn't create a directory");
+		SUS_PRINTDC(GetLastError());
+		return FALSE;
+	}
+	SUS_PRINTDL("The directory was created successfully");
+	return TRUE;
+}
+
 // --------------------------------------------------------
 
 // Create a temporary file
@@ -213,8 +238,8 @@ INT SUSAPI sus_freadex(
 SUS_DATAVIEW SUSAPI sus_fread(_In_ SUS_FILE hFile)
 {
 	SUS_PRINTDL("Reading the entire file");
-	SUS_DATAVIEW data = susNewData(sus_fsize(hFile));
-	if (sus_freadex(hFile, data.data, (DWORD)data.size) < 0) {
+	SUS_DATAVIEW data = susNewData(sus_fsize(hFile) + 1);
+	if (sus_freadex(hFile, data.data, (DWORD)data.size - 1) < 0) {
 		susDataDestroy(data);
 		return (SUS_DATAVIEW) { 0 };
 	}

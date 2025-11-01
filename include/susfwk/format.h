@@ -25,8 +25,7 @@ INT SUSAPI sus_vformattingW(
 // Get a dynamically formatted string
 SUS_INLINE LPSTR SUSAPI sus_dvformattingA(	_In_ _Printf_format_string_ LPCSTR format,
 											_In_ sus_va_list args) {
-	INT len = sus_vformattingA(NULL, format, args);
-	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingA(NULL, format, args) + 1) * sizeof(CHAR));
 	if (!lpFormattedString) return NULL;
 	sus_vformattingA(lpFormattedString, format, args);
 	return lpFormattedString;
@@ -34,8 +33,7 @@ SUS_INLINE LPSTR SUSAPI sus_dvformattingA(	_In_ _Printf_format_string_ LPCSTR fo
 // Get a dynamically formatted string
 SUS_INLINE LPWSTR SUSAPI sus_dvformattingW(	_In_ _Printf_format_string_ LPCWSTR format,
 											_In_ sus_va_list args) {
-	INT len = sus_vformattingW(NULL, format, args);
-	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingW(NULL, format, args) + 1) * sizeof(CHAR));
 	if (!lpFormattedString) return NULL;
 	sus_vformattingW(lpFormattedString, format, args);
 	return lpFormattedString;
@@ -71,8 +69,7 @@ SUS_INLINE LPSTR SUSAPI sus_dformattingA(	_In_ _Printf_format_string_ LPCSTR for
 											_In_ ...) {
 	sus_va_list args;
 	sus_va_start(args, format);
-	INT len = sus_vformattingA(NULL, format, args);
-	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingA(NULL, format, args) + 1) * sizeof(CHAR));
 	if (!lpFormattedString) return NULL;
 	sus_vformattingA(lpFormattedString, format, args);
 	sus_va_end(args);
@@ -83,8 +80,7 @@ SUS_INLINE LPWSTR SUSAPI sus_dformattingW(	_In_ _Printf_format_string_ LPCWSTR f
 											_In_ ...) {
 	sus_va_list args;
 	sus_va_start(args, format);
-	INT len = sus_vformattingW(NULL, format, args);
-	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)len + 1) * sizeof(CHAR));
+	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingW(NULL, format, args) + 1) * sizeof(CHAR));
 	if (!lpFormattedString) return NULL;
 	sus_vformattingW(lpFormattedString, format, args);
 	sus_va_end(args);

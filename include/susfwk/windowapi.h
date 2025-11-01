@@ -165,6 +165,10 @@ SUS_INLINE VOID SUSAPI susAddWindowExStyle(SUS_LPWINDOW window, DWORD dwExStyle)
 SUS_INLINE VOID SUSAPI susRemoveWindowExStyle(SUS_LPWINDOW window, DWORD dwExStyle) {
 	window->wStruct.dwExStyle &= ~dwExStyle;
 }
+// Set the window parent
+SUS_INLINE VOID SUSAPI susWindowSetParent(SUS_LPWINDOWW window, HWND hWnd) {
+	window->wStruct.hwndParent = hWnd;
+}
 
 // Set the window title
 SUS_INLINE VOID SUSAPI susWindowSetTitleA(SUS_LPWINDOWA window, LPCSTR title) {
@@ -208,39 +212,23 @@ SUS_INLINE VOID SUSAPI susWindowSetVisible(SUS_LPWINDOW window, BOOLEAN visible)
 
 // ===============================================
 
-// Get a rectangle graphic
-SUS_INLINE RECT SUSAPI susGetGraphicsRect(PAINTSTRUCT* gr) {
-	return gr->rcPaint;
-}
-// Get the width of the graph
-SUS_INLINE LONG SUSAPI susGetGraphicsWidth(PAINTSTRUCT* gr) {
-	return gr->rcPaint.right - gr->rcPaint.left;
-}
-// Get the height of the graph
-SUS_INLINE LONG SUSAPI susGetGraphicsHeight(PAINTSTRUCT* gr) {
-	return gr->rcPaint.bottom - gr->rcPaint.top;
-}
-
-// ===============================================
-
 // Save data to a window
-SUS_INLINE SUS_OBJECT susWriteDataToWindow(HWND hWnd, LONG_PTR dwNewLong) {
+SUS_INLINE SUS_OBJECT susWindowWriteData(HWND hWnd, LONG_PTR dwNewLong) {
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, dwNewLong);
 	return (SUS_OBJECT)dwNewLong;
 }
 // Write the window's incoming data to its internal memory
-SUS_INLINE SUS_OBJECT susWriteWindowContextData(HWND hWnd, LPARAM lParam) {
+SUS_INLINE SUS_OBJECT susWindowWriteContextData(HWND hWnd, LPARAM lParam) {
 	CONST LPCREATESTRUCT pCreate = (CONST LPCREATESTRUCT)lParam;
-	susWriteDataToWindow(hWnd, (LONG_PTR)pCreate->lpCreateParams);
+	susWindowWriteData(hWnd, (LONG_PTR)pCreate->lpCreateParams);
 	return (SUS_OBJECT)pCreate->lpCreateParams;
 }
 // Get a window from a window procedure
-SUS_INLINE SUS_OBJECT susLoadWindowData(HWND hWnd) {
+SUS_INLINE SUS_OBJECT susWindowLoadData(HWND hWnd) {
 	return (SUS_OBJECT)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 }
 
 // ===============================================
-
 
 // Widget structure
 typedef struct sus_widget_structA {
@@ -375,33 +363,48 @@ SUS_INLINE SUS_WIDGETW SUSAPI susWgListBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ 
 #endif // !UNICODE
 
 // Setup a combo box widget
-SUS_INLINE SUS_WIDGETA SUSAPI susWComboBoxSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETA SUSAPI susWgComboBoxSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupA(lpTitle, id, "COMBOBOX", CBS_DROPDOWN | WS_VSCROLL);
 }
 // Setup a combo box widget
-SUS_INLINE SUS_WIDGETW SUSAPI susWComboBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETW SUSAPI susWgComboBoxSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupW(lpTitle, id, L"COMBOBOX", CBS_DROPDOWN | WS_VSCROLL);
 }
 
 #ifdef UNICODE
-#define susWComboBoxSetup	susWComboBoxSetupW
+#define susWgComboBoxSetup  susWgComboBoxSetupW
 #else
-#define susWComboBoxSetup	susWComboBoxSetupA
+#define susWgComboBoxSetup  susWgComboBoxSetupA
 #endif // !UNICODE
 
 // Setup a scroll box widget
-SUS_INLINE SUS_WIDGETA SUSAPI susWScrollBarSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETA SUSAPI susWgScrollBarSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupA(lpTitle, id, "SCROLLBAR", SBS_HORZ);
 }
 // Setup a scroll box widget
-SUS_INLINE SUS_WIDGETW SUSAPI susWScrollBarSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+SUS_INLINE SUS_WIDGETW SUSAPI susWgScrollBarSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
 	return susWidgetSetupW(lpTitle, id, L"SCROLLBAR", SBS_HORZ);
 }
 
 #ifdef UNICODE
-#define susWScrollBarSetup	susWScrollBarSetupW
+#define susWgScrollBarSetup  susWgScrollBarSetupW
 #else
-#define susWScrollBarSetup	susWScrollBarSetupA
+#define susWgScrollBarSetup  susWgScrollBarSetupA
+#endif // !UNICODE
+
+// Setup a list view widget
+SUS_INLINE SUS_WIDGETA SUSAPI susWgListViewSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupA(lpTitle, id, WC_LISTVIEWA, LVS_REPORT);
+}
+// Setup a list view widget
+SUS_INLINE SUS_WIDGETW SUSAPI susWgListViewSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id) {
+	return susWidgetSetupW(lpTitle, id, WC_LISTVIEWW, LVS_REPORT);
+}
+
+#ifdef UNICODE
+#define susWgListViewSetup  susWgListViewSetupW
+#else
+#define susWgListViewSetup  susWgListViewSetupA
 #endif // !UNICODE
 
 // Build a widget

@@ -23,11 +23,11 @@ typedef enum sus_jnet_method {
 } SUS_JNET_METHOD;
 
 // JNET response handler
-typedef VOID(SUSAPI* SUS_JNET_RESPONSE_HANDLER)(SUS_LPSOCKET sock, SUS_JSON id, SUS_JSON status, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+typedef VOID(SUSAPI* SUS_JNET_RESPONSE_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ INT status, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
 // JNET request handler
-typedef SUS_JSON(SUSAPI* SUS_JNET_REQUEST_HANDLER)(SUS_LPSOCKET sock, SUS_JSON id, SUS_JNET_METHOD method, LPCSTR path, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+typedef SUS_JSON(SUSAPI* SUS_JNET_REQUEST_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ SUS_JNET_METHOD method, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
 // JNET notification handler
-typedef VOID(SUSAPI* SUS_JNET_NOTIFICATION_HANDLER)(SUS_LPSOCKET sock, LPCSTR path, SUS_JSON headers, SUS_JSON body, SUS_OBJECT userData);
+typedef VOID(SUSAPI* SUS_JNET_NOTIFICATION_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
 
 // Addition to SUS_SOCKET
 typedef struct sus_jnet {
@@ -74,7 +74,7 @@ SUS_JSON SUSAPI susJnetRequestSetup(
 SUS_INLINE BOOL SUSAPI susJnetRequest(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON id, _In_ SUS_JNET_METHOD method, _In_opt_ LPCSTR path, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
 	SUS_JSON json = susJnetRequestSetup(id, method, path, headers, body);
 	BOOL res = susJnetSend(sock, json);
-	susJsonDestroy(json);
+	susJsonDestroy(&json);
 	return res;
 }
 // Create a JNET message
@@ -87,7 +87,7 @@ SUS_JSON SUSAPI susJnetNotificationSetup(
 SUS_INLINE BOOL SUSAPI susJnetNotification(_Inout_ SUS_LPSOCKET sock, _In_opt_ LPCSTR path, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
 	SUS_JSON json = susJnetNotificationSetup(path, headers, body);
 	BOOL res = susJnetSend(sock, json);
-	susJsonDestroy(json);
+	susJsonDestroy(&json);
 	return res;
 }
 // Create a JNET response
@@ -101,7 +101,7 @@ SUS_JSON SUSAPI susJnetResponseSetup(
 SUS_INLINE BOOL SUSAPI susJnetResponse(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON id, _In_ INT status, _In_opt_ SUS_JSON headers, _In_opt_ SUS_JSON body) {
 	SUS_JSON json = susJnetResponseSetup(id, status, headers, body);
 	BOOL res = susJnetSend(sock, json);
-	susJsonDestroy(json);
+	susJsonDestroy(&json);
 	return res;
 }
 
@@ -112,6 +112,15 @@ VOID SUSAPI susJnetSetHandler(
 	_In_opt_ SUS_JNET_REQUEST_HANDLER reqHandler,
 	_In_opt_ SUS_JNET_NOTIFICATION_HANDLER msgHandler
 );
+// Get auto id for json request
+SUS_INLINE SUS_JSON SUSAPI susJnetAutoId() {
+	static INT id = 1;
+	return susJsonNumber((sus_f32)id);
+}
+//
+SUS_INLINE SUS_OBJECT SUSAPI susJnetGetUserData(_In_ SUS_LPSOCKET jNetSocket) {
+	return ((SUS_JNET)susSocketGetUserData(jNetSocket))->userData;
+}
 
 // ================================================================================================
 

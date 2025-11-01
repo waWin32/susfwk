@@ -42,19 +42,19 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 		SUS_LPJSON status = susJsonObjectGet(json, "status");
 		if (status) {
 			if (status->type != SUS_JSON_TYPE_NUMBER) goto incorrect_data;
-			SUS_PRINTDL("Received a response with id: \"%s\"", id);
-			if (jNetSock->resHandler) jNetSock->resHandler(sock, *id, *status, headers ? *headers : susJsonNull(), body ? *body : susJsonNull(), jNetSock->userData);
+			SUS_PRINTDL("Received a response");
+			if (jNetSock->resHandler) jNetSock->resHandler(sock, id, (INT)status->value.number, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
 		}
 		else {
-			SUS_PRINTDL("Request received with id: \"%s\"", id);
+			SUS_PRINTDL("Request received");
 			if (jNetSock->reqHandler) {
 				SUS_LPJSON path = susJsonObjectGet(json, "path");
 				if (!path || path->type != SUS_JSON_TYPE_STRING) goto incorrect_data;
 				SUS_LPJSON method = susJsonObjectGet(json, "method");
 				if (!method || method->type != SUS_JSON_TYPE_NUMBER) goto incorrect_data;
-				SUS_JSON res = jNetSock->reqHandler(sock, *id, (UINT)method->value.number, path->value.str, headers ? *headers : susJsonNull(), body ? *body : susJsonNull(), jNetSock->userData);
+				SUS_JSON res = jNetSock->reqHandler(sock, id, (UINT)method->value.number, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
 				susJnetSend(sock, res);
-				susJsonDestroy(res);
+				susJsonDestroy(&res);
 			}
 		}
 	}
@@ -62,12 +62,12 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 		SUS_PRINTDL("Message received");
 		SUS_LPJSON path = susJsonObjectGet(json, "path");
 		if (!path || path->type != SUS_JSON_TYPE_STRING) goto incorrect_data;
-		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? *headers : susJsonNull(), body ? *body : susJsonNull(), jNetSock->userData);
+		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
 	}
-	susJsonDestroy(json);
+	susJsonDestroy(&json);
 	return TRUE;
 incorrect_data:
-	susJsonDestroy(json);
+	susJsonDestroy(&json);
 	SUS_PRINTDW("Incorrect JNET format received");
 	return FALSE;
 }
@@ -109,7 +109,7 @@ SUS_JSON SUSAPI susJnetRequestSetup(_In_ SUS_JSON id, _In_ SUS_JNET_METHOD metho
 	SUS_JSON req = susJsonObject();
 	if (!susJsonIsValid(req)) return susJsonNull();
 	susJsonObjectSet(&req, "id", id);
-	susJsonObjectSet(&req, "path", susJsonString(path));
+	susJsonObjectSet(&req, "path", susJsonStringView(path));
 	susJsonObjectSet(&req, "method", susJsonNumber(method));
 	susJsonObjectSet(&req, "headers", headers);
 	susJsonObjectSet(&req, "body", body);
@@ -121,7 +121,7 @@ SUS_JSON SUSAPI susJnetNotificationSetup(_In_opt_ LPCSTR path, _In_opt_ SUS_JSON
 	SUS_PRINTDL("Creating a message");
 	SUS_JSON msg = susJsonObject();
 	if (!susJsonIsValid(msg)) return susJsonNull();
-	susJsonObjectSet(&msg, "path", susJsonString(path));
+	susJsonObjectSet(&msg, "path", susJsonStringView(path));
 	susJsonObjectSet(&msg, "headers", headers);
 	susJsonObjectSet(&msg, "body", body);
 	return msg;

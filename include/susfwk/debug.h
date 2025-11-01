@@ -15,9 +15,9 @@ SUS_INLINE VOID SUSAPI _SUS_VDEBUG_PRINT(WORD wColor, LPCSTR format, sus_va_list
 	sus_vformattingA(formattedString, format, args);
 	DWORD mode;
 	if (GetConsoleMode(hDebugOut, &mode)) {
-		if (wColor != 2) SetConsoleTextAttribute(hDebugOut, wColor);
+		SetConsoleTextAttribute(hDebugOut, wColor);
 		WriteConsoleA(hDebugOut, formattedString, lstrlenA(formattedString), NULL, NULL);
-		if (wColor != 2) SetConsoleTextAttribute(hDebugOut, 2);
+		SetConsoleTextAttribute(hDebugOut, 2);
 	}
 	else {
 		WriteFile(hDebugOut, formattedString, lstrlenA(formattedString) * sizeof(CHAR), NULL, NULL);
@@ -31,7 +31,7 @@ SUS_INLINE VOID SUSAPI _SUS_VDEBUG_WPRINT(WORD wColor, LPCWSTR format, sus_va_li
 	if (GetConsoleMode(hDebugOut, &mode)) {
 		SetConsoleTextAttribute(hDebugOut, wColor);
 		WriteConsoleW(hDebugOut, formattedString, lstrlenW(formattedString), NULL, NULL);
-		if (wColor != 2) SetConsoleTextAttribute(hDebugOut, 2);
+		SetConsoleTextAttribute(hDebugOut, 2);
 	}
 	else {
 		WriteFile(hDebugOut, formattedString, lstrlenW(formattedString) * sizeof(WCHAR), NULL, NULL);

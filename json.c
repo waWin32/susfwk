@@ -13,37 +13,39 @@
 // -----------------------------------------------
 
 // Delete a json object
-VOID SUSAPI susJsonDestroy(_In_ SUS_JSON json) {
+VOID SUSAPI susJsonDestroy(_Inout_ SUS_LPJSON json) {
 	SUS_PRINTDL("Deleting a json object");
-	switch (json.type)
+	if (!susJsonIsValid(*json)) return;
+	switch (json->type)
 	{
 	case SUS_JSON_TYPE_STRING: {
-		sus_strfree(json.value.str);
+		sus_strfree(json->value.str);
 	} break;
 	case SUS_JSON_TYPE_ARRAY: {
-		susVecForeach(i, json.value.array) {
-			SUS_LPJSON obj = susVectorGet(json.value.array, i);
-			if (!obj) continue;
-			susJsonDestroy(*obj);
+		susVecForeach(i, json->value.array) {
+			susJsonDestroy((SUS_LPJSON)susVectorGet(json->value.array, i));
 		}
-		susVectorDestroy(json.value.array);
+		susVectorDestroy(json->value.array);
 	} break;
 	case SUS_JSON_TYPE_OBJECT: {
-		susMapForeach(json.value.object, i) {
-			susJsonDestroy(*(SUS_LPJSON)susMapIterValue(i));
-			sus_free(*(LPSTR*)susMapIterKey(i));
+		susMapForeach(json->value.object, i) {
+			sus_strfree(*(LPSTR*)susMapIterKey(i));
+			susJsonDestroy((SUS_LPJSON)susMapIterValue(i));
 		}
-		susMapDestroy(json.value.object);
+		susMapDestroy(json->value.object);
 	} break;
 	}
+	*json = susJsonNull();
 }
+
 // Deep copying of a json object
 SUS_JSON SUSAPI susJsonCopy(_In_ SUS_JSON json)
 {
 	SUS_PRINTDL("Copying a json object");
-	SUS_JSON jsonCopy = { 0 };
+	SUS_JSON jsonCopy = susJsonNull();
 	switch (json.type)
 	{
+	case SUS_JSON_TYPE_STRING_VIEW:
 	case SUS_JSON_TYPE_STRING: {
 		jsonCopy = susJsonString(json.value.str);
 	} break;
@@ -87,6 +89,7 @@ static VOID SUSAPI susJsonStringifyRecursively(_In_ SUS_LPJSON json, _Inout_ SUS
 	SUS_ASSERT(pBuffer && *pBuffer);
 	switch (json->type)
 	{
+	case SUS_JSON_TYPE_STRING_VIEW:
 	case SUS_JSON_TYPE_STRING: {
 		susJsonStringStringify(json->value.str, pBuffer);
 	} break;
@@ -187,7 +190,7 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 			sus_trimlA(text);
 			if (**text != '"') {
 				SUS_PRINTDE("Does not match the json format");
-				susJsonDestroy(json);
+				susJsonDestroy(&json);
 				json = susJsonNull();
 				break;
 			}
@@ -195,7 +198,7 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 			sus_trimlA(text);
 			if (**text != ':') {
 				SUS_PRINTDE("Does not match the json format");
-				susJsonDestroy(json);
+				susJsonDestroy(&json);
 				json = susJsonNull();
 				sus_strfree(key);
 				break;
@@ -221,6 +224,13 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 			}
 		}
 		(*text)++;
+	} break;
+	case 'n': {
+		if (!sus_memcmp((LPBYTE)*text, (LPBYTE)"null", 4)) {
+			SUS_PRINTDE("Does not match the json format");
+			break;
+		}
+		(*text) += 4;
 	} break;
 	default: {
 		if (sus_isdigitA(**text)) {
@@ -249,13 +259,14 @@ SUS_JSON SUSAPI susJsonParse(_In_ LPCSTR text)
 BOOL SUSAPI susJsonEquals(_In_ SUS_JSON a, _In_ SUS_JSON b)
 {
 	SUS_PRINTDL("Comparing two json objects");
-	if (a.type != b.type) return FALSE;
+	if (a.type != b.type && !((a.type == SUS_JSON_TYPE_STRING_VIEW && b.type == SUS_JSON_TYPE_STRING) || (a.type == SUS_JSON_TYPE_STRING && b.type == SUS_JSON_TYPE_STRING_VIEW))) return FALSE;
 	switch (a.type)
 	{
 	case SUS_JSON_TYPE_NUMBER:
 		return sus_fabs(a.value.number - b.value.number) < SUS_EPSILON;
 	case SUS_JSON_TYPE_BOOLEAN:
 		return a.value.boolean == b.value.boolean;
+	case SUS_JSON_TYPE_STRING_VIEW:
 	case SUS_JSON_TYPE_STRING:
 		return a.value.str && b.value.str && lstrcmpA(a.value.str, b.value.str) == 0;
 	case SUS_JSON_TYPE_ARRAY: {
@@ -290,15 +301,16 @@ BOOL SUSAPI susJsonEquals(_In_ SUS_JSON a, _In_ SUS_JSON b)
 // Set a value for an object
 SUS_LPJSON SUSAPI susJsonObjectSet(_Inout_ SUS_LPJSON obj, _In_ LPCSTR key, _In_ SUS_JSON value)
 {
-	SUS_ASSERT(obj && obj->type == SUS_JSON_TYPE_OBJECT && obj->value.object && key);
+	SUS_ASSERT(obj && key);
+	if (obj->type != SUS_JSON_TYPE_OBJECT || !obj->value.object) { susJsonDestroy(obj); *obj = susJsonObject(); }
 	SUS_LPJSON json = susJsonObjectGet(*obj, key);
-	if (json) { 
-		susJsonDestroy(*json);
-		*json = value;
-		return json;
+	if (json) susJsonDestroy(json);
+	else {
+		key = sus_strdup(key);
+		json = susMapAdd(&obj->value.object, &key, NULL);
 	}
-	key = sus_strdup(key);
-	return susMapAdd(&obj->value.object, &key, &value);
+	*json = susJsonCopy(value);
+	return json;
 }
 // Delete an object value
 VOID SUSAPI susJsonObjectRemove(_Inout_ SUS_LPJSON obj, _In_ LPCSTR key)
@@ -306,7 +318,7 @@ VOID SUSAPI susJsonObjectRemove(_Inout_ SUS_LPJSON obj, _In_ LPCSTR key)
 	SUS_ASSERT(obj && obj->type == SUS_JSON_TYPE_OBJECT && obj->value.object && key && susJsonObjectGet(*obj, key));
 	SUS_OBJECT entry = susMapGetEntry(obj->value.object, &key);
 	SUS_LPJSON value = susMapValue(obj->value.object, entry);
-	susJsonDestroy(*value);
+	susJsonDestroy(value);
 	LPSTR keyCopy = *(LPSTR*)susMapKey(obj->value.object, entry);
 	susMapRemove(&obj->value.object, &keyCopy);
 	sus_strfree(keyCopy);

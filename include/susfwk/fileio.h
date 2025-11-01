@@ -45,6 +45,17 @@ SUS_FILE SUSAPI sus_fopenexW(
 #define sus_fcreate			sus_fcreateA
 #endif // !UNICODE
 
+// Create a folder
+BOOL SUSAPI sus_mkdirA(_In_ LPCSTR path);
+// Create a folder
+BOOL SUSAPI sus_mkdirW(_In_ LPCWSTR path);
+
+#ifdef UNICODE
+#define sus_mkdir	sus_mkdirW
+#else
+#define sus_mkdir	sus_mkdirA
+#endif // !UNICODE
+
 // --------------------------------------------------------
 
 // Delete a file
@@ -116,7 +127,7 @@ DWORD SUSAPI sus_fwrite(
 	_In_ DWORD dwNumberOfBytesWrite
 );
 // Move the pointer to the specified blend
-#define sus_fseek(hFile, offset, origin)	SetFilePointerEx(hFile, (LARGE_INTEGER) { .QuadPart = offset }, NULL origin)
+#define sus_fseek(hFile, offset, origin)	SetFilePointerEx(hFile, (LARGE_INTEGER) { .QuadPart = offset }, NULL, origin)
 
 // --------------------------------------------------------
 
