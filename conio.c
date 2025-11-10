@@ -51,6 +51,7 @@ INT SUSAPI sus_creadA(
 		return 0;
 	}
 	buff[numberOfCharsRead] = '\0';
+	while (numberOfCharsRead && (buff[numberOfCharsRead - 1] == '\n' || buff[numberOfCharsRead - 1] == '\r')) buff[--numberOfCharsRead] = '\0';
 	return numberOfCharsRead;
 }
 // Read the text from the console
@@ -67,6 +68,7 @@ INT SUSAPI sus_creadW(
 		return 0;
 	}
 	buff[numberOfCharsRead] = L'\0';
+	while (numberOfCharsRead && (buff[numberOfCharsRead - 1] == L'\n' || buff[numberOfCharsRead - 1] == L'\r')) buff[--numberOfCharsRead] = L'\0';
 	return numberOfCharsRead;
 }
 

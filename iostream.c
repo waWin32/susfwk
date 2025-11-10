@@ -49,7 +49,7 @@ INT SUSAPI sus_vfscanfA(
 	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(hIn && format && args);
-	CHAR buff[1024];
+	CHAR buff[1024] = { 0 };
 	buff[sus_readA(hIn, buff, (sizeof(buff) - 1) / sizeof(CHAR))] = '\0';
 	return sus_vparsingA(buff, format, args);
 }
@@ -60,9 +60,32 @@ INT SUSAPI sus_vfscanfW(
 	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(hIn && format && args);
-	WCHAR buff[1024];
+	WCHAR buff[1024] = { 0 };
 	buff[sus_readW(hIn, buff, (sizeof(buff) - 1) / sizeof(WCHAR))] = L'\0';
 	return sus_vparsingW(buff, format, args);
+}
+
+// --------------------------------------------------------
+
+// output a message box with a format string
+INT SUSAPIV susMessageBoxA(_In_opt_ HWND hWnd, _In_ LPCSTR ftext, _In_ LPCSTR header, _In_ UINT uType, ...)
+{
+	sus_va_list list;
+	sus_va_start(list, uType);
+	LPSTR text = ftext ? sus_dvformattingA(ftext, list) : NULL;
+	INT rez = MessageBoxA(hWnd, text ? text : "null", header, uType);
+	if (text) sus_strfree(text);
+	return rez;
+}
+// output a message box with a format string
+INT SUSAPIV susMessageBoxW(_In_opt_ HWND hWnd, _In_ LPCWSTR ftext, _In_ LPCWSTR header, _In_ UINT uType, ...)
+{
+	sus_va_list list;
+	sus_va_start(list, uType);
+	LPWSTR text = ftext ? sus_dvformattingW(ftext, list) : NULL;
+	INT rez = MessageBoxW(hWnd, text ? text : L"null", header, uType);
+	if (text) sus_wcsfree(text);
+	return rez;
 }
 
 // --------------------------------------------------------

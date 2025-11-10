@@ -201,6 +201,19 @@ SUS_INLINE INT SUSAPI sus_vscanfA(
 	_Inout_ sus_va_list args) {
 	return sus_vfscanfA(GetStdHandle(STD_INPUT_HANDLE), format, args);
 }
+// Formatted input to the console
+SUS_INLINE INT SUSAPI sus_vscanfW(
+	_In_ LPCWSTR format,
+	_Inout_ sus_va_list args) {
+	return sus_vfscanfW(GetStdHandle(STD_INPUT_HANDLE), format, args);
+}
+
+#ifdef UNICODE
+#define sus_vscanf		sus_vscanfW
+#else
+#define sus_vscanf		sus_vscanfA
+#endif // !UNICODE
+
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_scanfA(
 	_In_ LPCSTR format,
@@ -211,12 +224,6 @@ SUS_INLINE INT SUSAPIV sus_scanfA(
 	int res = sus_vscanfA(format, args);
 	sus_va_end(args);
 	return res;
-}
-// Formatted input to the console
-SUS_INLINE INT SUSAPI sus_vscanfW(
-	_In_ LPCWSTR format,
-	_Inout_ sus_va_list args) {
-	return sus_vfscanfW(GetStdHandle(STD_INPUT_HANDLE), format, args);
 }
 // Formatted output to the console
 SUS_INLINE INT SUSAPIV sus_scanfW(
@@ -231,11 +238,64 @@ SUS_INLINE INT SUSAPIV sus_scanfW(
 }
 
 #ifdef UNICODE
-#define sus_vscanf		sus_vscanfW
 #define sus_scanf		sus_scanfW
 #else
-#define sus_vscanf		sus_vscanfA
 #define sus_scanf		sus_scanfA
+#endif // !UNICODE
+
+// Ask to enter text in the console
+SUS_INLINE INT SUSAPI sus_vinputA(_In_opt_ LPCSTR text, _In_ LPCSTR format, _Inout_ sus_va_list args) {
+	if (text) sus_cwriteA(GetStdHandle(STD_OUTPUT_HANDLE), text, lstrlenA(text));
+	int res = sus_vscanfA(format, args);
+	return res;
+}
+// Ask to enter text in the console
+SUS_INLINE INT SUSAPI sus_vinputW(_In_opt_ LPCWSTR text, _In_ LPCWSTR format, _Inout_ sus_va_list args) {
+	if (text) sus_cwriteW(GetStdHandle(STD_OUTPUT_HANDLE), text, lstrlenW(text));
+	int res = sus_vscanfW(format, args);
+	return res;
+}
+
+#ifdef UNICODE
+#define sus_vinput		sus_vinputW
+#else
+#define sus_vinput		sus_vinputA
+#endif // !UNICODE
+
+// Ask to enter text in the console
+SUS_INLINE INT SUSAPI sus_inputA(_In_opt_ LPCSTR text, _In_ LPCSTR format, _Inout_ ...) {
+	sus_va_list args;
+	sus_va_start(args, format);
+	int res = sus_vinputA(text, format, args);
+	sus_va_end(args);
+	return res;
+}
+// Ask to enter text in the console
+SUS_INLINE INT SUSAPI sus_inputW(_In_opt_ LPCWSTR text, _In_ LPCWSTR format, _Inout_ ...) {
+	sus_va_list args;
+	sus_va_start(args, format);
+	int res = sus_vinputW(text, format, args);
+	sus_va_end(args);
+	return res;
+}
+
+#ifdef UNICODE
+#define sus_input		sus_inputW
+#else
+#define sus_input		sus_inputA
+#endif // !UNICODE
+
+// --------------------------------------------------------
+
+// output a message box with a format string
+INT SUSAPIV susMessageBoxA(_In_opt_ HWND hWnd, _In_ LPCSTR ftext, _In_ LPCSTR header, _In_ UINT uType, ...);
+// output a message box with a format string
+INT SUSAPIV susMessageBoxW(_In_opt_ HWND hWnd, _In_ LPCWSTR ftext, _In_ LPCWSTR header, _In_ UINT uType, ...);
+
+#ifdef UNICODE
+#define susMessageBox	susMessageBoxW
+#else
+#define susMessageBox	susMessageBoxA
 #endif // !UNICODE
 
 // --------------------------------------------------------
