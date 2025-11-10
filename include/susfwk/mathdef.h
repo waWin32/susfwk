@@ -1,4 +1,0 @@
-// mathdef.h
-//
-#pragma once
-

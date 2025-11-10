@@ -1,7 +1,6 @@
 // susmathcore.c
 //
 #include "include/susfwk/core.h"
-#include "include/susfwk/mathdef.h"
 #include "include/susfwk/math.h"
 
 sus_u32 usm_random_seed = SUS_RAND_SEED;

@@ -4,7 +4,6 @@
 #define _SUS_MATH_CORE_
 
 #include "core.h"
-#include "mathdef.h"
 
 #define SUS_PI				3.1415926f
 #define SUS_EPSILON			0.001f
