@@ -164,6 +164,11 @@ SUS_INLINE VOID SUSAPI sus_strfree(_In_ LPSTR str) {
 	SUS_ASSERT(str);
 	sus_free(str);
 }
+// Delete a dynamic string
+SUS_INLINE VOID SUSAPI sus_wcsfree(_In_ LPWSTR str) {
+	SUS_ASSERT(str);
+	sus_free(str);
+}
 
 //////////////////////////////////////////////////////////////////
 //					Dynamic virtual memory						//

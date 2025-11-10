@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="coreframe.h" />
     <ClInclude Include="include\susfwk.h" />
+    <ClInclude Include="include\susfwk\appdata.h" />
     <ClInclude Include="include\susfwk\bitset.h" />
     <ClInclude Include="include\susfwk\conio.h" />
     <ClInclude Include="include\susfwk\core.h" />
@@ -36,7 +37,6 @@
     <ClInclude Include="include\susfwk\jnet.h" />
     <ClInclude Include="include\susfwk\linkedlist.h" />
     <ClInclude Include="include\susfwk\math.h" />
-    <ClInclude Include="include\susfwk\mathdef.h" />
     <ClInclude Include="include\susfwk\memory.h" />
     <ClInclude Include="include\susfwk\network.h" />
     <ClInclude Include="include\susfwk\regapi.h" />
@@ -48,6 +48,7 @@
     <ClInclude Include="include\susfwk\windowapi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="appdata.c" />
     <ClCompile Include="conio.c" />
     <ClCompile Include="crypto.c" />
     <ClCompile Include="ecs.c" />

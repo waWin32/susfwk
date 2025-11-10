@@ -46,17 +46,17 @@
     <Filter Include="Файлы заголовков\system">
       <UniqueIdentifier>{aef1af48-2a19-4c50-88a2-28dc8cab2a0e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\api">
-      <UniqueIdentifier>{f9b03f77-58f6-4816-ad51-7f8368fa9538}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Файлы заголовков\api">
-      <UniqueIdentifier>{0b506127-596d-48aa-b3a6-a484328506a8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Файлы заголовков\network">
       <UniqueIdentifier>{368a5ee0-b6ca-4e5a-a3f0-35cd809e4143}</UniqueIdentifier>
     </Filter>
     <Filter Include="Исходные файлы\network">
       <UniqueIdentifier>{ab6aa54a-7e1d-4bc3-a050-bc108cb96ac0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\game">
+      <UniqueIdentifier>{0b506127-596d-48aa-b3a6-a484328506a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\game">
+      <UniqueIdentifier>{f9b03f77-58f6-4816-ad51-7f8368fa9538}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -81,14 +81,8 @@
     <ClInclude Include="include\susfwk\math.h">
       <Filter>Файлы заголовков\math</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\mathdef.h">
-      <Filter>Файлы заголовков\math</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\string.h">
       <Filter>Файлы заголовков\strings</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk.h">
-      <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
     <ClInclude Include="coreframe.h">
       <Filter>Файлы заголовков\core</Filter>
@@ -121,10 +115,7 @@
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\ecs.h">
-      <Filter>Файлы заголовков\api</Filter>
-    </ClInclude>
-    <ClInclude Include="include\susfwk\debug.h">
-      <Filter>Файлы заголовков\api</Filter>
+      <Filter>Файлы заголовков\game</Filter>
     </ClInclude>
     <ClInclude Include="include\susfwk\iostream.h">
       <Filter>Файлы заголовков\io</Filter>
@@ -138,8 +129,17 @@
     <ClInclude Include="include\susfwk\jnet.h">
       <Filter>Файлы заголовков\network</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\debug.h">
+      <Filter>Файлы заголовков\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
     <ClInclude Include="include\susfwk\json.h">
-      <Filter>Файлы заголовков\api</Filter>
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\appdata.h">
+      <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -189,7 +189,7 @@
       <Filter>Исходные файлы\system</Filter>
     </ClCompile>
     <ClCompile Include="ecs.c">
-      <Filter>Исходные файлы\api</Filter>
+      <Filter>Исходные файлы\game</Filter>
     </ClCompile>
     <ClCompile Include="httprequest.c">
       <Filter>Исходные файлы\network</Filter>
@@ -201,7 +201,10 @@
       <Filter>Исходные файлы\network</Filter>
     </ClCompile>
     <ClCompile Include="json.c">
-      <Filter>Исходные файлы\api</Filter>
+      <Filter>Исходные файлы\collections</Filter>
+    </ClCompile>
+    <ClCompile Include="appdata.c">
+      <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
