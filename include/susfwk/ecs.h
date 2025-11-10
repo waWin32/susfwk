@@ -17,6 +17,7 @@ typedef struct sus_delta_time {
 	LARGE_INTEGER	frequency;
 	FLOAT			invFrequency;
 } SUS_DTIMER, *SUS_LPDTIMER;
+
 // Initialize the time delta
 SUS_INLINE SUS_DTIMER SUSAPI susDTimerInit() {
 	SUS_DTIMER timer = { 0 };
@@ -79,6 +80,11 @@ typedef struct sus_entity_location {
 typedef VOID(SUSAPI* SUS_SYSTEM_ENTITY_CALLBACK)(SUS_OBJECT world, SUS_ENTITY entity, FLOAT deltaTime, SUS_OBJECT userData);
 // The system's callback function
 typedef VOID(SUSAPI* SUS_SYSTEM_FREE_CALLBACK)(SUS_OBJECT world, FLOAT deltaTime, SUS_OBJECT userData);
+// System start timer
+typedef struct sus_system_timer {
+	DWORD interval;
+	DWORD nextFire;
+} SUS_SYSTEM_TIMER;
 // ECS system structure
 typedef struct sus_system {
 #pragma warning(push)
@@ -91,6 +97,7 @@ typedef struct sus_system {
 	SUS_COMPONENTMASK	mask;		// System Mask
 	sus_bool			enabled;	// System status
 	SUS_SYSTEM_TYPE		type;		// Type of system
+	SUS_SYSTEM_TIMER	timer;		// System startup timer (optional)
 	SUS_OBJECT			userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
 
@@ -157,12 +164,14 @@ SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(
 	_Inout_ SUS_WORLD world,
 	_In_ SUS_SYSTEM_ENTITY_CALLBACK callback,
 	_In_ SUS_COMPONENTMASK mask,
+	_In_opt_ DWORD interval,
 	_In_opt_ SUS_OBJECT userData
 );
 // Register a free system
 SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(
 	_Inout_ SUS_WORLD world,
 	_In_ SUS_SYSTEM_FREE_CALLBACK callback,
+	_In_opt_ DWORD interval,
 	_In_opt_ SUS_OBJECT userData
 );
 // Get all entities with a mask

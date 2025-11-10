@@ -8,6 +8,8 @@
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/ecs.h"
 
+#pragma warning(disable: 28159)
+
 //////////////////////////////////////////////////////////////////////////////////////////
 //									Archetypes											//
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -192,7 +194,7 @@ VOID SUSAPI susWorldRegisterComponentEx(_Inout_ SUS_WORLD world, _In_ sus_size_t
 	susVectorPushBack(&world->registeredComponents, &component);
 }
 // Register an entity processing system
-SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ENTITY_CALLBACK callback, _In_ SUS_COMPONENTMASK mask, _In_opt_ SUS_OBJECT userData)
+SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ENTITY_CALLBACK callback, _In_ SUS_COMPONENTMASK mask, _In_opt_ DWORD interval, _In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(world && callback);
 	SUS_SYSTEM system = {
@@ -200,13 +202,17 @@ SUS_SYSTEM_ID SUSAPI susWorldRegisterEntitySystem(_Inout_ SUS_WORLD world, _In_ 
 		.enabled = TRUE,
 		.type = SUS_SYSTEM_TYPE_ENTITY,
 		.mask = mask,
-		.userData = userData
+		.userData = userData,
+		.timer = {
+			.interval = interval,
+			.nextFire = GetTickCount() + interval
+		}
 	};
 	susVectorPushBack(&world->systems, &system);
 	return world->systems->length - 1;
 }
 // Register a free system
-SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_FREE_CALLBACK callback, _In_opt_ SUS_OBJECT userData)
+SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_FREE_CALLBACK callback, _In_opt_ DWORD interval, _In_opt_ SUS_OBJECT userData)
 {
 	SUS_ASSERT(world && callback);
 	SUS_SYSTEM system = {
@@ -214,7 +220,11 @@ SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(_Inout_ SUS_WORLD world, _In_ SU
 		.enabled = TRUE,
 		.type = SUS_SYSTEM_TYPE_FREE,
 		.mask = (SUS_COMPONENTMASK) { 0 },
-		.userData = userData
+		.userData = userData,
+		.timer = {
+			.interval = interval,
+			.nextFire = GetTickCount() + interval
+		}
 	};
 	susVectorPushBack(&world->systems, &system);
 	return world->systems->length - 1;
@@ -385,20 +395,20 @@ VOID SUSAPI susSystemRun(_Inout_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index, _In_
 {
 	SUS_ASSERT(world && susSystemExists(world, index));
 	SUS_LPSYSTEM system = susWorldGetSystem(world, index);
-	if (!system->enabled) return;
-	if (system->type == SUS_SYSTEM_TYPE_FREE) {
-		system->callbackFree(world, deltaTime, system->userData);
-		return;
-	}
-	susMapForeach(world->archetypes, i) {
-		SUS_BITMASK256 mask = *(SUS_LPBITMASK256)susMapIterKey(i);
-		if (susBitmask256Contains(mask, system->mask)) {
-			SUS_ARCHETYPE archetype = (SUS_ARCHETYPE)susMapIterValue(i);
-			susVecForeach(j, archetype->entities) {
-				system->callbackEntity(world, *(SUS_ENTITY*)susVectorGet(archetype->entities, j), deltaTime, system->userData);
+	if (!system->enabled || system->timer.nextFire > GetTickCount()) return;
+	if (system->type == SUS_SYSTEM_TYPE_FREE) system->callbackFree(world, deltaTime, system->userData);
+	else {
+		susMapForeach(world->archetypes, i) {
+			SUS_BITMASK256 mask = *(SUS_LPBITMASK256)susMapIterKey(i);
+			if (susBitmask256Contains(mask, system->mask)) {
+				SUS_ARCHETYPE archetype = (SUS_ARCHETYPE)susMapIterValue(i);
+				susVecForeach(j, archetype->entities) {
+					system->callbackEntity(world, *(SUS_ENTITY*)susVectorGet(archetype->entities, j), deltaTime, system->userData);
+				}
 			}
 		}
 	}
+	system->timer.nextFire = GetTickCount() + system->timer.interval;
 }
 
 // --------------------------------------------------------------------------------------
