@@ -5,8 +5,8 @@
 
 #include "memory.h"
 
-#define SUS_WCNAMEA "suswndclass"
-#define SUS_WCNAMEW L"suswndclass"
+#define SUS_WCNAMEA "suswc"
+#define SUS_WCNAMEW L"suswc"
 
 #define SUS_DEFWNDNAMEA ""
 #define SUS_DEFWNDNAMEW L""
@@ -55,68 +55,75 @@ typedef struct sus_window_structA {
 	HWND					hWnd;		// Window Descriptor
 	WNDCLASSEXA				wcEx;		// Window Class structure
 	CREATESTRUCTA			wStruct;	// Window creation structure
-} SUS_WINDOW_STRUCTA, *SUS_PWINDOW_STRUCTA, *SUS_LPWINDOW_STRUCTA;
+} SUS_WINDOWA, *SUS_PWINDOW_STRUCTA, *SUS_LPWINDOWA;
 // Window structure
 typedef struct sus_window_structW {
 	HWND					hWnd;		// Window Descriptor
 	WNDCLASSEXW				wcEx;		// Window Class structure
 	CREATESTRUCTW			wStruct;	// Window creation structure
-} SUS_WINDOW_STRUCTW, *SUS_PWINDOW_STRUCTW, *SUS_LPWINDOW_STRUCTW;
+} SUS_WINDOWW, *SUS_LPWINDOWW;
 
 #ifdef UNICODE
-#define SUS_WINDOW_STRUCT	SUS_WINDOW_STRUCTW
-#define SUS_PWINDOW_STRUCT	SUS_PWINDOW_STRUCTW
-#define SUS_LPWINDOW_STRUCT	SUS_LPWINDOW_STRUCTW
+#define SUS_WINDOW		SUS_WINDOWW
+#define SUS_LPWINDOW	SUS_LPWINDOWW
 #else // ELSE UNICODE
-#define SUS_WINDOW_STRUCT	SUS_WINDOW_STRUCTA
-#define SUS_PWINDOW_STRUCT	SUS_PWINDOW_STRUCTA
-#define SUS_LPWINDOW_STRUCT	SUS_LPWINDOW_STRUCTA
+#define SUS_WINDOW		SUS_WINDOWA
+#define SUS_LPWINDOW	SUS_LPWINDOWA
 #endif // !UNICODE
-
-typedef SUS_WINDOW_STRUCTA SUS_WINDOWA, *SUS_PWINDOWA, *SUS_LPWINDOWA;
-typedef SUS_WINDOW_STRUCTW SUS_WINDOWW, *SUS_PWINDOWW, *SUS_LPWINDOWW;
-typedef SUS_WINDOW_STRUCT SUS_WINDOW, *SUS_PWINDOW, *SUS_LPWINDOW;
 
 // Basic initialization of the window
 SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lParam);
 // Basic initialization of the window
 SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lParam);
+
+#ifdef UNICODE
+#define susWindowSetup		susWindowSetupW
+#else // ELSE UNICODE
+#define susWindowSetup		susWindowSetupA
+#endif // !UNICODE
+
 // Build a window
-BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window);
+BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window);
 // Build a window
-BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window);
+BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window);
+
+#ifdef UNICODE
+#define susBuildWindow		susBuildWindowW
+#else // ELSE UNICODE
+#define susBuildWindow		susBuildWindowA
+#endif // !UNICODE
+
+// Create a simple window
+BOOL SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam);
+// Create a simple window
+SUS_INLINE BOOL SUSAPI susCreateWindowA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ LPVOID lParam) {
+	return susCreateWindowExA(lpTitle, size, handler, NULL, NULL, lParam);
+}
+// Create a simple window
+BOOL SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam);
+// Create a simple window
+SUS_INLINE BOOL SUSAPI susCreateWindowW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ LPVOID lParam) {
+	return susCreateWindowExW(lpTitle, size, handler, NULL, NULL, lParam);
+}
+
+#ifdef UNICODE
+#define susCreateWindowEx	susCreateWindowExW
+#define susCreateWindow	susCreateWindowW
+#else // ELSE UNICODE
+#define susCreateWindowEx	susCreateWindowExA
+#define susCreateWindow	susCreateWindowA
+#endif // !UNICODE
+
 // The main Window cycle
 INT SUSAPI susWindowMainLoopA();
 // The main Window cycle
 INT SUSAPI susWindowMainLoopW();
 
-// Clean all window data
-SUS_INLINE VOID SUSAPI susWindowCleanupA(_In_ SUS_LPWINDOW_STRUCTA window) {
-	if (lstrcmpA(window->wStruct.lpszClass, SUS_DEFWNDNAMEA) != 0) {
-		UnregisterClassA(window->wcEx.lpszClassName, window->wcEx.hInstance);
-		sus_free((LPVOID)window->wStruct.lpszClass);
-	}
-}
-// Clean all window data
-SUS_INLINE VOID SUSAPI susWindowCleanupW(_In_ SUS_LPWINDOW_STRUCTW window) {
-	if (lstrcmpW(window->wStruct.lpszClass, SUS_DEFWNDNAMEW) != 0) {
-		UnregisterClassW(window->wcEx.lpszClassName, window->wcEx.hInstance);
-		sus_free((LPVOID)window->wStruct.lpszClass);
-	}
-}
-
 #ifdef UNICODE
-#define susWindowSetup		susWindowSetupW
-#define susWindowCleanup	susWindowCleanupW
-#define susBuildWindow		susBuildWindowW
 #define susWindowMainLoop	susWindowMainLoopW
 #else // ELSE UNICODE
-#define susWindowSetup		susWindowSetupA
-#define susWindowCleanup	susWindowCleanupA
-#define susBuildWindow		susBuildWindowA
 #define susWindowMainLoop	susWindowMainLoopA
 #endif // !UNICODE
-
 
 // =================================================================================================
 
@@ -125,31 +132,51 @@ SUS_INLINE VOID SUSAPI susWindowSetPos(SUS_LPWINDOW window, POINT pos) {
 	window->wStruct.x = pos.x;
 	window->wStruct.y = pos.y;
 }
+// Set the window position
+SUS_INLINE VOID SUSAPI susWindowSetPosW(SUS_LPWINDOWW window, POINT pos) {
+	window->wStruct.x = pos.x;
+	window->wStruct.y = pos.y;
+}
 // Set the window size
-SUS_INLINE VOID SUSAPI susWindowSetSize(SUS_LPWINDOW window, SIZE size) {
+SUS_INLINE VOID SUSAPI susWindowSetSize(SUS_LPWINDOWA window, SIZE size) {
+	window->wStruct.cx = size.cx;
+	window->wStruct.cy = size.cy;
+}
+// Set the window size
+SUS_INLINE VOID SUSAPI susWindowSetSizeW(SUS_LPWINDOWW window, SIZE size) {
 	window->wStruct.cx = size.cx;
 	window->wStruct.cy = size.cy;
 }
 // Set the window size and position
-SUS_INLINE VOID SUSAPI susWindowSetBounds(SUS_LPWINDOW window, RECT bounds) {
+SUS_INLINE VOID SUSAPI susWindowSetBounds(SUS_LPWINDOWA window, RECT bounds) {
 	susWindowSetPos(window, (POINT) { bounds.left, bounds.top });
 	susWindowSetSize(window, (SIZE) { bounds.right, bounds.bottom });
 }
+// Set the window size and position
+SUS_INLINE VOID SUSAPI susWindowSetBoundsW(SUS_LPWINDOWW window, RECT bounds) {
+	susWindowSetPosW(window, (POINT) { bounds.left, bounds.top });
+	susWindowSetSizeW(window, (SIZE) { bounds.right, bounds.bottom });
+}
 // Set the window frame in the center of the screen
-SUS_INLINE VOID SUSAPI susWindowSetBoundsCenter(SUS_LPWINDOW window, SIZE size) {
+SUS_INLINE VOID SUSAPI susWindowSetBoundsCenter(SUS_LPWINDOWA window, SIZE size) {
 	susWindowSetSize(window, size);
 	susWindowSetPos(window, susGetCenterPos(size, susGetScreenSize()));
+}
+// Set the window frame in the center of the screen
+SUS_INLINE VOID SUSAPI susWindowSetBoundsCenterW(SUS_LPWINDOWW window, SIZE size) {
+	susWindowSetSizeW(window, size);
+	susWindowSetPosW(window, susGetCenterPos(size, susGetScreenSize()));
 }
 // Set styles for the window
 SUS_INLINE VOID SUSAPI susWindowSetStyle(SUS_LPWINDOW window, DWORD style) {
 	window->wStruct.style = style;
 }
 // Add styles for the window
-SUS_INLINE VOID SUSAPI susAddWindowStyle(SUS_LPWINDOW window, DWORD style) {
+SUS_INLINE VOID SUSAPI susWindowAddStyle(SUS_LPWINDOW window, DWORD style) {
 	window->wStruct.style |= style;
 }
 // Remove styles for the window
-SUS_INLINE VOID SUSAPI susRemoveWindowStyle(SUS_LPWINDOW window, DWORD style) {
+SUS_INLINE VOID SUSAPI susWindowRemoveStyle(SUS_LPWINDOW window, DWORD style) {
 	window->wStruct.style &= ~style;
 }
 
@@ -158,15 +185,19 @@ SUS_INLINE VOID SUSAPI susWindowSetExStyle(SUS_LPWINDOW window, DWORD dwExStyle)
 	window->wStruct.dwExStyle = dwExStyle;
 }
 // Add extended styles for the window
-SUS_INLINE VOID SUSAPI susAddWindowExStyle(SUS_LPWINDOW window, DWORD dwExStyle) {
+SUS_INLINE VOID SUSAPI susWindowAddExStyle(SUS_LPWINDOW window, DWORD dwExStyle) {
 	window->wStruct.dwExStyle |= dwExStyle;
 }
 // Remove extended styles for the window
-SUS_INLINE VOID SUSAPI susRemoveWindowExStyle(SUS_LPWINDOW window, DWORD dwExStyle) {
+SUS_INLINE VOID SUSAPI susWindowRemoveExStyle(SUS_LPWINDOW window, DWORD dwExStyle) {
 	window->wStruct.dwExStyle &= ~dwExStyle;
 }
 // Set the window parent
-SUS_INLINE VOID SUSAPI susWindowSetParent(SUS_LPWINDOWW window, HWND hWnd) {
+SUS_INLINE VOID SUSAPI susWindowSetParent(SUS_LPWINDOWA window, HWND hWnd) {
+	window->wStruct.hwndParent = hWnd;
+}
+// Set the window parent
+SUS_INLINE VOID SUSAPI susWindowSetParentW(SUS_LPWINDOWW window, HWND hWnd) {
 	window->wStruct.hwndParent = hWnd;
 }
 
@@ -187,27 +218,45 @@ SUS_INLINE VOID SUSAPI susWindowSetTitleW(SUS_LPWINDOWW window, LPCWSTR title) {
 
 // ===============================================
 
-SUS_INLINE VOID susWindowSetMenu(SUS_LPWINDOW window, LPCTSTR lpszMenuName) {
+SUS_INLINE VOID susWindowSetMenu(SUS_LPWINDOWA window, LPCSTR lpszMenuName) {
 	window->wcEx.lpszMenuName = lpszMenuName;
 }
-SUS_INLINE VOID susWindowSetHandler(SUS_LPWINDOW window, WNDPROC wndProc) {
+SUS_INLINE VOID susWindowSetMenuW(SUS_LPWINDOWW window, LPCWSTR lpszMenuName) {
+	window->wcEx.lpszMenuName = lpszMenuName;
+}
+SUS_INLINE VOID susWindowSetHandler(SUS_LPWINDOWA window, WNDPROC wndProc) {
+	window->wcEx.lpfnWndProc = wndProc;
+}
+SUS_INLINE VOID susWindowSetHandlerW(SUS_LPWINDOWW window, WNDPROC wndProc) {
 	window->wcEx.lpfnWndProc = wndProc;
 }
 // Set the background color
-SUS_INLINE VOID SUSAPI susWindowSetBackgroundColor(SUS_LPWINDOW window, HBRUSH color) {
+SUS_INLINE VOID SUSAPI susWindowSetBackgroundColor(SUS_LPWINDOWA window, HBRUSH color) {
+	window->wcEx.hbrBackground = color;
+}
+// Set the background color
+SUS_INLINE VOID SUSAPI susWindowSetBackgroundColorW(SUS_LPWINDOWW window, HBRUSH color) {
 	window->wcEx.hbrBackground = color;
 }
 // Set the window icon
-SUS_INLINE VOID SUSAPI susWindowSetIcon(SUS_LPWINDOW window, HICON icon) {
+SUS_INLINE VOID SUSAPI susWindowSetIcon(SUS_LPWINDOWA window, HICON icon) {
+	window->wcEx.hIcon = icon;
+}
+// Set the window icon
+SUS_INLINE VOID SUSAPI susWindowSetIconW(SUS_LPWINDOWW window, HICON icon) {
 	window->wcEx.hIcon = icon;
 }
 // Set the window cursor
-SUS_INLINE VOID SUSAPI susWindowSetCursor(SUS_LPWINDOW window, HCURSOR cursor) {
+SUS_INLINE VOID SUSAPI susWindowSetCursor(SUS_LPWINDOWA window, HCURSOR cursor) {
+	window->wcEx.hCursor = cursor;
+}
+// Set the window cursor
+SUS_INLINE VOID SUSAPI susWindowSetCursorw(SUS_LPWINDOWW window, HCURSOR cursor) {
 	window->wcEx.hCursor = cursor;
 }
 // Set window visibility
-SUS_INLINE VOID SUSAPI susWindowSetVisible(SUS_LPWINDOW window, BOOLEAN visible) {
-	ShowWindow(window->hWnd, visible ? SW_SHOW : SW_HIDE);
+SUS_INLINE VOID SUSAPI susWindowSetVisible(HWND hWnd, BOOLEAN visible) {
+	ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
 }
 
 // ===============================================

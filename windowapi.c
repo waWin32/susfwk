@@ -42,7 +42,7 @@ static const CREATESTRUCTA susDefWndStructA = {
 	.lpszName = NULL,
 	.hMenu = NULL,
 	.hwndParent = NULL,
-	.style = WS_OVERLAPPEDWINDOW,
+	.style = WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 	.x = CW_USEDEFAULT,
 	.y = CW_USEDEFAULT,
 	.cx = CW_USEDEFAULT,
@@ -56,7 +56,7 @@ static const CREATESTRUCTW susDefWndStructW = {
 	.lpszName = NULL,
 	.hMenu = NULL,
 	.hwndParent = NULL,
-	.style = WS_OVERLAPPEDWINDOW,
+	.style = WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 	.x = CW_USEDEFAULT,
 	.y = CW_USEDEFAULT,
 	.cx = CW_USEDEFAULT,
@@ -99,15 +99,14 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lPar
 	SUS_PRINTDL("Setting up the window");
 	SUS_ASSERT(lpTitle);
 	SUS_WINDOWA window = { 0 };
-	sus_memcpy((LPBYTE)&window.wcEx, (CONST LPBYTE)&susDefWndClassA, sizeof(WNDCLASSEXA));
-	sus_memcpy((LPBYTE)&window.wStruct, (CONST LPBYTE) &susDefWndStructA, sizeof(CREATESTRUCTA));
+	window.wcEx = susDefWndClassA;
+	window.wStruct = susDefWndStructA;
 	window.wcEx.lpfnWndProc = DefWindowProcA;
 	window.wStruct.hInstance = GetModuleHandleA(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPSTR className = sus_fmalloc((SIZE_T)(lstrlenA(SUS_WCNAMEA) + lstrlenA(lpTitle) + 30));
+	LPSTR className = sus_dformattingA("%s-%s%pA", SUS_WCNAMEA, lpTitle, &window);
 	if (className) {
-		sus_formattingA(className, "%s%s%pA", SUS_WCNAMEA, lpTitle, &window);
 		window.wcEx.lpszClassName = className;
 		window.wStruct.lpszClass = className;
 	}
@@ -123,15 +122,14 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lPa
 	SUS_PRINTDL("Setting up the window");
 	SUS_ASSERT(lpTitle);
 	SUS_WINDOWW window = { 0 };
-	sus_memcpy((LPBYTE)&window.wcEx, (CONST LPBYTE)&susDefWndClassW, sizeof(WNDCLASSEXW));
-	sus_memcpy((LPBYTE)&window.wStruct, (CONST LPBYTE)&susDefWndStructW, sizeof(CREATESTRUCTW));
+	window.wcEx = susDefWndClassW;
+	window.wStruct = susDefWndStructW;
 	window.wcEx.lpfnWndProc = DefWindowProcW;
 	window.wStruct.hInstance = GetModuleHandleW(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPWSTR className = sus_fmalloc((SIZE_T)(lstrlenW(SUS_WCNAMEW) + lstrlenW(lpTitle) + 30));
+	LPWSTR className = sus_dformattingW(L"%s-%s%pW", SUS_WCNAMEW, lpTitle, &window);
 	if (className) {
-		sus_formattingW(className, L"%s%s%pW", SUS_WCNAMEW, lpTitle,  &window);
 		window.wcEx.lpszClassName = className;
 		window.wStruct.lpszClass = className;
 	}
@@ -142,7 +140,7 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lPa
 	return window;
 }
 // Build a window
-BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window)
+BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window)
 {
 	SUS_PRINTDL("Creating a window");
 	SUS_ASSERT(window);
@@ -151,6 +149,7 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window)
 		if (!RegisterClassExA(&window->wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
+			if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEA) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 			return FALSE;
 		}
 	}
@@ -168,6 +167,7 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window)
 		window->wStruct.hInstance,
 		window->wStruct.lpCreateParams
 	);
+	if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEA) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 	if (!window->hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
@@ -177,7 +177,7 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOW_STRUCTA window)
 	return TRUE;
 }
 // Build a window
-BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window)
+BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window)
 {
 	SUS_PRINTDL("Creating a window");
 	SUS_ASSERT(window);
@@ -186,6 +186,7 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window)
 		if (!RegisterClassExW(&window->wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
+			if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEW) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 			return FALSE;
 		}
 	}
@@ -203,12 +204,35 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOW_STRUCTW window)
 		window->wStruct.hInstance,
 		window->wStruct.lpCreateParams
 	);
+	if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEW) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 	if (!window->hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
 		return FALSE;
 	}
 	SUS_PRINTDL("The window has been successfully created");
+	return TRUE;
+}
+// Create a simple window
+BOOL SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam)
+{
+	SUS_WINDOWA wnd = susWindowSetupA(lpTitle, lParam);
+	susWindowSetSize(&wnd, size);
+	if (handler) susWindowSetHandler(&wnd, handler);
+	if (hIcon) susWindowSetIcon(&wnd, hIcon);
+	if (lpMenuName) susWindowSetMenu(&wnd, lpMenuName);
+	if (!susBuildWindowA(&wnd)) return FALSE;
+	return TRUE;
+}
+// Create a simple window
+BOOL SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam)
+{
+	SUS_WINDOWW wnd = susWindowSetupW(lpTitle, lParam);
+	susWindowSetSizeW(&wnd, size);
+	if (handler) susWindowSetHandlerW(&wnd, handler);
+	if (hIcon) susWindowSetIconW(&wnd, hIcon);
+	if (lpMenuName) susWindowSetMenuW(&wnd, lpMenuName);
+	if (!susBuildWindowW(&wnd)) return FALSE;
 	return TRUE;
 }
 // The main Window cycle
@@ -243,7 +267,7 @@ SUS_WIDGETA SUSAPI susWidgetSetupA(_In_opt_ LPCSTR lpTitle, _In_ INT id, _In_ LP
 {
 	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETA wg = { 0 };
-	sus_memcpy((LPBYTE)&wg.wStruct, (CONST LPBYTE) & susDefWidgetStructA, sizeof(CREATESTRUCTA));
+	wg.wStruct = susDefWidgetStructA;
 	wg.wStruct.style |= WS_CHILD | WS_VISIBLE | style;
 	wg.wStruct.lpszName = lpTitle;
 	wg.wStruct.lpszClass = lpszClass;
@@ -255,7 +279,7 @@ SUS_WIDGETW SUSAPI susWidgetSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id, _In_ L
 {
 	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGETW wg = { 0 };
-	sus_memcpy((LPBYTE)&wg.wStruct, (CONST LPBYTE) & susDefWidgetStructW, sizeof(CREATESTRUCTA));
+	wg.wStruct = susDefWidgetStructW;
 	wg.wStruct.style |= WS_CHILD | WS_VISIBLE | style;
 	wg.wStruct.lpszName = lpTitle;
 	wg.wStruct.lpszClass = lpszClass;
