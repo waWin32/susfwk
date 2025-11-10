@@ -46,10 +46,9 @@ typedef enum sus_socket_message {
 	SUS_SM_USER		// User Messages
 } SUS_SOCKET_MESSAGE;
 // Socket processing function
-typedef BOOL(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam);
+typedef LRESULT(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam);
 // Socket Timer
 typedef struct sus_socket_timer {
-	DWORD id;
 	DWORD interval;
 	DWORD nextFire;
 } SUS_SOCKET_TIMER, *SUS_LPSOCKET_TIMER;
@@ -59,7 +58,7 @@ typedef struct sus_socket {
 	SUS_SOCKET_HANDLER	handler;	// Socket handler function
 	SUS_BUFFER			readBuffer;	// Dynamic buffer for reading
 	SUS_BUFFER			writeBuffer;// Dynamic buffer for writing
-	SUS_VECTOR			timers;		// SUS_SOCKET_TIMER
+	SUS_HASHMAP			timers;		// UINT SUS_SOCKET_TIMER
 	SUS_OBJECT			userData;	// User data
 	SOCKADDR_IN			addr;		// Address socket
 } SUS_SOCKET, *SUS_LPSOCKET;
@@ -240,6 +239,12 @@ SUS_INLINE SOCKADDR_IN SUSAPI susSocketGetAddr(_In_ SUS_LPSOCKET sock) {
 	SOCKADDR_IN peerAddr = { 0 };
 	int peerAddrLen = sizeof(peerAddr);
 	return getpeername(sock->sock, (SOCKADDR*)&peerAddr, &peerAddrLen) ? (SOCKADDR_IN) { 0 } : peerAddr;
+}
+// Send a message to the socket
+SUS_INLINE LRESULT SUSAPI susSocketSendMessage(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam) {
+	SUS_ASSERT(sock && uMsg);
+	if (sock->handler) return sock->handler(sock, uMsg, wParam, lParam);
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
