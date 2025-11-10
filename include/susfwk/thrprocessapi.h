@@ -165,4 +165,26 @@ BOOL SUSAPI susLoadLibraryA(_In_ LPCSTR path);
 // Load a dynamic library
 BOOL SUSAPI susLoadLibraryW(_In_ LPCWSTR path);
 
+//////////////////////////////////////////////////////////////////
+//				  Working with critical sections				//
+//////////////////////////////////////////////////////////////////
+
+// -------------------------------------------------------------------
+
+// Mutex for working with critical sections in code
+typedef struct sus_mutex {
+	CRITICAL_SECTION cs;
+} SUS_MUTEX, *SUS_LPMUTEX;
+
+// Create a mutex
+SUS_MUTEX SUSAPI susMutexSetup();
+// Enter the critical section
+VOID SUSAPI susMutexLock(_Inout_ SUS_LPMUTEX mutex);
+// Exit the critical section
+VOID SUSAPI susMutexUnlock(_Inout_ SUS_LPMUTEX mutex);
+// Delete the mutex
+VOID SUSAPI susMutexCleanup(_Inout_ SUS_LPMUTEX mutex);
+
+// -------------------------------------------------------------------
+
 #endif /* !_SUS_PROCESS_API_ */

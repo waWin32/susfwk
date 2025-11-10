@@ -402,3 +402,34 @@ BOOL SUSAPI susLoadLibraryW(_In_ LPCWSTR path)
 	SUS_PRINTDL("The library has been uploaded successfully!");
 	return TRUE;
 }
+
+//////////////////////////////////////////////////////////////////
+//				  Working with critical sections				//
+//////////////////////////////////////////////////////////////////
+
+// Create a mutex
+SUS_MUTEX SUSAPI susMutexSetup()
+{
+	SUS_PRINTDL("Creating a mutex");
+	SUS_MUTEX mutex = { 0 };
+	InitializeCriticalSection(&mutex.cs);
+	return mutex;
+}
+// Enter the critical section
+VOID SUSAPI susMutexLock(_Inout_ SUS_LPMUTEX mutex)
+{
+	SUS_PRINTDL("Entering the critical section");
+	EnterCriticalSection(&mutex->cs);
+}
+// Exit the critical section
+VOID SUSAPI susMutexUnlock(_Inout_ SUS_LPMUTEX mutex)
+{
+	SUS_PRINTDL("Exit from the critical section");
+	LeaveCriticalSection(&mutex->cs);
+}
+// Delete the mutex
+VOID SUSAPI susMutexCleanup(_Inout_ SUS_LPMUTEX mutex)
+{
+	SUS_PRINTDL("Deleting a mutex");
+	DeleteCriticalSection(&mutex->cs);
+}
