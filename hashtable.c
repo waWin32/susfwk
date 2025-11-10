@@ -45,7 +45,7 @@ VOID SUSAPI susMapReserve(_Inout_ SUS_LPHASHMAP lpMap)
 {
 	SUS_ASSERT(lpMap && *lpMap);
 	SUS_HASHMAP map = *lpMap;
-	if (map->count > map->capacity * SUS_HASHTABLE_RATIO) {
+	if ((map->count + 1) >= map->capacity * SUS_HASHTABLE_RATIO) {
 		susMapResize(lpMap, map->capacity * SUS_HASHTABLE_GROWTH_FACTOR);
 	}
 }
@@ -90,6 +90,15 @@ SUS_OBJECT SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)
 	else sus_zeromem(susMapValue(map, entry), map->valueSize);
 	map->count++;
 	return susMapValue(map, entry);
+}
+// Add or change a value
+SUS_OBJECT SUSAPI susMapSet(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key, _In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value)
+{
+	SUS_ASSERT(lpMap && *lpMap && key);
+	SUS_OBJECT mvalue = susMapGet(*lpMap, key);
+	if (!mvalue) mvalue = susMapAdd(lpMap, key, value);
+	else sus_memcpy(mvalue, value, (*lpMap)->valueSize);
+	return mvalue;
 }
 // Delete a key-value pair from a hash table
 VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->keySize) SUS_OBJECT key)

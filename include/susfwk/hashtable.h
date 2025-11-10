@@ -7,6 +7,7 @@
 extern "C" {
 #endif // !__cplusplus
 
+#include "vector.h"
 #pragma warning(push)
 #pragma warning(disable: 4200)
 
@@ -174,7 +175,12 @@ SUS_OBJECT SUSAPI susMapAdd(
 	_In_bytecount_((*lpMap)->keySize) SUS_OBJECT key,
 	_In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value
 );
-
+// Add or change a value
+SUS_OBJECT SUSAPI susMapSet(
+	_Inout_ SUS_LPHASHMAP lpMap,
+	_In_bytecount_((*lpMap)->keySize) SUS_OBJECT key,
+	_In_opt_bytecount_((*lpMap)->valueSize) SUS_OBJECT value
+);
 // Delete a key-value pair from a hash table
 VOID SUSAPI susMapRemove(
 	_Inout_ SUS_LPHASHMAP lpMap,
