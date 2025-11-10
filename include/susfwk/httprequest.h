@@ -31,15 +31,21 @@ typedef enum sus_http_content_type {
 	SUS_HTTP_CONTENT_TYPE_JAVASCRIPT,	// application/javascript
 	SUS_HTTP_CONTENT_TYPE_JSON,			// application/json
 	SUS_HTTP_CONTENT_TYPE_JSON_ERROR,	// application/problem+json
-	SUS_HTTP_CONTENT_TYPE_PDF			// application/pdf
+	SUS_HTTP_CONTENT_TYPE_PDF,			// application/pdf
+	SUS_HTTP_CONTENT_TYPE_COUNT
 } SUS_HTTP_CONTENT_TYPE, *SUS_LPHTTP_CONTENT_TYPE;
+// Dictionary of content types and their string values
+static const LPWSTR susHttpContentTypeToString[SUS_HTTP_CONTENT_TYPE_COUNT] = { L"text/plain", L"text/http", L"text/css", L"image/jpeg", L"audio/mpeg", L"application/javascript", L"application/json", L"application/problem+json", L"application/pdf" };
 // The type of encryption for http content data
 typedef enum sus_http_content_encoding {
 	SUS_HTTP_CONTENT_ENCODING_DEFAULT,	// identity
 	SUS_HTTP_CONTENT_ENCODING_GZIP,		// gzip
 	SUS_HTTP_CONTENT_ENCODING_DEFLATE,	// deflate
-	SUS_HTTP_CONTENT_ENCODING_BROTLI	// br
+	SUS_HTTP_CONTENT_ENCODING_BROTLI,	// br
+	SUS_HTTP_CONTENT_ENCODING_COUNT
 } SUS_HTTP_CONTENT_ENCODING, *SUS_LPHTTP_CONTENT_ENCODING;
+// Dictionary of content encodings and their string values
+static const LPWSTR susHttpContentEncodingToString[SUS_HTTP_CONTENT_ENCODING_COUNT] = { L"identity", L"gzip", L"deflate", L"br" };
 // Message body
 typedef struct sus_http_body {
 	SUS_HTTP_CONTENT_TYPE		type;		// Message Content Type
@@ -64,11 +70,13 @@ typedef struct sus_http_response {
 // ------------------------------------------------------------
 
 // Creating an http session
-BOOL SUSAPI susHttpSessionSetup(
+BOOL SUSAPI susHttpSessionSetupEx(
 	_In_opt_z_ LPCWSTR pszAgentW,
 	_In_opt_ DWORD dwTimeOut,
 	_In_ BOOL useHttp2			// Windows 10+
 );
+// Creating an http session
+#define susHttpSessionSetup() susHttpSessionSetupEx(NULL, 1000, FALSE)
 // Deleting an http session
 VOID SUSAPI susHttpSessionCleanup();
 
@@ -90,7 +98,7 @@ BOOL SUSAPI susHttpSetHeader(
 BOOL SUSAPI susHttpRequestExecute(
 	_In_ HINTERNET hRequest,
 	_In_opt_ LPCWSTR lpszHeaders,
-	_In_opt_ SUS_DATAVIEW body
+	_In_opt_ SUS_HTTP_BODY body
 );
 // Get a response from the server
 SUS_HTTP_RESPONSE SUSAPI susHttpReceiveResponse(
@@ -101,7 +109,7 @@ SUS_HTTP_RESPONSE SUSAPI susHttpRequest(
 	_In_ LPCWSTR method,
 	_In_ LPCWSTR url,
 	_In_opt_ LPCWSTR lpszHeaders,
-	_In_opt_ SUS_DATAVIEW body
+	_In_opt_ SUS_HTTP_BODY body
 );
 
 // ------------------------------------------------------------
@@ -125,22 +133,22 @@ VOID SUSAPI susHttpResponseCleanup(
 
 // Send a GET request
 SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpGet(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders) {
-	return susHttpRequest(L"GET", lpUrl, lpszHeaders, (SUS_DATAVIEW) { 0 });
+	return susHttpRequest(L"GET", lpUrl, lpszHeaders, (SUS_HTTP_BODY) { 0 });
 }
 // Send a POST request
-SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPost(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_ SUS_DATAVIEW body) {
+SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPost(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_ SUS_HTTP_BODY body) {
 	return susHttpRequest(L"POST", lpUrl, lpszHeaders, body);
 }
 // Send a PUT request
-SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPut(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_DATAVIEW body) {
+SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPut(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_HTTP_BODY body) {
 	return susHttpRequest(L"PUT", lpUrl, lpszHeaders, body);
 }
 // Send a DELETE request
 SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpDelete(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders) {
-	return susHttpRequest(L"DELETE", lpUrl, lpszHeaders, (SUS_DATAVIEW) { 0 });
+	return susHttpRequest(L"DELETE", lpUrl, lpszHeaders, (SUS_HTTP_BODY) { 0 });
 }
 // Send a PATCH request
-SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPatch(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_DATAVIEW body) {
+SUS_INLINE SUS_HTTP_RESPONSE SUSAPI susHttpPatch(_In_ LPCWSTR lpUrl, _In_opt_ LPCWSTR lpszHeaders, _In_opt_ SUS_HTTP_BODY body) {
 	return susHttpRequest(L"PATCH", lpUrl, lpszHeaders, body);
 }
 
