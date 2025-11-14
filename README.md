@@ -3,24 +3,43 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078d7.svg)](https://learn.microsoft.com/en-us/windows/embedded/)
+[![Status](https://img.shields.io/badge/Status-Stable%20v1.0.0-brightgreen.svg)](https://github.com/waWin32/susfwk/releases)
 
 > Provides application performance, provides a convenient api and data structures. Reduces development time without losing performance.
+## Overview
 
-The framework provides low-level access to system functions, adding debug information and error handling.
-It allows you to customize the output of debug information (to the console or to a log file),
-and it includes its own IO that provides input and output to different descriptors.
-It provides an abstraction for creating and managing windows, and it includes a tool for creating widgets.
+susfwk is a high-performance, high-level framework for C that combines extensive functionality with minimal footprint. It provides a comprehensive development ecosystem while maintaining zero dependencies on CRT or external libraries.
 
-The framework presents its own style for writing safe and efficient code in C\C++ languages.
-susfwk works without CRT, and a project written in it will only depend on system libraries.
-This framework provides an interface that is similar to standard libraries, but has more functionality and is not dependent on them.
+## Framework Capabilities
+
+The framework delivers an expressive high-level API that simplifies complex tasks without compromising performance. It includes **extensive data structures** (including `SUS_HASHMAP`, `SUS_JSON`, `SUS_LIST` and dozens more), a **complete Entity-Component-System**, **abstractions for window management and widget creation**, and a **comprehensive networking stack** supporting multiple protocols across different layers, including the custom application-level JNET protocol. All components are backed by unified I/O systems and comprehensive debugging facilities.
 
 ## Key Features ✨
-- 🚫 **No CRT dependency** - Reduced footprint and increased portability
-- 🛡️ **Enhanced security** - Built-in safe memory and resource management
-- 📝 **Unified debugging** - Configurable output (console, file, or system debugger)
-- 🧩 **Modular architecture** - Use only required components
-- ✨ **CRT-like API** - Familiar interface without external dependencies
+
+- **🚫 Zero Dependencies** - No CRT, no external libraries - pure system-level performance
+- **⚡ High Performance** - Optimized execution with minimal overhead
+- **📦 Extensive Standard Library** - Hundreds of modules covering all development needs
+- **🔧 High-Level API** - Developer-friendly interfaces for rapid development
+- **🛡️ Built-in Safety** - Comprehensive memory management and error handling
+- **📝 Unified Debugging** - Configurable output (console, file, or system debugger)
+- **🌐 Complete Networking** - Multi-protocol support from transport to application layers
+- **🎮 Native ECS** - Full-featured Entity-Component-System for complex applications
+- **🧩 Modular Architecture** - Use only the components you need
+
+## Core Modules (Selected)
+
+*This is just a small sample of available modules:*
+
+| Category | Key Modules |
+|----------|-------------|
+| **Core Infrastructure** | `core.h`, `memory.h`, `debug.h`, `deftypes.h` |
+| **Data Structures** | `vector.h`, `hashtable.h`, `linkedlist.h`, `bitset.h` |
+| **I/O & Formatting** | `iostream.h`, `fileio.h`, `conio.h`, `format.h` |
+| **Networking** | `network.h`, `jnet.h`, `httprequest.h` |
+| **Application Development** | `windowapi.h`, `ecs.h`, `thrprocessapi.h` |
+| **Utilities** | `string.h`, `math.h`, `crypto.h`, `json.h` |
+
+*Plus many more specialized modules for graphics, system integration, and advanced algorithms.*
 
 ## How to install 🛠
 
