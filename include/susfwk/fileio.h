@@ -29,13 +29,13 @@ SUS_FILE SUSAPI sus_fopenexW(
 #endif // !UNICODE
 
 // Opening a file
-#define sus_fopenA(fileName, access) sus_fopenexA(fileName, access, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
+#define sus_fopenA(fileName, dwAccess) sus_fopenexA(fileName, dwAccess, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
 // Opening a file
-#define sus_fopenW(fileName, access) sus_fopenexW(fileName, access, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
+#define sus_fopenW(fileName, dwAccess) sus_fopenexW(fileName, dwAccess, FILE_SHARE_READ, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL)
 // Creating a new file
-#define sus_fcreateA(fileName, attributes) sus_fopenexA(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
+#define sus_fcreateA(fileName, dwAttributes) sus_fopenexA(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, dwAttributes)
 // Creating a new file
-#define sus_fcreateW(fileName, attributes) sus_fopenexW(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, attributes)
+#define sus_fcreateW(fileName, dwAttributes) sus_fopenexW(fileName, GENERIC_WRITE, 0, CREATE_ALWAYS, dwAttributes)
 
 #ifdef UNICODE
 #define sus_fopen			sus_fopenW
@@ -150,9 +150,28 @@ SUS_FSTAT SUSAPI sus_fstateA(_In_ LPCSTR lpFileName);
 SUS_FSTAT SUSAPI sus_fstateW(_In_ LPCWSTR lpFileName);
 
 #ifdef UNICODE
-#define sus_fstate				sus_fstateW
+#define sus_fstate	sus_fstateW
 #else
-#define sus_fstate				sus_fstateA
+#define sus_fstate	sus_fstateA
+#endif // !UNICODE
+
+// Check the file for existence
+SUS_INLINE BOOL SUSAPI sus_fexistsA(_In_ LPCSTR lpFileName) {
+	SUS_ASSERT(lpFileName);
+	DWORD attributes = GetFileAttributesA(lpFileName);
+	return attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
+}
+// Check the file for existence
+SUS_INLINE BOOL SUSAPI sus_fexistsW(_In_ LPCWSTR lpFileName) {
+	SUS_ASSERT(lpFileName);
+	DWORD attributes = GetFileAttributesW(lpFileName);
+	return attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+#ifdef UNICODE
+#define sus_fexists	sus_fexistsW
+#else
+#define sus_fexists	sus_fexistsA
 #endif // !UNICODE
 
 // --------------------------------------------------------

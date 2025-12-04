@@ -2,7 +2,6 @@
 //
 #include "coreframe.h"
 #include "include/susfwk/core.h"
-#include "include/susfwk/string.h"
 #include "include/susfwk/fileio.h"
 
 // --------------------------------------------------------
