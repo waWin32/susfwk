@@ -35,6 +35,12 @@ typedef struct sus_json {
 		SUS_HASHMAP object; // LPSTR -> SUS_JSON
 	} value;
 } SUS_JSON, *SUS_LPJSON;
+// Json return errors
+typedef enum sus_json_error {
+	SUS_JSON_ERROR_SUCCESS,
+	SUS_JSON_ERROR_SYNTAX,
+	SUS_JSON_ERROR_SYSTEM,
+} SUS_JSON_ERROR, *SUS_LPJSON_ERROR;
 
 // -----------------------------------------------
 
@@ -119,7 +125,8 @@ LPSTR SUSAPI susJsonStringify(
 );
 // Convert string to json
 SUS_JSON SUSAPI susJsonParse(
-	_In_ LPCSTR text
+	_In_ LPCSTR text,
+	_Out_opt_ SUS_LPJSON_ERROR lpError
 );
 
 // -----------------------------------------------
@@ -131,7 +138,7 @@ BOOL SUSAPI susJsonEquals(
 );
 // Check whether the json is valid
 SUS_INLINE BOOL SUSAPI susJsonIsValid(_In_ SUS_JSON json) {
-	return json.type != SUS_JSON_TYPE_NULL || ((json.type == SUS_JSON_TYPE_OBJECT || json.type == SUS_JSON_TYPE_ARRAY) && json.value.object);
+	return json.type || ((json.type == SUS_JSON_TYPE_OBJECT || json.type == SUS_JSON_TYPE_ARRAY) && json.value.object);
 }
 
 // -----------------------------------------------

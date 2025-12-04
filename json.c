@@ -76,7 +76,7 @@ SUS_JSON SUSAPI susJsonCopy(_In_ SUS_JSON json)
 static VOID SUSAPI susJsonStringStringify(_In_ LPCSTR str, _Inout_ SUS_LPBUFFER pBuffer) {
 	SUS_ASSERT(pBuffer && *pBuffer);
 	susBufferAppend(pBuffer, (LPBYTE)"\"", 1);
-	LPSTR buff = sus_malloc(((SIZE_T)lstrlenA(str) + 16) * sizeof(CHAR));
+	LPSTR buff = sus_malloc((SIZE_T)sus_escapeA(NULL, str) * sizeof(CHAR) + sizeof("\"\""));
 	if (!buff) return;
 	sus_escapeA(buff, str);
 	susBufferAppend(pBuffer, (LPBYTE)buff, lstrlenA(buff) * sizeof(CHAR));
@@ -142,15 +142,20 @@ LPSTR SUSAPI susJsonStringify(_In_ SUS_JSON json)
 }
 
 // Convert json string to string
-static LPSTR SUSAPI susJsonStringParse(_Inout_ LPSTR* text) {
+static LPSTR SUSAPI susJsonStringParse(_Inout_ LPSTR* text, _Out_ SUS_LPJSON_ERROR error) {
 	SUS_ASSERT(text && *text && **text == '"');
+	*error = SUS_JSON_ERROR_SUCCESS;
 	LPSTR end = sus_strchrA(++(*text), '"');
 	while (end && *(end - 1) == '\\' && *(end - 2) != '\\') end = sus_strchrA(end + 1, '"');
-	if (!end) return NULL;
+	if (!end) {
+		*error = SUS_JSON_ERROR_SYNTAX;
+		return NULL;
+	}
 	*end = '\0';
 	LPSTR buff = sus_malloc((SIZE_T)sus_unescapeA(NULL, *text) + 1);
 	if (!buff) {
 		*end = '"';
+		*error = SUS_JSON_ERROR_SYSTEM;
 		return NULL;
 	}
 	sus_unescapeA(buff, *text);
@@ -159,26 +164,31 @@ static LPSTR SUSAPI susJsonStringParse(_Inout_ LPSTR* text) {
 	return buff;
 }
 // Convert string to json
-static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
+static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text, _Out_ SUS_LPJSON_ERROR error)
 {
 	SUS_ASSERT(text);
+	*error = SUS_JSON_ERROR_SUCCESS;
 	sus_trimlA(text);
 	SUS_JSON json = susJsonNull();
 	if (!**text) return json;
 	switch (*(*text))
 	{
 	case '"': {
-		LPSTR str = susJsonStringParse(text);
+		LPSTR str = susJsonStringParse(text, error);
 		json = susJsonString(str);
 		sus_strfree(str);
 	} break;
 	case 't':
 	case 'f': {
-		if (lstrcmpA(*text, "true") == 0) {
+		if (sus_memcmp((LPBYTE)*text, (LPBYTE)"true", 4)) {
 			*text += 4;
 			json = susJsonBoolean(TRUE);
 		}
 		else {
+			if (!sus_memcmp((LPBYTE)*text, (LPBYTE)"false", 5)) {
+				*error = SUS_JSON_ERROR_SYNTAX;
+				return susJsonNull();
+			}
 			*text += 5;
 			json = susJsonBoolean(FALSE);
 		}
@@ -190,21 +200,29 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 			sus_trimlA(text);
 			if (**text != '"') {
 				SUS_PRINTDE("Does not match the json format");
+				*error = SUS_JSON_ERROR_SYNTAX;
 				susJsonDestroy(&json);
 				json = susJsonNull();
 				break;
 			}
-			LPSTR key = susJsonStringParse(text);
+			LPSTR key = susJsonStringParse(text, error);
+			if (*error) {
+				susJsonDestroy(&json);
+				sus_strfree(key);
+				json = susJsonNull();
+				break;
+			}
 			sus_trimlA(text);
 			if (**text != ':') {
 				SUS_PRINTDE("Does not match the json format");
+				*error = SUS_JSON_ERROR_SYNTAX;
 				susJsonDestroy(&json);
-				json = susJsonNull();
 				sus_strfree(key);
+				json = susJsonNull();
 				break;
 			}
 			(*text)++;
-			susJsonObjectSet(&json, key, susParseJsonValue(text));
+			susJsonObjectSet(&json, key, susParseJsonValue(text, error));
 			sus_strfree(key);
 			sus_trimlA(text);
 			if (**text == ',') {
@@ -217,7 +235,12 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 		json = susJsonArray();
 		(*text)++;
 		while (**text && **text != ']') {
-			susJsonArrayPush(&json, susParseJsonValue(text));
+			susJsonArrayPush(&json, susParseJsonValue(text, error));
+			if (*error) {
+				susJsonDestroy(&json);
+				json = susJsonNull();
+				break;
+			}
 			sus_trimlA(text);
 			if (**text == ',') {
 				(*text)++;
@@ -228,27 +251,33 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 	case 'n': {
 		if (!sus_memcmp((LPBYTE)*text, (LPBYTE)"null", 4)) {
 			SUS_PRINTDE("Does not match the json format");
+			*error = SUS_JSON_ERROR_SYNTAX;
 			break;
 		}
 		(*text) += 4;
 	} break;
 	default: {
-		if (sus_isdigitA(**text)) {
+		if (sus_isdigitA(**text) || **text == '-') {
 			json = susJsonNumber(sus_atof(*text, text));
 		}
+		*error = SUS_JSON_ERROR_SYNTAX;
+		(*text)++;
 	};
 	}
 	return json;
 }
 // Convert string to json
-SUS_JSON SUSAPI susJsonParse(_In_ LPCSTR text)
+SUS_JSON SUSAPI susJsonParse(_In_ LPCSTR text, _Out_opt_ SUS_LPJSON_ERROR lpError)
 {
 	SUS_PRINTDL("parsing a string in json format");
 	SUS_ASSERT(text);
 	LPSTR str = sus_strdup(text);
 	if (!str) return susJsonNull();
 	LPSTR ctx = str;
-	SUS_JSON json = susParseJsonValue(&ctx);
+	SUS_JSON_ERROR error = SUS_JSON_ERROR_SUCCESS;
+	if (!lpError) lpError = &error;
+	*lpError = SUS_JSON_ERROR_SUCCESS;
+	SUS_JSON json = susParseJsonValue(&ctx, lpError);
 	sus_strfree(str);
 	return json;
 }
@@ -268,7 +297,7 @@ BOOL SUSAPI susJsonEquals(_In_ SUS_JSON a, _In_ SUS_JSON b)
 		return a.value.boolean == b.value.boolean;
 	case SUS_JSON_TYPE_STRING_VIEW:
 	case SUS_JSON_TYPE_STRING:
-		return a.value.str && b.value.str && lstrcmpA(a.value.str, b.value.str) == 0;
+		return a.value.str && b.value.str && !lstrcmpA(a.value.str, b.value.str);
 	case SUS_JSON_TYPE_ARRAY: {
 		if (a.value.array->length != b.value.array->length) return FALSE;
 		susVecForeach(i, a.value.array) if (!susJsonEquals(*susJsonArrayGet(a, i), *susJsonArrayGet(b, i))) return FALSE;
@@ -308,6 +337,7 @@ SUS_LPJSON SUSAPI susJsonObjectSet(_Inout_ SUS_LPJSON obj, _In_ LPCSTR key, _In_
 	else {
 		key = sus_strdup(key);
 		json = susMapAdd(&obj->value.object, &key, NULL);
+		if (!json) { sus_strfree((LPSTR)key); return NULL; }
 	}
 	*json = susJsonCopy(value);
 	return json;

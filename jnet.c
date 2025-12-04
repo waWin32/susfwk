@@ -33,7 +33,7 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 	SUS_ASSERT(sock && data);
 	SUS_JNET jNetSock = (SUS_JNET)susSocketGetUserData(sock);
 	SUS_ASSERT(jNetSock);
-	SUS_JSON json = susJsonParse(data);
+	SUS_JSON json = susJsonParse(data, NULL);
 	if (json.type != SUS_JSON_TYPE_OBJECT) goto incorrect_data;
 	SUS_LPJSON headers = susJsonObjectGet(json, "headers");
 	SUS_LPJSON body = susJsonObjectGet(json, "body");
@@ -65,11 +65,11 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
 	}
 	susJsonDestroy(&json);
-	return TRUE;
+	return 0;
 incorrect_data:
 	susJsonDestroy(&json);
 	SUS_PRINTDW("Incorrect JNET format received");
-	return FALSE;
+	return 1;
 }
 // JNET Socket Message Handler
 BOOL SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam)
@@ -78,14 +78,14 @@ BOOL SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE
 	switch (uMsg)
 	{
 	case SUS_SM_DATA:
-		return susJnetDataHandler(sock, (LPCSTR)lParam);
+		return susJnetDataHandler(sock, (LPCSTR)lParam) ? 0 : 1;
 	case SUS_SM_CREATE:
 		susSocketSetUserData(sock, susNewJnet(susSocketGetUserData(sock)));
-		return susSocketGetUserData(sock) ? TRUE : FALSE;
+		return susSocketGetUserData(sock) ? 0 : 1;
 	case SUS_SM_END:
 		susJnetDestroy(susSocketGetUserData(sock));
-		return TRUE;
-	default: return TRUE;
+		return 0;
+	default: return 0;
 	}
 }
 
