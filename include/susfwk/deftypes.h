@@ -45,7 +45,10 @@ typedef sus_u32 sus_size_t;
 
 typedef int sus_int, *sus_pint;
 typedef unsigned int sus_uint, *sus_puint;
-typedef long sus_long, *sus_plong;
+typedef sus_uint sus_uint32, *sus_puint32;
+typedef long long sus_long, * sus_plong;
+typedef unsigned long long sus_ulong, *sus_pulong;
+typedef sus_ulong sus_uint64, *sus_puint64;
 typedef float sus_float, *sus_pfloat;
 
 typedef char sus_char;
