@@ -3,7 +3,6 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/memory.h"
-#include "include/susfwk/crypto.h"
 #include "include/susfwk/vector.h"
 #include "include/susfwk/hashtable.h"
 
@@ -18,8 +17,8 @@ SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_o
 	if (!map) return NULL;
 	map->capacity = initCount ? initCount : SUS_HASHTABLE_INIT_COUNT;
 	map->count = 0;
-	map->valueSize = valueSize;
-	map->keySize = keySize;
+	map->valueSize = (DWORD)valueSize;
+	map->keySize = (DWORD)keySize;
 	map->getHash = getHash ? getHash : (keySize <= 4 ? susDefGetHashInt : susDefGetHash);
 	map->cmpKeys = cmpKeys ? cmpKeys : susDefCmpKeys;
 	for (DWORD i = 0; i < map->capacity; i++) map->buckets[i] = susNewVectorSized(keySize + valueSize);
@@ -97,7 +96,7 @@ SUS_OBJECT SUSAPI susMapSet(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)
 	SUS_ASSERT(lpMap && *lpMap && key);
 	SUS_OBJECT mvalue = susMapGet(*lpMap, key);
 	if (!mvalue) mvalue = susMapAdd(lpMap, key, value);
-	else sus_memcpy(mvalue, value, (*lpMap)->valueSize);
+	else if (value) sus_memcpy(mvalue, value, (*lpMap)->valueSize); else sus_zeromem(mvalue, (*lpMap)->valueSize);
 	return mvalue;
 }
 // Delete a key-value pair from a hash table

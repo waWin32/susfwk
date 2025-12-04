@@ -47,12 +47,12 @@ SUS_INLINE SUS_HASH_T SUSAPI susDefGetHashInt(SUS_DATAVIEW key) {
 }
 // Get a hash by key
 SUS_INLINE SUS_HASH_T SUSAPI susDefGetStringHashA(SUS_DATAVIEW key) {
-	SUS_ASSERT(key.data);
+	SUS_ASSERT(key.data && key.size == sizeof(LPCSTR));
 	return susDefGetHash((SUS_DATAVIEW) { .data = (LPBYTE)(*(LPSTR*)key.data), .size = lstrlenA(*(LPSTR*)key.data) * sizeof(CHAR) });
 }
 // Get a hash by key
 SUS_INLINE SUS_HASH_T SUSAPI susDefGetStringHashW(SUS_DATAVIEW key) {
-	SUS_ASSERT(key.data);
+	SUS_ASSERT(key.data && key.size == sizeof(LPCWSTR));
 	return susDefGetHash((SUS_DATAVIEW) { .data = (LPBYTE)(*(LPWSTR*)key.data), .size = lstrlenW(*(LPWSTR*)key.data) * sizeof(WCHAR) });
 }
 
@@ -63,14 +63,12 @@ SUS_INLINE BOOL SUSAPI susDefCmpKeys(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T si
 }
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpStringKeysA(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
-	UNREFERENCED_PARAMETER(size);
-	SUS_ASSERT(key1 && key2);
+	SUS_ASSERT(key1 && key2 && size == sizeof(LPCSTR));
 	return !lstrcmpA(*(LPCSTR*)key1, *(LPCSTR*)key2);
 }
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpStringKeysW(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
-	UNREFERENCED_PARAMETER(size);
-	SUS_ASSERT(key1 && key2);
+	SUS_ASSERT(key1 && key2 && size == sizeof(LPCWSTR));
 	return !lstrcmpW(*(LPCWSTR*)key1, *(LPCWSTR*)key2);
 }
 
@@ -87,8 +85,8 @@ SUS_INLINE BOOL SUSAPI susDefCmpStringKeysW(SUS_OBJECT key1, SUS_OBJECT key2, SI
 typedef struct sus_hashmap{
 	SUS_GET_HASH_CALLBACK	getHash;	// Hashing function
 	SUS_CMP_KEYS_CALLBACK	cmpKeys;	// Key comparison function
-	SIZE_T					keySize;	// Key size in bytes
-	SIZE_T					valueSize;	// Value size in bytes
+	DWORD					keySize;	// Key size in bytes
+	DWORD					valueSize;	// Value size in bytes
 	DWORD					capacity;	// Number of buckets
 	DWORD					count;		// Total number of table elements
 	SUS_VECTOR				buckets[];	// Buckets
@@ -115,6 +113,13 @@ SUS_HASHMAP SUSAPI susNewMapEx(
 #define susNewMapSized(keySize, valueSize) susNewMapEx(keySize, valueSize, NULL, NULL, 0)
 // Create a hash table
 #define susNewMap(keyType, valueType) susNewMapSized(sizeof(keyType), sizeof(valueType))
+// Create a hash table
+#define susNewStringMap(valueType) susNewMapEx(sizeof(LPCSTR), sizeof(valueType), susDefGetStringHashA, susDefCmpStringKeysA, 0)
+// Create a hash table
+#define susNewWStringMap(valueType) susNewMapEx(sizeof(LPCWSTR), sizeof(valueType), susDefGetStringHashW, susDefCmpStringKeysW, 0)
+
+// ---------------------------------------------------------
+
 // Destroy the hash table
 SUS_INLINE VOID SUSAPI susMapDestroy(SUS_HASHMAP map) {
 	SUS_ASSERT(map);
