@@ -10,79 +10,158 @@ extern "C" {
 #pragma warning(push)
 #pragma warning(disable: 4200)
 
+// =======================================================================================
+
 // -------------------------------------------------------------------
 
+// A callback function for comparing elements
+typedef BOOL(SUSAPI* SUS_LIST_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
 // A node of two linked lists
-typedef struct sus_node{
-	struct sus_node*	next;	// The next node
-	struct sus_node*	prev;	// Previous node
-	BYTE				data[];	// Node Data
-} SUS_NODE_STRUCT, *SUS_NODE, **SUS_LPNODE;
+typedef struct sus_list_node{
+	struct sus_list_node*	next;	// The next node
+	struct sus_list_node*	prev;	// Previous node
+	BYTE					value[];// Node Data
+} SUS_LIST_NODE_STRUCT, *SUS_LIST_NODE;
+
 // Two linked list
 typedef struct sus_list {
-	SUS_NODE	head;	// The first node of the list
-	SUS_NODE	tail;	// The last node in the list
-	SIZE_T		size;	// Node Data size
-	DWORD		count;	// Number of list items
-} SUS_LIST, *SUS_PLIST, *SUS_LPLIST;
+	SUS_LIST_NODE	head;		// The first node of the list
+	SUS_LIST_NODE	tail;		// The last node in the list
+	SIZE_T			valueSize;	// Default value size
+	DWORD			count;		// Number of list items
+} SUS_LIST, *SUS_LPLIST;
 
 // -------------------------------------------------------------------
 
-// Create a new element of connectedness
-SUS_NODE SUSAPI susNewNode(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init);
-// Destroy the element of connectedness
-SUS_INLINE VOID SUSAPI susNodeDestroy(_In_ SUS_NODE node) { sus_free(node); }
+// =======================================================================================
 
 // -------------------------------------------------------------------
 
-// Add an item to the top of the list
-SUS_NODE SUSAPI susListPushFront(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init);
-// Add an item after the previous one
-SUS_NODE SUSAPI susListPushAfter(_Inout_ SUS_LPLIST list, _Inout_ SUS_NODE prev, _In_opt_ LPBYTE init);
-// Add an item to the end of the list
-SUS_NODE SUSAPI susListPushBack(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init);
+// Create a list structure
+SUS_LIST SUSAPI susListSetupEx(
+	_In_ SIZE_T typeSize
+);
+// Create a list structure
+#define susListSetup(type) susListSetupEx(sizeof(type))
+// Clear the list
+VOID SUSAPI susListCleanup(
+	_Inout_ SUS_LPLIST list
+);
 
 // -------------------------------------------------------------------
 
-// Delete a node from the list
-VOID SUSAPI susListErase(_Inout_ SUS_LPLIST list, _Inout_ SUS_NODE node);
-// Delete the first item in the list
-SUS_INLINE VOID SUSAPI susListPopFront(_Inout_ SUS_LPLIST list) {
+// Insert a node in the list
+SUS_LIST_NODE SUSAPI susListInsert(
+	_Inout_ SUS_LPLIST list,
+	_In_opt_ SUS_LIST_NODE before,
+	_In_opt_ SUS_LPMEMORY value
+);
+// Remove a node from the list
+VOID SUSAPI susListErase(
+	_Inout_ SUS_LPLIST list,
+	_In_ SUS_LIST_NODE node
+);
+
+// -------------------------------------------------------------------
+
+// Insert a node at the end of the list
+SUS_INLINE SUS_LIST_NODE SUSAPI susListPush(_Inout_ SUS_LPLIST list, _In_opt_ SUS_LPMEMORY value) {
 	SUS_ASSERT(list);
-	susListErase(list, list->head);
+	return susListInsert(list, NULL, value);
 }
-// Delete the last item in the list
-SUS_INLINE VOID SUSAPI susListPopBack(_Inout_ SUS_LPLIST list) {
-	SUS_ASSERT(list);
+// Pop the last node from the list
+SUS_INLINE VOID SUSAPI susListPop(_Inout_ SUS_LPLIST list) {
+	SUS_ASSERT(list && list->tail);
 	susListErase(list, list->tail);
 }
+// Prepend a node to the list
+SUS_INLINE SUS_LIST_NODE SUSAPI susListUnshift(_Inout_ SUS_LPLIST list, _In_opt_ SUS_LPMEMORY value) {
+	SUS_ASSERT(list);
+	return susListInsert(list, list->head, value);
+}
+// Remove the first node from the list
+SUS_INLINE VOID SUSAPI susListShift(_Inout_ SUS_LPLIST list) {
+	SUS_ASSERT(list && list->head);
+	susListErase(list, list->head);
+}
 
 // -------------------------------------------------------------------
 
-// Create a new list
-SUS_INLINE SUS_LIST SUSAPI susNewListEx(_In_ SIZE_T typeSize) { return (SUS_LIST) { .head = NULL, .tail = NULL, .size = typeSize }; }
-// Create a new list
-#define susNewList(type) susNewListEx(sizeof(type))
-// Destroy the list
-SUS_INLINE VOID SUSAPI susListDestroy(_Inout_ SUS_LPLIST list) { while (list->head) susListPopFront(list); }
-// Go through all the items in the list
-#define susListForeach(i, list) for (SUS_NODE i = (list).head; i; i = i->next)
-// Get the number of items in the list
-#define susListCount(list) ((list).count)
+// Search for an item from the list based on data
+SUS_LIST_NODE SUSAPI susListFind(
+	_In_ SUS_LIST list,
+	_In_ SUS_LPMEMORY value,
+	_In_opt_ SUS_LIST_ELEMENTS_COMPARE searcher
+);
+// Searching for an element in a list based on data from the end
+SUS_LIST_NODE SUSAPI susListFindLast(
+	_In_ SUS_LIST list,
+	_In_ SUS_LPMEMORY value,
+	_In_opt_ SUS_LIST_ELEMENTS_COMPARE searcher
+);
+// Check the node for presence in the list
+BOOL SUSAPI susListContains(
+	_In_ SUS_LIST list,
+	_In_ SUS_LIST_NODE node
+);
 
-// --------------------------- Tests debug ---------------------------
+// -------------------------------------------------------------------
+
+// Change the type size for new values
+SUS_INLINE VOID SUSAPI susListSetValueSize(_Inout_ SUS_LPLIST list, _In_ SIZE_T	newValueSize) {
+	SUS_ASSERT(list);
+	list->valueSize = newValueSize;
+}
+// Go through all the items in the list
+#define susListForeach(node, list) for (SUS_LIST_NODE node = (list).head; node; node = node->next)
+// Go through all the elements of the list
+#define susListForeachReverse(i, vec) for (SUS_LIST_NODE node = (list).tail; node; node = node->prev)
 
 #ifdef _DEBUG
 SUS_INLINE VOID SUSAPI susListPrint(_In_ SUS_LIST list) {
 	SUS_PRINTDL("List output {");
-	for (SUS_NODE node = list.head; node; node = node->next) {
-		SUS_PRINTDL("\t[0x%.13p] 0x%.13p <- (%s) -> 0x%.13p", node, node->prev, node->data, node->next);
+	susListForeach(node, list) {
+		SUS_PRINTDL("'%s'", node->value);
 	}
 	SUS_PRINTDL("}");
 }
 #else
-#define susListPrint(list)
+#define susListPrint(vec)
 #endif // !_DEBUG
+
+// -------------------------------------------------------------------
+
+// =======================================================================================
+
+// -------------------------------------------------------------------
+
+// Insert a node between the nodes
+SUS_LIST_NODE SUSAPI susListNodeInsert(
+	_Inout_opt_ SUS_LIST_NODE parent,
+	_Inout_opt_ SUS_LIST_NODE next,
+	_In_opt_ SUS_LPMEMORY value,
+	_In_ SIZE_T size
+);
+// Delete a node
+SUS_LIST_NODE SUSAPI susListNodeErase(
+	_Inout_ SUS_LIST_NODE node
+);
+
+// -------------------------------------------------------------------
+
+// Insert a node at the end of the node order
+SUS_INLINE SUS_LIST_NODE SUSAPI susListNodePush(_Inout_ SUS_LIST_NODE parent, _In_opt_ SUS_LPMEMORY value, _In_ SIZE_T size) {
+	return parent && parent->next ? susListNodePush(parent->next, value, size) : susListNodeInsert(parent, NULL, value, size);
+}
+// Remove a node from the end of the node order
+SUS_INLINE SUS_LIST_NODE SUSAPI susListNodePop(_Inout_ SUS_LIST_NODE parent) {
+	SUS_ASSERT(parent);
+	return parent->next ? susListNodePop(parent->next) : susListNodeErase(parent);
+}
+
+// -------------------------------------------------------------------
+
+// =======================================================================================
 
 #ifdef __cplusplus
 }

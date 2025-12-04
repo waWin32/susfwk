@@ -5,75 +5,117 @@
 #include "include/susfwk/memory.h"
 #include "include/susfwk/linkedlist.h"
 
+// =======================================================================================
+
 // -------------------------------------------------------------------
 
-// Create a new element of connectedness
-SUS_NODE SUSAPI susNewNode(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init)
+// Insert a node between the nodes
+SUS_LIST_NODE SUSAPI susListNodeInsert(_Inout_opt_ SUS_LIST_NODE parent, _Inout_opt_ SUS_LIST_NODE next, _In_opt_ SUS_LPMEMORY value, _In_ SIZE_T size)
 {
-	SUS_NODE node = sus_malloc(sizeof(SUS_NODE_STRUCT) + list->size);
+	SUS_LIST_NODE node = sus_calloc(1, sizeof(SUS_LIST_NODE_STRUCT) + size);
 	if (!node) return NULL;
-	node->next = NULL;
-	node->prev = NULL;
-	if (init) sus_memcpy(node->data, init, list->size);
-	else sus_zeromem(node->data, list->size);
+	if (parent) parent->next = node;
+	node->prev = parent;
+	if (next) next->prev = node;
+	node->next = next;
+	if (value) sus_memcpy(node->value, value, size);
+	return node;
+}
+// Delete a node
+SUS_LIST_NODE SUSAPI susListNodeErase(_Inout_ SUS_LIST_NODE node)
+{
+	SUS_ASSERT(node);
+	if (node->prev) node->prev->next = node->next;
+	if (node->next) node->next->prev = node->prev;
+	SUS_LIST_NODE parent = node->prev ? node->prev : node->next;
+	sus_free(node);
+	return parent;
+}
+
+// -------------------------------------------------------------------
+
+// =======================================================================================
+
+// -------------------------------------------------------------------
+
+// Create a list structure
+SUS_LIST SUSAPI susListSetupEx(_In_ SIZE_T typeSize)
+{
+	SUS_PRINTDL("Creating a list structure");
+	SUS_LIST list = { 0 };
+	list.valueSize = typeSize;
+	return list;
+}
+// Clear the list
+VOID SUSAPI susListCleanup(_Inout_ SUS_LPLIST list)
+{
+	SUS_PRINTDL("Clearing the list");
+	SUS_ASSERT(list);
+	while (list->head) {
+		susListErase(list, list->head);
+	}
+}
+
+// -------------------------------------------------------------------
+
+// Insert a node in the list
+SUS_LIST_NODE SUSAPI susListInsert(_Inout_ SUS_LPLIST list, _In_opt_ SUS_LIST_NODE before, _In_opt_ SUS_LPMEMORY value)
+{
+	SUS_ASSERT(list);
+	SUS_LIST_NODE node = susListNodeInsert(before ? before->prev : list->tail, before, value, list->valueSize);
+	if (!node) return NULL;
+	if (!node->prev) list->head = node;
+	if (!node->next) list->tail = node;
 	list->count++;
 	return node;
 }
-
-// -------------------------------------------------------------------
-
-// Add an item to the top of the list
-SUS_NODE SUSAPI susListPushFront(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init)
-{
-	SUS_ASSERT(list);
-	SUS_NODE node = susNewNode(list, init);
-	if (!node) return NULL;
-	node->next = list->head;
-	if (list->head) list->head->prev = node;
-	else list->tail = node;
-	list->head = node;
-	return node;
-}
-// Add an item after the previous one
-SUS_NODE SUSAPI susListPushAfter(_Inout_ SUS_LPLIST list, _Inout_ SUS_NODE prev, _In_opt_ LPBYTE init)
-{
-	SUS_ASSERT(list && prev);
-	SUS_NODE node = susNewNode(list, init);
-	if (!node) return NULL;
-	node->next = prev->next;
-	node->prev = prev;
-	prev->next = node;
-	if (prev == list->tail) list->tail = node;
-	return node;
-}
-// Add an item to the end of the list
-SUS_NODE SUSAPI susListPushBack(_Inout_ SUS_LPLIST list, _In_opt_ LPBYTE init)
-{
-	SUS_ASSERT(list);
-	SUS_NODE node = susNewNode(list, init);
-	if (!node) return NULL;
-	node->prev = list->tail;
-	if (list->tail) list->tail->next = node;
-	else list->head = node;
-	list->tail = node;
-	return node;
-}
-
-// -------------------------------------------------------------------
-
-// Delete a node from the list
-VOID SUSAPI susListErase(_Inout_ SUS_LPLIST list, _Inout_ SUS_NODE node)
+// Remove a node from the list
+VOID SUSAPI susListErase(_Inout_ SUS_LPLIST list, _In_ SUS_LIST_NODE node)
 {
 	SUS_ASSERT(list && node);
-	if (!node) return;
-	if (node->prev)
-		node->prev->next = node->next;
-	else list->head = node->next;
-	if (node->next)
-		node->next->prev = node->prev;
-	else list->tail = node->prev;
-	susNodeDestroy(node);
+	node = susListNodeErase(node);
+	if (node) {
+		if (!node->prev) list->head = node;
+		if (!node->next) list->tail = node;
+	}
+	list->count--;
 }
 
+// The default list element comparison function
+static BOOL SUSAPI susDefListSearcher(_In_ SUS_OBJECT v1, _In_ SUS_OBJECT v2, _In_ SIZE_T size) {
+	return sus_memcmp(v1, v2, size);
+}
+
+// Search for an item from the list based on data
+SUS_LIST_NODE SUSAPI susListFind(_In_ SUS_LIST list, _In_ SUS_LPMEMORY value, _In_opt_ SUS_LIST_ELEMENTS_COMPARE searcher)
+{
+	SUS_ASSERT(value);
+	searcher = searcher ? searcher : susDefListSearcher;
+	susListForeach(node, list) {
+		if (searcher(node->value, value, list.valueSize)) return node;
+	}
+	return NULL;
+}
+// Searching for an element in a list based on data from the end
+SUS_LIST_NODE SUSAPI susListFindLast(_In_ SUS_LIST list, _In_ SUS_LPMEMORY value, _In_opt_ SUS_LIST_ELEMENTS_COMPARE searcher)
+{
+	SUS_ASSERT(value);
+	searcher = searcher ? searcher : susDefListSearcher;
+	susListForeachReverse(node, list) {
+		if (searcher(node->value, value, list.valueSize)) return node;
+	}
+	return NULL;
+}
+// Check the node for presence in the list
+BOOL SUSAPI susListContains(_In_ SUS_LIST list, _In_opt_ SUS_LIST_NODE node)
+{
+	if (!list.head) return FALSE;
+	for (; node; node = node->prev) {
+		if (list.head == node) return TRUE;
+	}
+	return FALSE;
+}
 // -------------------------------------------------------------------
+
+// =======================================================================================
 
