@@ -242,7 +242,7 @@ SUS_VECTOR SUSAPI susWorldGetEntitiesWith(_Inout_ SUS_WORLD world, _In_ SUS_COMP
 		SUS_BITMASK256 curmask = *(SUS_LPBITMASK256)susMapIterKey(i);
 		if (susBitmask256Contains(curmask, mask)) {
 			SUS_ARCHETYPE archetype = (SUS_ARCHETYPE)susMapIterValue(i);
-			susVectorAppend(&entities, archetype->entities->data, archetype->entities->size);
+			susVectorAppend(&entities, archetype->entities->data, archetype->entities->length);
 		}
 	}
 	return entities;

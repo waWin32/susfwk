@@ -11,7 +11,6 @@ extern "C" {
 #pragma warning(disable: 4200)
 #pragma warning(disable: 4201)
 
-
 //////////////////////////////////////////////////////////////////
 //						Dynamic buffer							//
 //////////////////////////////////////////////////////////////////
@@ -149,7 +148,7 @@ SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
 typedef BOOL(SUSAPI* SUS_VECTOR_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
 // Dynamic array
 typedef struct sus_vector {
-	SIZE_T	isize;		// The size of the type in the array
+	SIZE_T	itemSize;	// The size of the type in the array
 	DWORD	length;		// Length of the array
 	SUS_BUFFER_STRUCT;	// Vector data
 } SUS_VECTOR_STRUCT, *SUS_VECTOR, **SUS_LPVECTOR;
@@ -168,7 +167,7 @@ typedef struct sus_vector {
 // -------------------------------------
 
 // Create a dynamic array
-SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T isize);
+SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T itemSize);
 // Create a dynamic array
 #define susNewVectorSized(typeSize) susNewVectorEx(typeSize)
 // Create a dynamic array
@@ -182,32 +181,16 @@ SUS_INLINE VOID SUSAPI susVectorDestroy(_Inout_ SUS_VECTOR array) {
 
 // -------------------------------------
 
-// Find the element's index
-INT SUSAPI susVectorIndexOf(
-	_In_ SUS_VECTOR array,
-	_In_ SUS_OBJECT obj,
-	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
-);
-// Find the element's index
-INT SUSAPI susVectorLastIndexOf(
-	_In_ SUS_VECTOR array,
-	_In_ SUS_OBJECT obj,
-	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
-);
-
-
-// -------------------------------------
-
 // Accessing an array element
 SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR vector, _In_ UINT index) {
 	SUS_ASSERT(vector && vector->size && index < vector->length);
-	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->isize);
+	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->itemSize);
 }
 // Accessing an array element
 SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR vector, _In_ INT index) {
 	SUS_ASSERT(vector && vector->size);
 	index = index < 0 ? vector->length - (-index % vector->length) : index % vector->length;
-	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->isize);
+	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->itemSize);
 }
 // Get the first element of the array
 SUS_INLINE SUS_OBJECT SUSAPI susVectorFront(_Inout_ SUS_VECTOR vector) {
@@ -238,7 +221,7 @@ SUS_OBJECT SUSAPI susVectorPushBack(
 SUS_OBJECT SUSAPI susVectorAppend(
 	_Inout_ SUS_LPVECTOR pVector,
 	_In_opt_ SUS_OBJECT data,
-	_In_ SIZE_T size
+	_In_ DWORD count
 );
 // Insert an element into an array
 SUS_OBJECT SUSAPI susVectorInsert(
@@ -251,6 +234,20 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorPushFront(_Inout_ SUS_LPVECTOR array, _In_
 	susVectorInsert(array, 0, object);
 }
 
+// -------------------------------------
+
+// Find the element's index
+INT SUSAPI susVectorIndexOf(
+	_In_ SUS_VECTOR array,
+	_In_ SUS_OBJECT obj,
+	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
+);
+// Find the element's index
+INT SUSAPI susVectorLastIndexOf(
+	_In_ SUS_VECTOR array,
+	_In_ SUS_OBJECT obj,
+	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
+);
 
 // -------------------------------------
 
