@@ -3,7 +3,6 @@
 #ifndef _SUS_NETWORK_CORE_
 #define _SUS_NETWORK_CORE_
 
-#pragma comment(lib, "ws2_32.lib")
 #pragma warning(disable: 4996)
 
 // -------------------------------------------------------------------------------------------------------------
@@ -270,6 +269,11 @@ SUS_LPSOCKET SUSAPI susServerAccept(
 VOID SUSAPI susServerCleanup(
 	_Inout_ SUS_LPSERVER_SOCKET server
 );
+// Find the client in the server list
+SUS_LPSOCKET SUSAPI susServerFindClient(
+	_In_ SUS_LPSERVER_SOCKET server,
+	_In_ LPCSTR ip
+);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //										Socket Managers												//
@@ -285,7 +289,7 @@ BOOL SUSAPI susServerUpdate(
 );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//								      Formatting binary data									  //
+//										Additional functions									  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Format binary data into a string
@@ -299,7 +303,7 @@ SUS_DATAVIEW SUSAPI susStrToBin(_In_ LPCSTR str);
 
 /* Example of the server code
 
-BOOL SUSAPI ClientHandler(SUS_LPSOCKET sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT SUSAPI ClientHandler(SUS_LPSOCKET sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -316,7 +320,7 @@ BOOL SUSAPI ClientHandler(SUS_LPSOCKET sock, SUS_SOCKET_MESSAGE uMsg, WPARAM wPa
 	} return TRUE;
 	}
 }
-BOOL SUSAPI ServerHandler(SUS_LPSOCKET server, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT SUSAPI ServerHandler(SUS_LPSOCKET server, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{

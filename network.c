@@ -216,7 +216,7 @@ BOOL SUSAPI susSocketAccept(_In_ SUS_LPSERVER_SOCKET server, _Out_ SUS_LPSOCKET 
 	}
 	susSocketTunePerformance(client);
 	susSocketSetNonBlocking(client, TRUE);
-	if (susSocketSendMessage((SUS_LPSOCKET)&server->super.sock, SUS_SM_START, (WPARAM)&client->addr, (LPARAM)client)) goto user_socket_shutdown;
+	if (susSocketSendMessage((SUS_LPSOCKET)&server->super, SUS_SM_START, (WPARAM)&client->addr, (LPARAM)client)) goto user_socket_shutdown;
 	if (susSocketSendMessage(client, SUS_SM_CREATE, (WPARAM)server, (LPARAM)&client->addr)) goto user_socket_shutdown;
 	if (susSocketSendMessage(client, SUS_SM_START, (WPARAM)server, (LPARAM)&client->addr)) goto user_socket_shutdown;
 	return TRUE;
@@ -375,6 +375,18 @@ VOID SUSAPI susServerCleanup(_Inout_ SUS_LPSERVER_SOCKET server)
 	susVecForeach(i, server->clients) { susSocketClose(susVectorGet(server->clients, i));  }
 	susVectorDestroy(server->clientfds);
 	susVectorDestroy(server->clients);
+}
+// Find the client in the server list
+SUS_LPSOCKET SUSAPI susServerFindClient(_In_ SUS_LPSERVER_SOCKET server, _In_ LPCSTR ip)
+{
+	SUS_ASSERT(server && ip);
+	IN_ADDR target = { 0 };
+	if (!inet_pton(server->super.addr.sin_family, ip, &target)) return NULL;
+	susVecForeach(i, server->clients) {
+		SUS_LPSOCKET sock = susVectorGet(server->clients, i);
+		if (sock->addr.sin_addr.s_addr == target.s_addr) return sock;
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
