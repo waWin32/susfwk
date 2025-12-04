@@ -30,7 +30,9 @@
     <ClInclude Include="include\susfwk\deftypes.h" />
     <ClInclude Include="include\susfwk\ecs.h" />
     <ClInclude Include="include\susfwk\fileio.h" />
+    <ClInclude Include="include\susfwk\filemap.h" />
     <ClInclude Include="include\susfwk\format.h" />
+    <ClInclude Include="include\susfwk\graphics.h" />
     <ClInclude Include="include\susfwk\hashtable.h" />
     <ClInclude Include="include\susfwk\httprequest.h" />
     <ClInclude Include="include\susfwk\iostream.h" />
@@ -44,6 +46,7 @@
     <ClInclude Include="include\susfwk\string.h" />
     <ClInclude Include="include\susfwk\json.h" />
     <ClInclude Include="include\susfwk\thrprocessapi.h" />
+    <ClInclude Include="include\susfwk\tmath.h" />
     <ClInclude Include="include\susfwk\vector.h" />
     <ClInclude Include="include\susfwk\windowapi.h" />
   </ItemGroup>
@@ -53,7 +56,9 @@
     <ClCompile Include="crypto.c" />
     <ClCompile Include="ecs.c" />
     <ClCompile Include="fileio.c" />
+    <ClCompile Include="filemap.c" />
     <ClCompile Include="format.c" />
+    <ClCompile Include="graphics.c" />
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="httprequest.c" />
     <ClCompile Include="iostream.c" />
@@ -67,6 +72,7 @@
     <ClCompile Include="string.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="thrprocessapi.c" />
+    <ClCompile Include="tmath.c" />
     <ClCompile Include="vector.c" />
     <ClCompile Include="windowapi.c" />
   </ItemGroup>
@@ -172,6 +178,7 @@
       <BasicRuntimeChecks />
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -186,6 +193,8 @@
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <ErrorReporting>NoErrorReport</ErrorReporting>
+      <AdditionalLibraryDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -218,6 +227,7 @@
       <BasicRuntimeChecks />
       <Optimization>Custom</Optimization>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -234,6 +244,8 @@
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <ErrorReporting>NoErrorReport</ErrorReporting>
+      <AdditionalLibraryDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -259,6 +271,7 @@
       <BasicRuntimeChecks />
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -273,6 +286,8 @@
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <ErrorReporting>NoErrorReport</ErrorReporting>
+      <AdditionalLibraryDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -305,6 +320,7 @@
       <BasicRuntimeChecks />
       <Optimization>Custom</Optimization>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -321,6 +337,8 @@
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <ErrorReporting>NoErrorReport</ErrorReporting>
+      <AdditionalLibraryDirectories>C:\Users\Kazakoff\source\repos\Library\SUSFramework2\thirdparty\glew-2.1.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -99,9 +99,6 @@
     <ClInclude Include="include\susfwk\thrprocessapi.h">
       <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\windowapi.h">
-      <Filter>Файлы заголовков\system</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\linkedlist.h">
       <Filter>Файлы заголовков\collections</Filter>
     </ClInclude>
@@ -141,6 +138,18 @@
     <ClInclude Include="include\susfwk\appdata.h">
       <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\windowapi.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\filemap.h">
+      <Filter>Файлы заголовков\io</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\graphics.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\tmath.h">
+      <Filter>Файлы заголовков\math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="conio.c">
@@ -176,9 +185,6 @@
     <ClCompile Include="thrprocessapi.c">
       <Filter>Исходные файлы\system</Filter>
     </ClCompile>
-    <ClCompile Include="windowapi.c">
-      <Filter>Исходные файлы\system</Filter>
-    </ClCompile>
     <ClCompile Include="linkedlist.c">
       <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
@@ -204,6 +210,18 @@
       <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
     <ClCompile Include="appdata.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="windowapi.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="filemap.c">
+      <Filter>Исходные файлы\io</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics.c">
+      <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="tmath.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

@@ -5,6 +5,8 @@
 
 #include "memory.h"
 
+// -------------------------------------------------
+
 #define SUS_WCNAMEA "suswc"
 #define SUS_WCNAMEW L"suswc"
 
@@ -13,7 +15,6 @@
 
 #ifndef SUSNOTCOMMCTRL
 #include <CommCtrl.h>
-#pragma comment(lib, "comctl32.lib")
 
 // Initialize the comctl32.lib library
 SUS_INLINE VOID SUSAPI susInitCommonControls(DWORD dwIcc) {
@@ -52,15 +53,17 @@ SUS_INLINE SIZE SUSAPI susGetScreenSize() {
 
 // Window structure
 typedef struct sus_window_structA {
-	HWND					hWnd;		// Window Descriptor
-	WNDCLASSEXA				wcEx;		// Window Class structure
-	CREATESTRUCTA			wStruct;	// Window creation structure
+	HWND			hWnd;					// Window Descriptor
+	WNDCLASSEXA		wcEx;					// Window Class structure
+	CREATESTRUCTA	wStruct;				// Window creation structure
+	CHAR			classNameBuffer[64];	// Buffer for the class name
 } SUS_WINDOWA, *SUS_PWINDOW_STRUCTA, *SUS_LPWINDOWA;
 // Window structure
 typedef struct sus_window_structW {
-	HWND					hWnd;		// Window Descriptor
-	WNDCLASSEXW				wcEx;		// Window Class structure
-	CREATESTRUCTW			wStruct;	// Window creation structure
+	HWND			hWnd;					// Window Descriptor
+	WNDCLASSEXW		wcEx;					// Window Class structure
+	CREATESTRUCTW	wStruct;				// Window creation structure
+	WCHAR			classNameBuffer[64];	// Buffer for the class name
 } SUS_WINDOWW, *SUS_LPWINDOWW;
 
 #ifdef UNICODE
@@ -83,9 +86,9 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lPa
 #endif // !UNICODE
 
 // Build a window
-BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window);
+HWND SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window);
 // Build a window
-BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window);
+HWND SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window);
 
 #ifdef UNICODE
 #define susBuildWindow		susBuildWindowW
@@ -94,24 +97,20 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window);
 #endif // !UNICODE
 
 // Create a simple window
-BOOL SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam);
+HWND SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam);
 // Create a simple window
-SUS_INLINE BOOL SUSAPI susCreateWindowA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ LPVOID lParam) {
-	return susCreateWindowExA(lpTitle, size, handler, NULL, NULL, lParam);
-}
+#define susCreateWindowA(lpTitle, size, handler, lParam) susCreateWindowExA(lpTitle, size, handler, NULL, NULL, lParam)
 // Create a simple window
-BOOL SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam);
+HWND SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam);
 // Create a simple window
-SUS_INLINE BOOL SUSAPI susCreateWindowW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ LPVOID lParam) {
-	return susCreateWindowExW(lpTitle, size, handler, NULL, NULL, lParam);
-}
+#define susCreateWindowW(lpTitle, size, handler, lParam) susCreateWindowExW(lpTitle, size, handler, NULL, NULL, lParam)
 
 #ifdef UNICODE
 #define susCreateWindowEx	susCreateWindowExW
-#define susCreateWindow	susCreateWindowW
+#define susCreateWindow		susCreateWindowW
 #else // ELSE UNICODE
 #define susCreateWindowEx	susCreateWindowExA
-#define susCreateWindow	susCreateWindowA
+#define susCreateWindow		susCreateWindowA
 #endif // !UNICODE
 
 // The main Window cycle
@@ -251,7 +250,7 @@ SUS_INLINE VOID SUSAPI susWindowSetCursor(SUS_LPWINDOWA window, HCURSOR cursor) 
 	window->wcEx.hCursor = cursor;
 }
 // Set the window cursor
-SUS_INLINE VOID SUSAPI susWindowSetCursorw(SUS_LPWINDOWW window, HCURSOR cursor) {
+SUS_INLINE VOID SUSAPI susWindowSetCursorW(SUS_LPWINDOWW window, HCURSOR cursor) {
 	window->wcEx.hCursor = cursor;
 }
 // Set window visibility
@@ -281,22 +280,20 @@ SUS_INLINE SUS_OBJECT susWindowLoadData(HWND hWnd) {
 
 // Widget structure
 typedef struct sus_widget_structA {
-	HWND					hWnd;		// Widget Descriptor
-	CREATESTRUCTA			wStruct;	// Widget creation structure
-} SUS_WIDGETA, *SUS_PWIDGETA, *SUS_LPWIDGETA;
+	HWND			hWnd;		// Widget Descriptor
+	CREATESTRUCTA	wStruct;	// Widget creation structure
+} SUS_WIDGETA, *SUS_LPWIDGETA;
 // Widget structure
 typedef struct sus_widget_structW {
-	HWND					hWnd;		// Widget Descriptor
-	CREATESTRUCTW			wStruct;	// Widget creation structure
-} SUS_WIDGETW, *SUS_PWIDGETW, *SUS_LPWIDGETW;
+	HWND			hWnd;		// Widget Descriptor
+	CREATESTRUCTW	wStruct;	// Widget creation structure
+} SUS_WIDGETW, *SUS_LPWIDGETW;
 
 #ifdef UNICODE
 #define SUS_WIDGET SUS_WIDGETW
-#define SUS_PWIDGET SUS_PWIDGETW
 #define SUS_LPWIDGET SUS_LPWIDGETW
 #else
 #define SUS_WIDGET SUS_WIDGETA
-#define SUS_PWIDGET SUS_PWIDGETA
 #define SUS_LPWIDGET SUS_LPWIDGETA
 #endif // !UNICODE
 
@@ -457,12 +454,12 @@ SUS_INLINE SUS_WIDGETW SUSAPI susWgListViewSetupW(_In_opt_ LPCWSTR lpTitle, _In_
 #endif // !UNICODE
 
 // Build a widget
-BOOL SUSAPI susBuildWidgetA(
+HWND SUSAPI susBuildWidgetA(
 	_In_ HWND hWnd,
 	_Inout_ SUS_LPWIDGETA widget
 );
 // Build a widget
-BOOL SUSAPI susBuildWidgetW(
+HWND SUSAPI susBuildWidgetW(
 	_In_ HWND hWnd,
 	_Inout_ SUS_LPWIDGETW widget
 );
@@ -488,7 +485,7 @@ SUS_INLINE VOID SUSAPI susWidgetSetSize(SUS_LPWIDGET widget, SIZE size) {
 #ifndef SUSNOTCOMMCTRL
 // Install an event handler for the widget
 SUS_INLINE VOID SUSAPI susWidgetSetHandler(SUS_LPWIDGET widget, SUBCLASSPROC widgetProc) {
-	SetWindowSubclass(widget->hWnd, widgetProc, (UINT_PTR)widget->wStruct.hMenu, (DWORD_PTR)0);
+	SetWindowSubclass(widget->hWnd, widgetProc, (UINT_PTR)widget->wStruct.hMenu, (DWORD_PTR)susWindowLoadData(widget->wStruct.hwndParent));
 }
 // Delete a widget Handler
 SUS_INLINE VOID SUSAPI susRemoveWidgetHandler(HWND hWnd, SUBCLASSPROC widgetProc, UINT_PTR uIdSubclass) {

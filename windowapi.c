@@ -2,7 +2,6 @@
 //
 #include "coreframe.h"
 #include "include/susfwk/core.h"
-#include "include/susfwk/string.h"
 #include "include/susfwk/memory.h"
 #include "include/susfwk/windowapi.h"
 
@@ -105,15 +104,7 @@ SUS_WINDOWA SUSAPI susWindowSetupA(_In_opt_ LPCSTR lpTitle, _In_opt_ LPVOID lPar
 	window.wStruct.hInstance = GetModuleHandleA(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPSTR className = sus_dformattingA("%s-%s%pA", SUS_WCNAMEA, lpTitle, &window);
-	if (className) {
-		window.wcEx.lpszClassName = className;
-		window.wStruct.lpszClass = className;
-	}
-	else {
-		window.wcEx.lpszClassName = SUS_DEFWNDNAMEA;
-		window.wStruct.lpszClass = SUS_DEFWNDNAMEA;
-	}
+	sus_formattingA(window.classNameBuffer, "%s-%s%pA", SUS_WCNAMEA, lpTitle, &window);
 	return window;
 }
 // Basic initialization of the window
@@ -128,19 +119,11 @@ SUS_WINDOWW SUSAPI susWindowSetupW(_In_opt_ LPCWSTR lpTitle, _In_opt_ LPVOID lPa
 	window.wStruct.hInstance = GetModuleHandleW(NULL);
 	window.wStruct.lpszName = lpTitle;
 	window.wStruct.lpCreateParams = lParam;
-	LPWSTR className = sus_dformattingW(L"%s-%s%pW", SUS_WCNAMEW, lpTitle, &window);
-	if (className) {
-		window.wcEx.lpszClassName = className;
-		window.wStruct.lpszClass = className;
-	}
-	else {
-		window.wcEx.lpszClassName = SUS_DEFWNDNAMEW;
-		window.wStruct.lpszClass = SUS_DEFWNDNAMEW;
-	}
+	sus_formattingW(window.classNameBuffer, L"%s-%s%pW", SUS_WCNAMEW, lpTitle, &window);
 	return window;
 }
 // Build a window
-BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window)
+HWND SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window)
 {
 	SUS_PRINTDL("Creating a window");
 	SUS_ASSERT(window);
@@ -149,7 +132,6 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window)
 		if (!RegisterClassExA(&window->wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
-			if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEA) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 			return FALSE;
 		}
 	}
@@ -167,17 +149,16 @@ BOOL SUSAPI susBuildWindowA(_Inout_ SUS_LPWINDOWA window)
 		window->wStruct.hInstance,
 		window->wStruct.lpCreateParams
 	);
-	if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEA) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 	if (!window->hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
-		return FALSE;
+		return NULL;
 	}
 	SUS_PRINTDL("The window has been successfully created");
-	return TRUE;
+	return window->hWnd;
 }
 // Build a window
-BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window)
+HWND SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window)
 {
 	SUS_PRINTDL("Creating a window");
 	SUS_ASSERT(window);
@@ -186,7 +167,6 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window)
 		if (!RegisterClassExW(&window->wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
-			if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEW) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 			return FALSE;
 		}
 	}
@@ -204,36 +184,33 @@ BOOL SUSAPI susBuildWindowW(_Inout_ SUS_LPWINDOWW window)
 		window->wStruct.hInstance,
 		window->wStruct.lpCreateParams
 	);
-	if (window->wcEx.lpszClassName && (ULONG_PTR)window->wcEx.lpszClassName != (ULONG_PTR)SUS_DEFWNDNAMEW) sus_free((SUS_LPMEMORY)window->wcEx.lpszClassName);
 	if (!window->hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
-		return FALSE;
+		return NULL;
 	}
 	SUS_PRINTDL("The window has been successfully created");
-	return TRUE;
+	return window->hWnd;
 }
 // Create a simple window
-BOOL SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam)
+HWND SUSAPI susCreateWindowExA(_In_opt_ LPCSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCSTR lpMenuName, _In_opt_ LPVOID lParam)
 {
 	SUS_WINDOWA wnd = susWindowSetupA(lpTitle, lParam);
 	susWindowSetSize(&wnd, size);
 	if (handler) susWindowSetHandler(&wnd, handler);
 	if (hIcon) susWindowSetIcon(&wnd, hIcon);
 	if (lpMenuName) susWindowSetMenu(&wnd, lpMenuName);
-	if (!susBuildWindowA(&wnd)) return FALSE;
-	return TRUE;
+	return susBuildWindowA(&wnd);
 }
 // Create a simple window
-BOOL SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam)
+HWND SUSAPI susCreateWindowExW(_In_opt_ LPCWSTR lpTitle, _In_ SIZE size, _In_opt_ WNDPROC handler, _In_opt_ HICON hIcon, _In_opt_ LPCWSTR lpMenuName, _In_opt_ LPVOID lParam)
 {
 	SUS_WINDOWW wnd = susWindowSetupW(lpTitle, lParam);
 	susWindowSetSizeW(&wnd, size);
 	if (handler) susWindowSetHandlerW(&wnd, handler);
 	if (hIcon) susWindowSetIconW(&wnd, hIcon);
 	if (lpMenuName) susWindowSetMenuW(&wnd, lpMenuName);
-	if (!susBuildWindowW(&wnd)) return FALSE;
-	return TRUE;
+	return susBuildWindowW(&wnd);
 }
 // The main Window cycle
 INT SUSAPI susWindowMainLoopA()
@@ -288,10 +265,10 @@ SUS_WIDGETW SUSAPI susWidgetSetupW(_In_opt_ LPCWSTR lpTitle, _In_ INT id, _In_ L
 }
 
 // Build a widget
-BOOL SUSAPI susBuildWidgetA(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETA widget)
+HWND SUSAPI susBuildWidgetA(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETA widget)
 {
 	SUS_PRINTDL("Creating a widget");
-	SUS_ASSERT(widget);
+	SUS_ASSERT(hWnd && widget);
 	widget->wStruct.hwndParent = hWnd;
 	widget->wStruct.hInstance = GetModuleHandleA(NULL);
 	widget->hWnd = CreateWindowExA(
@@ -311,16 +288,16 @@ BOOL SUSAPI susBuildWidgetA(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETA widget)
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");
 		SUS_PRINTDC(GetLastError());
-		return FALSE;
+		return NULL;
 	}
 	SUS_PRINTDL("The widget has been successfully created");
-	return TRUE;
+	return widget->hWnd;
 }
 // Build a widget
-BOOL SUSAPI susBuildWidgetW(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETW widget)
+HWND SUSAPI susBuildWidgetW(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETW widget)
 {
 	SUS_PRINTDL("Creating a widget");
-	SUS_ASSERT(widget);
+	SUS_ASSERT(hWnd && widget);
 	widget->wStruct.hwndParent = hWnd;
 	widget->wStruct.hInstance = GetModuleHandleW(NULL);
 	widget->hWnd = CreateWindowExW(
@@ -340,8 +317,8 @@ BOOL SUSAPI susBuildWidgetW(_In_ HWND hWnd, _Inout_ SUS_LPWIDGETW widget)
 	if (!widget->hWnd) {
 		SUS_PRINTDE("Couldn't create a widget");
 		SUS_PRINTDC(GetLastError());
-		return FALSE;
+		return NULL;
 	}
 	SUS_PRINTDL("The widget has been successfully created");
-	return TRUE;
+	return widget->hWnd;
 }
