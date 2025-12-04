@@ -99,7 +99,10 @@ SUS_INLINE sus_f32 SUSAPI sus_acos(sus_f32 x) {
 SUS_INLINE sus_f32 SUSAPI sus_asin(sus_i32 x) {
     return 90.0f - sus_acos(sus_clamp(x, -1.0f, 1.0f));
 }
-
+// Get the tangent of the angle
+SUS_INLINE sus_float SUSAPI sus_tan(sus_i32 x) {
+    return sus_sin(x) / sus_cos(x);
+}
 // Get the square root of a number
 SUS_INLINE sus_f32 SUSAPI sus_sqrt(sus_f32 x) {
     if (x <= 0.0f) return 0.0f;
