@@ -14,7 +14,7 @@ SUS_LPMEMORY SUSAPI sus_malloc(_In_ SIZE_T size)
 	SUS_PRINTDL("Allocating %d bytes of memory", size);
 	SUS_LPMEMORY hMem = NULL;
 	for (DWORD i = 0; i < SUS_NUMBER_ATTEMPTS_ALLOCATE_MEMORY; i++) {
-		hMem = HeapAlloc(GetProcessHeap(), 0, size);
+		hMem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
 		if (hMem) break;
 		SUS_PRINTDE("Couldn't allocate memory");
 		SUS_PRINTDC(GetLastError());
@@ -74,6 +74,15 @@ SUS_LPMEMORY SUSAPI sus_free(_In_ SUS_LPMEMORY block)
 	}
 	SUS_PRINTDL("The memory block has been successfully released");
 	return NULL;
+}
+// Create and initialize memory
+SUS_LPMEMORY SUSAPI sus_newmem(_In_ SIZE_T size, _In_opt_ SUS_OBJECT value)
+{
+	SUS_ASSERT(size);
+	SUS_LPMEMORY obj = sus_malloc(size);
+	if (value) sus_memcpy(obj, (LPBYTE)value, size);
+	else sus_zeromem(obj, size);
+	return obj;
 }
 
 //////////////////////////////////////////////////////////////////

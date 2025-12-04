@@ -102,15 +102,18 @@ SUS_LPMEMORY SUSAPI sus_realloc(
 SUS_LPMEMORY SUSAPI sus_free(
 	_In_ SUS_LPMEMORY block
 );
+// Create and initialize memory
+SUS_LPMEMORY SUSAPI sus_newmem(
+	_In_ SIZE_T size,
+	_In_opt_ SUS_OBJECT value
+);
 
 // Fast memory allocation
 #define sus_fmalloc(size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), 0, size)
 // Fast allocating a memory array
-#define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size * count)
+#define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (size) * (count))
 // Fast memory reallocation
 #define sus_frealloc(block, newSize) (SUS_LPMEMORY)HeapReAlloc(GetProcessHeap(), 0, block, newSize)
-// Releasing memory with pointer cleanup
-#define sus_sfree(block) do { sus_free(block); block = NULL; } while (0)
 
 //////////////////////////////////////////////////////////////////
 //							Dynamic Data						//
@@ -125,7 +128,7 @@ typedef struct sus_data_view {
 // Create new dynamic memory
 SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
 	return (SUS_DATAVIEW) {
-		.data = sus_fcalloc(size, sizeof(BYTE)),
+		.data = sus_fmalloc(size),
 		.size = size
 	};
 }
