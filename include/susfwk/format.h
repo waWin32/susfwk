@@ -96,13 +96,13 @@ SUS_INLINE LPWSTR SUSAPI sus_dformattingW(	_In_ _Printf_format_string_ LPCWSTR f
 // Parsing text into variables
 INT sus_vparsingA(
 	_In_ LPCSTR str,
-	_In_ _Printf_format_string_ LPCSTR format,
+	_In_ _Scanf_format_string_ LPCSTR format,
 	_Inout_ sus_va_list args
 );
 // Parsing text into variables
 INT sus_vparsingW(
 	_In_ LPCWSTR str,
-	_In_ _Printf_format_string_ LPCWSTR format,
+	_In_ _Scanf_format_string_ LPCWSTR format,
 	_Inout_ sus_va_list args
 );
 
@@ -116,13 +116,13 @@ INT sus_vparsingW(
 // Parsing text into variables
 INT sus_parsingA(
 	_In_ LPCSTR str,
-	_In_ _Printf_format_string_ LPCSTR format,
+	_In_ _Scanf_format_string_ LPCSTR format,
 	_Out_ ...
 );
 // Parsing text into variables
 INT sus_parsingW(
 	_In_ LPCWSTR str,
-	_In_ _Printf_format_string_ LPCWSTR format,
+	_In_ _Scanf_format_string_ LPCWSTR format,
 	_Out_ ...
 );
 

@@ -5,11 +5,15 @@
 
 #include "core.h"
 
+// -----------------------------------------------
+
 typedef sus_u8 SUS_BITMASK8;
 typedef sus_u16 SUS_BITMASK16;
 typedef sus_u32 SUS_BITMASK32;
 typedef sus_u64 SUS_BITMASK64;
 typedef SUS_BITMASK64 SUS_BITMASK;
+
+// -----------------------------------------------
 
 // Get a bitmask by shift
 #define sus_bitmask(shift) (1ULL << (shift))
@@ -30,6 +34,8 @@ SUS_INLINE SUS_BITMASK SUSAPI susBitmask64(UINT count, ...) {
 
 #define susBitmask64op(a, op, b) (SUS_BITMASK) (a) op (b)
 #define susBitmask64Cmp(a, b) (a) == (b)
+
+// -----------------------------------------------
 
 typedef struct {
 	SUS_BITMASK64 low;
@@ -66,6 +72,8 @@ SUS_INLINE SUS_BITMASK128 SUSAPI susBitmask128(UINT count, ...) {
 	return mask;
 }
 
+// -----------------------------------------------
+
 typedef struct {
 	SUS_BITMASK128 low;
 	SUS_BITMASK128 high;
@@ -101,6 +109,8 @@ SUS_INLINE SUS_BITMASK256 SUSAPI susBitmask256(UINT count, ...) {
 	return mask;
 }
 
+// -----------------------------------------------
+
 typedef struct {
 	SUS_BITMASK256 low;
 	SUS_BITMASK256 high;
@@ -135,5 +145,7 @@ SUS_INLINE SUS_BITMASK512 SUSAPI susBitmask512(UINT count, ...) {
 	sus_va_end(args);
 	return mask;
 }
+
+// -----------------------------------------------
 
 #endif /* !_SUS_BITSET_ */
