@@ -19,6 +19,38 @@ typedef SUS_FILE SUS_HEAP, *SUS_PHEAP, *SUS_LPHEAP;
 typedef SUS_FILE SUS_MEMORY;
 
 //////////////////////////////////////////////////////////////////
+//					Dynamic memory in heaps						//
+//////////////////////////////////////////////////////////////////
+
+// Allocate memory to the heap
+SUS_LPMEMORY SUSAPI sus_malloc(
+	_In_ SIZE_T size
+);
+// Allocating a memory array
+#define sus_calloc(count, size) sus_malloc((count) * (size))
+// Memory reallocation
+SUS_LPMEMORY SUSAPI sus_realloc(
+	_In_ SUS_LPMEMORY block,
+	_In_ SIZE_T newSize
+);
+	// Free a block of memory in the heap
+SUS_LPMEMORY SUSAPI sus_free(
+	_In_ SUS_LPMEMORY block
+);
+// Create and initialize memory
+SUS_LPMEMORY SUSAPI sus_newmem(
+	_In_ SIZE_T size,
+	_In_opt_ SUS_OBJECT value
+);
+
+// Fast memory allocation
+#define sus_fmalloc(size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), 0, size)
+// Fast allocating a memory array
+#define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (size) * (count))
+// Fast memory reallocation
+#define sus_frealloc(block, newSize) (SUS_LPMEMORY)HeapReAlloc(GetProcessHeap(), 0, block, newSize)
+
+//////////////////////////////////////////////////////////////////
 //					Basic memory operations						//
 //////////////////////////////////////////////////////////////////
 
@@ -41,12 +73,20 @@ SUS_INLINE VOID SUSAPI sus_zeromem(
 }
 // Comparing memory blocks
 SUS_INLINE BOOL SUSAPI sus_memcmp(
-	_In_bytecount_(size) CONST LPBYTE lpBuf1,
-	_In_bytecount_(size) CONST LPBYTE lpBuf2,
+	_In_bytecount_(size) LPBYTE lpBuf1,
+	_In_bytecount_(size) LPBYTE lpBuf2,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(lpBuf1 && lpBuf2);
 	return RtlCompareMemory(lpBuf1, lpBuf2, size) == size ? TRUE : FALSE;
+}
+// Comparing memory blocks
+SUS_INLINE BOOL SUSAPI sus_memiszero(
+	_In_bytecount_(size) LPBYTE lpBuff,
+	_In_ SIZE_T size)
+{
+	SUS_ASSERT(lpBuff && size);
+	return (BOOL)RtlIsZeroMemory(lpBuff, size);
 }
 // Copy the memory
 SUS_INLINE LPBYTE SUSAPI sus_memcpy(
@@ -79,41 +119,6 @@ SUS_INLINE LPBYTE SUSAPI sus_memmove(
 	else __movsb(buff, source, size);
 	return buff;
 }
-
-//////////////////////////////////////////////////////////////////
-//					Dynamic memory in heaps						//
-//////////////////////////////////////////////////////////////////
-
-// Allocate memory to the heap
-SUS_LPMEMORY SUSAPI sus_malloc(
-	_In_ SIZE_T size
-);
-// Allocating a memory array
-SUS_LPMEMORY SUSAPI sus_calloc(
-	_In_ DWORD count,
-	_In_ SIZE_T size
-);
-// Memory reallocation
-SUS_LPMEMORY SUSAPI sus_realloc(
-	_In_ SUS_LPMEMORY block,
-	_In_ SIZE_T newSize
-);
-	// Free a block of memory in the heap
-SUS_LPMEMORY SUSAPI sus_free(
-	_In_ SUS_LPMEMORY block
-);
-// Create and initialize memory
-SUS_LPMEMORY SUSAPI sus_newmem(
-	_In_ SIZE_T size,
-	_In_opt_ SUS_OBJECT value
-);
-
-// Fast memory allocation
-#define sus_fmalloc(size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), 0, size)
-// Fast allocating a memory array
-#define sus_fcalloc(count, size) (SUS_LPMEMORY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (size) * (count))
-// Fast memory reallocation
-#define sus_frealloc(block, newSize) (SUS_LPMEMORY)HeapReAlloc(GetProcessHeap(), 0, block, newSize)
 
 //////////////////////////////////////////////////////////////////
 //							Dynamic Data						//

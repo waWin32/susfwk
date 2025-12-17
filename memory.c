@@ -23,25 +23,6 @@ SUS_LPMEMORY SUSAPI sus_malloc(_In_ SIZE_T size)
 	SUS_PRINTDL("Successful memory allocation");
 	return hMem;
 }
-// Allocating a memory array
-SUS_LPMEMORY SUSAPI sus_calloc(
-	_In_ DWORD count,
-	_In_ SIZE_T size)
-{
-	size = size * count;
-	SUS_PRINTDL("Allocating a %d-byte memory array", size);
-	if (size == 0) return NULL;
-	SUS_LPMEMORY hMem = NULL;
-	for (DWORD i = 0; i < SUS_NUMBER_ATTEMPTS_ALLOCATE_MEMORY; i++) {
-		hMem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
-		if (hMem) break;
-		SUS_PRINTDE("Couldn't allocate memory");
-		SUS_PRINTDC(GetLastError());
-		Sleep(10);
-	}
-	SUS_PRINTDL("Successful memory allocation");
-	return hMem;
-}
 // Memory reallocation
 SUS_LPMEMORY SUSAPI sus_realloc(
 	_In_ SUS_LPMEMORY block,
