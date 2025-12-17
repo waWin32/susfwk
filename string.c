@@ -20,7 +20,7 @@ VOID SUSAPI sus_wtoa(_In_ LPCWSTR source, _Out_ LPSTR buffer)
 }
 
 // Flipping the string
-VOID SUSAPI sus_strrevA(_Inout_ LPSTR str)
+VOID SUSAPI sus_strrev(_Inout_ LPSTR str)
 {
 	SUS_ASSERT(str);
 	LPSTR end = str + lstrlenA(str) - 1;
@@ -34,7 +34,7 @@ VOID SUSAPI sus_strrevA(_Inout_ LPSTR str)
 	}
 }
 // Flipping the string
-VOID SUSAPI sus_strrevW(_Inout_ LPWSTR str)
+VOID SUSAPI sus_wcsrev(_Inout_ LPWSTR str)
 {
 	SUS_ASSERT(str);
 	LPWSTR end = str + lstrlenW(str) - 1;
@@ -206,7 +206,7 @@ FLOAT SUSAPI sus_wtof(_In_ LPCWSTR str, _Out_opt_ LPCWSTR* end)
 // -----------------------------------------------------------------------------
 
 // cropping a string
-VOID SUSAPI sus_substringA(_Out_ LPSTR buffer, _In_ LPCSTR str, _In_ DWORD substart, _In_ DWORD subend)
+VOID SUSAPI sus_substring(_Out_ LPSTR buffer, _In_ LPCSTR str, _In_ DWORD substart, _In_ DWORD subend)
 {
 	str += substart;
 	while (substart++ < subend) {
@@ -216,7 +216,7 @@ VOID SUSAPI sus_substringA(_Out_ LPSTR buffer, _In_ LPCSTR str, _In_ DWORD subst
 	*buffer = '\0';
 }
 // cropping a string
-VOID SUSAPI sus_substringW(_Out_ LPWSTR buffer, _In_ LPCWSTR str, _In_ DWORD substart, _In_ DWORD subend)
+VOID SUSAPI sus_subwstring(_Out_ LPWSTR buffer, _In_ LPCWSTR str, _In_ DWORD substart, _In_ DWORD subend)
 {
 	str += substart;
 	while (substart++ < subend) {

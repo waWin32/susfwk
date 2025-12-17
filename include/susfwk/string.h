@@ -1,4 +1,4 @@
-// susstring.h
+// string.h
 //
 #ifndef _SUS_STRING_
 #define _SUS_STRING_
@@ -34,6 +34,21 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_isalnum	sus_isalnumA
 #endif // !UNICODE
 
+// Get length of the string
+#define sus_strcpy(str1, str2) lstrcpyA(str1, str2)
+// Get length of the string
+#define sus_wcscpy(str1, str2) lstrcpyW(str1, str2)
+
+// Get length of the string
+#define sus_strlen(str) lstrlenA(str)
+// Get length of the string
+#define sus_wcslen(str) lstrlenW(str)
+
+// Get length of the string
+#define sus_strcmp(str1, str2) ((BOOL)(!lstrcmpA(str1, str2) ? TRUE : FALSE))
+// Get length of the string
+#define sus_wcscmp(str1, str2) ((BOOL)(!lstrcmpW(str1, str2) ? TRUE : FALSE))
+
 // -----------------------------------------------------------------------------
 
 // Convert ascii format to unicode
@@ -42,14 +57,14 @@ VOID SUSAPI sus_atow(_In_ LPCSTR source, _Out_ LPWSTR buffer);
 VOID SUSAPI sus_wtoa(_In_ LPCWSTR source, _Out_ LPSTR buffer);
 
 // Flipping the string
-VOID SUSAPI sus_strrevA(_Inout_ LPSTR str);
+VOID SUSAPI sus_strrev(_Inout_ LPSTR str);
 // Flipping the string
-VOID SUSAPI sus_strrevW(_Inout_ LPWSTR str);
+VOID SUSAPI sus_wcsrev(_Inout_ LPWSTR str);
 
 #ifdef UNICODE
-#define sus_strrev	sus_strrevW
+#define sus_tcsrev	sus_wcsrev
 #else
-#define sus_strrev	sus_strrevA
+#define sus_tcsrev	sus_strrev
 #endif // !UNICODE
 
 // -----------------------------------------------------------------------------
@@ -127,14 +142,14 @@ SUS_INLINE INT SUSAPI sus_fslen(_In_ FLOAT value, _In_ UINT precision) {
 // -----------------------------------------------------------------------------
 
 // cropping a string
-VOID SUSAPI sus_substringA(
+VOID SUSAPI sus_substring(
 	_Out_ LPSTR buffer,
 	_In_ LPCSTR str,
 	_In_ DWORD substart,
 	_In_ DWORD subend
 );
 // cropping a string
-VOID SUSAPI sus_substringW(
+VOID SUSAPI sus_subwstring(
 	_Out_ LPWSTR buffer,
 	_In_ LPCWSTR str,
 	_In_ DWORD substart,
@@ -142,9 +157,9 @@ VOID SUSAPI sus_substringW(
 );
 
 #ifdef UNICODE
-#define sus_substring	sus_substringW
+#define sus_subtstring	sus_subwstring
 #else
-#define sus_substring	sus_substringA
+#define sus_subtstring	sus_substring
 #endif // !UNICODE
 
 // Separation from spaces
