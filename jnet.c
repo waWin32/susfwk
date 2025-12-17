@@ -1,5 +1,6 @@
 // jnet.c
 //
+#include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/json.h"
 #include "include/susfwk/network.h"
@@ -8,12 +9,11 @@
 // ================================================================================================
 
 // Create a new JNET object
-SUS_JNET SUSAPI susNewJnet(_In_opt_ SUS_OBJECT userData)
+SUS_JNET SUSAPI susNewJnet()
 {
 	SUS_PRINTDL("Initializing the JNET protocol on a socket");
-	SUS_JNET jnet = sus_calloc(1, sizeof(SUS_JNET_STRUCT));
+	SUS_JNET jnet = sus_malloc(sizeof(SUS_JNET_STRUCT));
 	if (!jnet) return NULL;
-	jnet->userData = userData;
 	return jnet;
 }
 // Delete a JNET object
@@ -27,11 +27,11 @@ VOID SUSAPI susJnetDestroy(_In_ SUS_JNET jnet)
 // ================================================================================================
 
 // Incoming data handler
-static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
+static LRESULT SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 {
 	SUS_PRINTDL("Processing of received data");
 	SUS_ASSERT(sock && data);
-	SUS_JNET jNetSock = (SUS_JNET)susSocketGetUserData(sock);
+	SUS_JNET jNetSock = (SUS_JNET)susSocketGetProperty(sock, SUS_JNET_PROPERTY);
 	SUS_ASSERT(jNetSock);
 	SUS_JSON json = susJsonParse(data, NULL);
 	if (json.type != SUS_JSON_TYPE_OBJECT) goto incorrect_data;
@@ -43,7 +43,7 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 		if (status) {
 			if (status->type != SUS_JSON_TYPE_NUMBER) goto incorrect_data;
 			SUS_PRINTDL("Received a response");
-			if (jNetSock->resHandler) jNetSock->resHandler(sock, id, (INT)status->value.number, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
+			if (jNetSock->resHandler) jNetSock->resHandler(sock, id, (INT)status->value.number, headers ? headers : &susJsonNull(), body ? body : &susJsonNull());
 		}
 		else {
 			SUS_PRINTDL("Request received");
@@ -52,7 +52,7 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 				if (!path || path->type != SUS_JSON_TYPE_STRING) goto incorrect_data;
 				SUS_LPJSON method = susJsonObjectGet(json, "method");
 				if (!method || method->type != SUS_JSON_TYPE_NUMBER) goto incorrect_data;
-				SUS_JSON res = jNetSock->reqHandler(sock, id, (UINT)method->value.number, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
+				SUS_JSON res = jNetSock->reqHandler(sock, id, (UINT)method->value.number, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull());
 				susJnetSend(sock, res);
 				susJsonDestroy(&res);
 			}
@@ -62,7 +62,7 @@ static BOOL SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR data)
 		SUS_PRINTDL("Message received");
 		SUS_LPJSON path = susJsonObjectGet(json, "path");
 		if (!path || path->type != SUS_JSON_TYPE_STRING) goto incorrect_data;
-		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull(), jNetSock->userData);
+		if (jNetSock->msgHandler) jNetSock->msgHandler(sock, path->value.str, headers ? headers : &susJsonNull(), body ? body : &susJsonNull());
 	}
 	susJsonDestroy(&json);
 	return 0;
@@ -72,18 +72,20 @@ incorrect_data:
 	return 1;
 }
 // JNET Socket Message Handler
-BOOL SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam)
+LRESULT SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(wParam);
 	switch (uMsg)
 	{
 	case SUS_SM_DATA:
 		return susJnetDataHandler(sock, (LPCSTR)lParam) ? 0 : 1;
-	case SUS_SM_CREATE:
-		susSocketSetUserData(sock, susNewJnet(susSocketGetUserData(sock)));
-		return susSocketGetUserData(sock) ? 0 : 1;
+	case SUS_SM_CREATE: {
+		SUS_JNET jnet = susNewJnet();
+		if (!jnet) return 1;
+		susSocketSetProperty(sock, SUS_JNET_PROPERTY, (LPARAM)jnet);
+	} return 0;
 	case SUS_SM_END:
-		susJnetDestroy(susSocketGetUserData(sock));
+		susJnetDestroy((SUS_JNET)susSocketGetProperty(sock, SUS_JNET_PROPERTY));
 		return 0;
 	default: return 0;
 	}
@@ -140,10 +142,10 @@ SUS_JSON SUSAPI susJnetResponseSetup(_In_ SUS_JSON id, _In_ INT status, _In_opt_
 }
 
 // Install handlers for the jnet socket
-VOID SUSAPI susJnetSetHandler(_Inout_ SUS_LPSOCKET sock, _In_opt_ SUS_JNET_RESPONSE_HANDLER resHandler, _In_opt_ SUS_JNET_REQUEST_HANDLER reqHandler, _In_opt_ SUS_JNET_NOTIFICATION_HANDLER msgHandler)
+VOID SUSAPI susJnetSetup(_Inout_ SUS_LPSOCKET sock, _In_opt_ SUS_JNET_RESPONSE_HANDLER resHandler, _In_opt_ SUS_JNET_REQUEST_HANDLER reqHandler, _In_opt_ SUS_JNET_NOTIFICATION_HANDLER msgHandler)
 {
-	SUS_ASSERT(sock && sock->userData);
-	SUS_JNET jnet = susSocketGetUserData(sock);
+	SUS_ASSERT(sock && susSocketUserData(sock));
+	SUS_JNET jnet = (SUS_JNET)susSocketGetProperty(sock, SUS_JNET_PROPERTY);
 	jnet->reqHandler = reqHandler;
 	jnet->resHandler = resHandler;
 	jnet->msgHandler = msgHandler;

@@ -7,6 +7,13 @@
 
 // ================================================================================================
 
+// -----------------------------------------------
+
+// JNET property name
+#define SUS_JNET_PROPERTY "/jnet/"
+
+// -----------------------------------------------
+
 // JNET query methods
 typedef enum sus_jnet_method {
 	SUS_JNET_METHOD_UNKNOWN,
@@ -22,45 +29,57 @@ typedef enum sus_jnet_method {
 	SUS_JNET_METHOD_ERROR
 } SUS_JNET_METHOD;
 
+// -----------------------------------------------
+
 // JNET response handler
-typedef VOID(SUSAPI* SUS_JNET_RESPONSE_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ INT status, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
+typedef VOID(SUSAPI* SUS_JNET_RESPONSE_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ INT status, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body);
 // JNET request handler
-typedef SUS_JSON(SUSAPI* SUS_JNET_REQUEST_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ SUS_JNET_METHOD method, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
+typedef SUS_JSON(SUSAPI* SUS_JNET_REQUEST_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ SUS_LPJSON id, _In_ SUS_JNET_METHOD method, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body);
 // JNET notification handler
-typedef VOID(SUSAPI* SUS_JNET_NOTIFICATION_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body, _In_ SUS_OBJECT userData);
+typedef VOID(SUSAPI* SUS_JNET_NOTIFICATION_HANDLER)(_In_ SUS_LPSOCKET sock, _In_ LPCSTR path, _In_ SUS_LPJSON headers, _In_ SUS_LPJSON body);
+
+// -----------------------------------------------
 
 // Addition to SUS_SOCKET
 typedef struct sus_jnet {
 	SUS_JNET_RESPONSE_HANDLER		resHandler;
 	SUS_JNET_REQUEST_HANDLER		reqHandler;
 	SUS_JNET_NOTIFICATION_HANDLER	msgHandler;
-	SUS_OBJECT						userData;
 } SUS_JNET_STRUCT, *SUS_JNET;
+
+// -----------------------------------------------
 
 // ================================================================================================
 
+// -----------------------------------------------
+
 // Create a new JNET object
-SUS_JNET SUSAPI susNewJnet(
-	_In_opt_ SUS_OBJECT userData
-);
+SUS_JNET SUSAPI susNewJnet();
 // Delete a JNET object
 VOID SUSAPI susJnetDestroy(
 	_In_ SUS_JNET jnet
 );
+
+// -----------------------------------------------
+
 // Send json to the socket
 BOOL SUSAPI susJnetSend(
 	_Inout_ SUS_LPSOCKET sock,
 	_In_ SUS_JSON json
 );
 // JNET Socket Message Handler
-BOOL SUSAPI susJnetSocketHandler(
+LRESULT SUSAPI susJnetSocketHandler(
 	_In_ SUS_LPSOCKET sock,
 	_In_ SUS_SOCKET_MESSAGE uMsg,
 	_In_ WPARAM wParam,
 	_In_ LPARAM lParam
 );
 
+// -----------------------------------------------
+
 // ================================================================================================
+
+// -----------------------------------------------
 
 // Create a JNET request
 SUS_JSON SUSAPI susJnetRequestSetup(
@@ -77,6 +96,9 @@ SUS_INLINE BOOL SUSAPI susJnetRequest(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON i
 	susJsonDestroy(&json);
 	return res;
 }
+
+// -----------------------------------------------
+
 // Create a JNET message
 SUS_JSON SUSAPI susJnetNotificationSetup(
 	_In_opt_ LPCSTR path,
@@ -90,6 +112,9 @@ SUS_INLINE BOOL SUSAPI susJnetNotification(_Inout_ SUS_LPSOCKET sock, _In_opt_ L
 	susJsonDestroy(&json);
 	return res;
 }
+
+// -----------------------------------------------
+
 // Create a JNET response
 SUS_JSON SUSAPI susJnetResponseSetup(
 	_In_ SUS_JSON id,
@@ -105,8 +130,10 @@ SUS_INLINE BOOL SUSAPI susJnetResponse(_Inout_ SUS_LPSOCKET sock, _In_ SUS_JSON 
 	return res;
 }
 
+// -----------------------------------------------
+
 // Install handlers for the jnet socket
-VOID SUSAPI susJnetSetHandler(
+VOID SUSAPI susJnetSetup(
 	_Inout_ SUS_LPSOCKET sock,
 	_In_opt_ SUS_JNET_RESPONSE_HANDLER resHandler,
 	_In_opt_ SUS_JNET_REQUEST_HANDLER reqHandler,
@@ -115,12 +142,10 @@ VOID SUSAPI susJnetSetHandler(
 // Get auto id for json request
 SUS_INLINE SUS_JSON SUSAPI susJnetAutoId() {
 	static INT id = 1;
-	return susJsonNumber((sus_f32)id);
+	return susJsonNumber((sus_f32)id++);
 }
-//
-SUS_INLINE SUS_OBJECT SUSAPI susJnetGetUserData(_In_ SUS_LPSOCKET jNetSocket) {
-	return ((SUS_JNET)susSocketGetUserData(jNetSocket))->userData;
-}
+
+// -----------------------------------------------
 
 // ================================================================================================
 
