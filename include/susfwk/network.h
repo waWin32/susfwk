@@ -3,8 +3,6 @@
 #ifndef _SUS_NETWORK_CORE_
 #define _SUS_NETWORK_CORE_
 
-#pragma warning(disable: 4996)
-
 // -------------------------------------------------------------------------------------------------------------
 
 #define SUS_SOCKET_API_VERSION MAKEWORD(2, 2)
@@ -36,7 +34,7 @@ typedef enum sus_socket_error {
 typedef enum sus_socket_message {
 	SUS_SM_UNKNOWN,	// Unknown
 	SUS_SM_CREATE,	// Called after creating a socket
-	SUS_SM_START,	// Called after connecting to the host
+	SUS_SM_START,	// Called after connecting to the host\param lParam: SUS_LPSOCKET_ADDRESS
 	SUS_SM_DATA,	// Called when data is received
 	SUS_SM_WRITE,	// Called when you can send data
 	SUS_SM_TIMER,	// It is called when the timer interval passes
@@ -49,8 +47,11 @@ typedef LRESULT(SUSAPI* SUS_SOCKET_HANDLER)(SUS_OBJECT sock, SUS_SOCKET_MESSAGE 
 // Socket Timer
 typedef struct sus_socket_timer {
 	DWORD interval;
-	DWORD nextFire;
+	ULONGLONG nextFire;
 } SUS_SOCKET_TIMER, *SUS_LPSOCKET_TIMER;
+
+// Socket address
+typedef union sus_socket_address { SOCKADDR_INET addr;  } SUS_SOCKET_ADDRESS;
 // socket structure
 typedef struct sus_socket {
 	SOCKET				sock;		// System Socket Descriptor
@@ -58,14 +59,15 @@ typedef struct sus_socket {
 	SUS_BUFFER			readBuffer;	// Dynamic buffer for reading
 	SUS_BUFFER			writeBuffer;// Dynamic buffer for writing
 	SUS_HASHMAP			timers;		// UINT SUS_SOCKET_TIMER
+	SUS_HASHMAP			properties;	// Additional properties of a socket with userData
+	SUS_SOCKET_ADDRESS	address;	// Address socket
 	SUS_OBJECT			userData;	// User data
-	SOCKADDR_IN			addr;		// Address socket
 } SUS_SOCKET, *SUS_LPSOCKET;
 // The structure of the server socket
 typedef struct sus_server_socket {
-	SUS_SOCKET _PARENT_;
-	SUS_VECTOR clients;					// SUS_SOCKET
-	SUS_VECTOR clientfds;				// WSAPOLLFD
+	SUS_SOCKET			_PARENT_;		// Parent
+	SUS_VECTOR			clients;		// SUS_SOCKET
+	SUS_VECTOR			clientfds;		// WSAPOLLFD
 	SUS_SOCKET_HANDLER	heirHandler;	// Default client sockets callback
 } SUS_SERVER_SOCKET, *SUS_LPSERVER_SOCKET;
 
@@ -75,14 +77,20 @@ typedef struct sus_server_socket {
 //									Deinitializing the library										//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------
+
 // Initializing the winsock
 DWORD SUSAPI susNetworkSetup();
 // Network closure
 VOID SUSAPI susNetworkCleanup();
 
+// -----------------------------------------------
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //									Basic socket operations											//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
 
 // Configure the base socket
 SUS_SOCKET SUSAPI susSocketSetup(
@@ -91,8 +99,12 @@ SUS_SOCKET SUSAPI susSocketSetup(
 );
 // Build a socket
 BOOL SUSAPI susBuildSocket(
-	_In_ SUS_LPSOCKET sock
+	_In_ SUS_LPSOCKET sock,
+	_In_ ADDRESS_FAMILY type
 );
+
+// -----------------------------------------------
+
 // Closing a network socket
 BOOL SUSAPI susSocketClose(
 	_Inout_ SUS_LPSOCKET sock
@@ -106,9 +118,13 @@ VOID SUSAPI susSocketCleanup(
 	_Inout_ SUS_LPSOCKET sock
 );
 
+// -----------------------------------------------
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//									Working with a socket timer										//
+//							Specific functions for working with sockets								//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
 
 // Set a timer for the socket
 BOOL SUSAPI susSocketSetTimer(
@@ -122,18 +138,44 @@ VOID SUSAPI susSocketKillTimer(
 	_In_ DWORD id
 );
 
+// -----------------------------------------------
+
+// Set a property for a socket
+BOOL SUSAPI susSocketSetProperty(
+	_Inout_ SUS_LPSOCKET sock,
+	_In_ LPCSTR key,
+	_In_ LPARAM property
+);
+// Get a property from a socket
+LPARAM SUSAPI susSocketGetProperty(
+	_In_ SUS_LPSOCKET sock,
+	_In_ LPCSTR key
+);
+
+// -----------------------------------------------
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //									Low-level operations											//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------
+
 // Automatically create an address for the socket
-SUS_INLINE SOCKADDR_IN susSocketAddress(_In_ LPCSTR addr, _In_ USHORT port) {
-	return (SOCKADDR_IN) {
-		.sin_addr.s_addr = inet_addr(addr),
-		.sin_family = AF_INET,
-		.sin_port = htons(port)
-	};
-}
+SUS_SOCKET_ADDRESS susSocketAddress(
+	_In_ LPCSTR addr,
+	_In_ USHORT port
+);
+// Get the socket address
+SUS_SOCKET_ADDRESS SUSAPI susSocketGetAddress(
+	_In_ SUS_LPSOCKET sock
+);
+// Get a static address string
+LPCSTR SUSAPI susSocketAddressToString(
+	_In_ SUS_SOCKET_ADDRESS address
+);
+
+// -----------------------------------------------
+
 // Binding an address to a socket
 BOOL SUSAPI susSocketBind(
 	_In_ SUS_LPSOCKET sock,
@@ -155,6 +197,8 @@ BOOL SUSAPI susSocketConnect(
 	_In_ USHORT port
 );
 
+// -----------------------------------------------
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //											I/O operations											//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,50 +211,58 @@ BOOL SUSAPI susSocketRead(
 SIZE_T SUSAPI susSocketFlush(
 	_Inout_ SUS_LPSOCKET sock
 );
+
+// -----------------------------------------------
+
 // Check the availability of data to send
-SUS_INLINE INT SUSAPI susSocketHasSendData(_Inout_ SUS_LPSOCKET sock) {
+SUS_FORCEINLINE INT SUSAPI susSocketHasSendData(_Inout_ SUS_LPSOCKET sock)
+{
 	SUS_ASSERT(sock && sock->writeBuffer);
 	return (INT)susBufferSize(sock->writeBuffer);
 }
 // Send data to the socket (_Null_terminated_)
-SUS_INLINE VOID SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, _In_bytecount_(size) CONST LPBYTE data, _In_ SIZE_T size) {
+SUS_FORCEINLINE BOOL SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, _In_bytecount_(size) CONST LPBYTE data, _In_ SIZE_T size)
+{
+	SUS_PRINTDL("Socket write of %d bytes", size);
 	SUS_ASSERT(sock && sock->writeBuffer && data && size && size < SUS_SOCKET_MAX_MESSAGE_SIZE);
-	susBufferAppend(&sock->writeBuffer, data, size);
+	return susBufferAppend(&sock->writeBuffer, data, size) ? TRUE : FALSE;
 }
 
 // Send text to the socket
-SUS_INLINE VOID SUSAPI susSocketWriteText(_Inout_ SUS_LPSOCKET sock, _In_ LPCSTR text) {
-	SUS_ASSERT(sock && text);
-	susSocketWrite(sock, (LPBYTE)text, (SIZE_T)lstrlenA(text) + 1);
+SUS_FORCEINLINE BOOL SUSAPI susSocketWriteText(_Inout_ SUS_LPSOCKET sock, _In_ LPCSTR text) {
+	return susSocketWrite(sock, (LPBYTE)text, ((SIZE_T)lstrlenA(text) + 1) * sizeof(CHAR));
 }
 // Send text to the socket
-SUS_INLINE VOID SUSAPI susSocketWriteWText(_Inout_ SUS_LPSOCKET sock, _In_ LPCWSTR text) {
-	SUS_ASSERT(sock && text);
-	susSocketWrite(sock, (LPBYTE)text, ((SIZE_T)lstrlenW(text) + 1) * sizeof(WCHAR));
+SUS_FORCEINLINE BOOL SUSAPI susSocketWriteWText(_Inout_ SUS_LPSOCKET sock, _In_ LPCWSTR text) {
+	return susSocketWrite(sock, (LPBYTE)text, ((SIZE_T)lstrlenW(text) + 1) * sizeof(WCHAR));
 }
+
+// -----------------------------------------------
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //									Fine-tuning the socket											//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------
+
 // Set the socket as non-blocking
-SUS_INLINE BOOL SUSAPI susSocketSetNonBlocking(_In_ SUS_LPSOCKET sock, BOOL enabled) {
+SUS_FORCEINLINE BOOL SUSAPI susSocketSetNonBlocking(_In_ SUS_LPSOCKET sock, BOOL enabled) {
 	SUS_ASSERT(sock && sock->sock != INVALID_SOCKET);
 	return !ioctlsocket(sock->sock, FIONBIO, &(u_long)enabled);
 }
 // Set the timeout for the socket
-SUS_INLINE BOOL SUSAPI susSocketSetTimeout(_In_ SUS_LPSOCKET sock, DWORD timeout) {
+SUS_FORCEINLINE BOOL SUSAPI susSocketSetTimeout(_In_ SUS_LPSOCKET sock, DWORD timeout) {
 	SUS_ASSERT(sock && sock->sock != INVALID_SOCKET);
 	return !(setsockopt(sock->sock, SOL_SOCKET, SO_SNDTIMEO, (PCHAR)&timeout, sizeof(timeout)) || setsockopt(sock->sock, SOL_SOCKET, SO_RCVTIMEO, (PCHAR)&timeout, sizeof(timeout)));
 }
 // Set the timeout for the socket
-SUS_INLINE DWORD SUSAPI susSocketGetReadData(_In_ SUS_LPSOCKET sock) {
+SUS_FORCEINLINE DWORD SUSAPI susSocketGetReadData(_In_ SUS_LPSOCKET sock) {
 	SUS_ASSERT(sock && sock->sock != INVALID_SOCKET);
 	DWORD availableData = 0;
 	return !ioctlsocket(sock->sock, FIONREAD, &availableData) ? availableData : (DWORD)-1;
 }
 // configuring socket performance
-SUS_INLINE BOOL SUSAPI susSocketTunePerformance(_In_ SUS_LPSOCKET sock) {
+SUS_FORCEINLINE BOOL SUSAPI susSocketTunePerformance(_In_ SUS_LPSOCKET sock) {
 	int buffSize = 1024 * 1024;
 	setsockopt(sock->sock, SOL_SOCKET, SO_RCVBUF, (PCHAR)&buffSize, sizeof(buffSize));
 	setsockopt(sock->sock, SOL_SOCKET, SO_SNDBUF, (PCHAR)&buffSize, sizeof(buffSize));
@@ -218,29 +270,22 @@ SUS_INLINE BOOL SUSAPI susSocketTunePerformance(_In_ SUS_LPSOCKET sock) {
 	return setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (PCHAR)&nodelay, sizeof(nodelay));
 }
 // Get Socket user data
-SUS_INLINE SUS_OBJECT SUSAPI susSocketGetUserData(_In_ SUS_LPSOCKET sock) {
+SUS_FORCEINLINE SUS_OBJECT SUSAPI susSocketUserData(_In_ SUS_LPSOCKET sock) {
 	SUS_ASSERT(sock);
 	return sock->userData;
 }
 // Set Socket user data
-SUS_INLINE VOID SUSAPI susSocketSetUserData(_Inout_ SUS_LPSOCKET sock, _In_ SUS_OBJECT userData) {
+SUS_FORCEINLINE VOID SUSAPI susSocketSetUserData(_Inout_ SUS_LPSOCKET sock, _In_ SUS_OBJECT userData) {
 	SUS_ASSERT(sock);
 	sock->userData = userData;
 }
 // Install the socket handler
-SUS_INLINE VOID SUSAPI susSocketSetHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_HANDLER handler) {
+SUS_FORCEINLINE VOID SUSAPI susSocketSetHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_HANDLER handler) {
 	SUS_ASSERT(sock);
 	sock->handler = handler;
 }
-// Get the socket address
-SUS_INLINE SOCKADDR_IN SUSAPI susSocketGetAddr(_In_ SUS_LPSOCKET sock) {
-	SUS_ASSERT(sock);
-	SOCKADDR_IN peerAddr = { 0 };
-	int peerAddrLen = sizeof(peerAddr);
-	return getpeername(sock->sock, (SOCKADDR*)&peerAddr, &peerAddrLen) ? (SOCKADDR_IN) { 0 } : peerAddr;
-}
 // Send a message to the socket
-SUS_INLINE LRESULT SUSAPI susSocketSendMessage(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam) {
+SUS_FORCEINLINE LRESULT SUSAPI susSocketCallMessage(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESSAGE uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam) {
 	SUS_ASSERT(sock && uMsg);
 	if (sock->handler) return sock->handler(sock, uMsg, wParam, lParam);
 	return 0;
@@ -259,6 +304,7 @@ SUS_SERVER_SOCKET SUSAPI susServerSetup(
 // Set the socket as a listening server
 BOOL SUSAPI susServerListen(
 	_Inout_ SUS_LPSERVER_SOCKET server,
+	_In_ ADDRESS_FAMILY type,
 	_In_ USHORT port
 );
 // Accepting the client to the server
@@ -307,17 +353,21 @@ LRESULT SUSAPI ClientHandler(SUS_LPSOCKET sock, SUS_SOCKET_MESSAGE uMsg, WPARAM 
 {
 	switch (uMsg)
 	{
+	case SUS_SM_START: {
+		// Client processing after activation
+	} return 0;
 	case SUS_SM_DATA: {
 		SUS_PRINTDL("Received data from the client:");
 		sus_cwrite(GetStdHandle(STD_OUTPUT_HANDLE), lParam, wParam);
 		sus_printf("\n");
-	} return TRUE;
+	} return 0;
 	case SUS_SM_END: {
 		SUS_PRINTDL("the client has disconnected");
-	} return TRUE;
+	} return 0;
 	case SUS_SM_ERROR: {
 		SUS_PRINTDE("Client error: %d", wParam);
-	} return TRUE;
+	} return 0;
+	default: return 0;
 	}
 }
 LRESULT SUSAPI ServerHandler(SUS_LPSOCKET server, SUS_SOCKET_MESSAGE uMsg, WPARAM wParam, LPARAM lParam)
@@ -326,16 +376,18 @@ LRESULT SUSAPI ServerHandler(SUS_LPSOCKET server, SUS_SOCKET_MESSAGE uMsg, WPARA
 	{
 	case SUS_SM_CREATE: {
 		SUS_PRINTDL("The server is running, waiting for connections...");
-	} return TRUE;
+	} return 0;
 	case SUS_SM_START: {
-		SUS_PRINTDL("%s join to server", inet_ntoa(((LPSOCKADDR_IN)wParam)->sin_addr));
-	} return TRUE;
+		// When connecting a new client
+		SUS_PRINTDL("%s join to server", susSocketAddressToString(*(SUS_SOCKET_ADDRESS*)lParam));
+	} return 0;
 	case SUS_SM_END: {
 		SUS_PRINTDL("The server is closed");
-	} return TRUE;
+	} return 0;
 	case SUS_SM_ERROR: {
 		SUS_PRINTDE("Server error: %d", wParam);
-	} return TRUE;
+	} return 0;
+	default: return 0;
 	}
 }
 
@@ -344,8 +396,7 @@ int main()
 	SUS_CONSOLE_DEBUGGING();
 	susNetworkSetup();
 	SUS_SERVER_SOCKET server = susServerSetup(ServerHandler, ClientHandler, NULL);
-	susServerListen(&server, 8000);
-	if (!susServerListen(&server, 8000)) return 1;
+	if (!susServerListen(&server, AF_INET, 8000)) return 1;
 	while (susServerUpdate(&server));
 	susNetworkCleanup();
 	ExitProcess(0);
