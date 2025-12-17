@@ -53,7 +53,9 @@ and when used, access it via super.
 
 #define SUSAPI __fastcall
 #define SUSAPIV __cdecl
-#define SUS_INLINE inline
+#define SUS_INLINE __inline
+#define SUS_FORCEINLINE __forceinline
+#define SUS_EXTERN extern
 #define SUS_STATIC static
 #define SUS_STRUCT struct
 
@@ -133,9 +135,9 @@ and when used, access it via super.
 	#define sus_va_end(ap)         __builtin_va_end(ap)
 #endif // !_WIN32
 
+#include "debug.h"
 #include "string.h"
 #include "format.h"
-#include "debug.h"
 #include "memory.h"
 #include "iostream.h"
 
