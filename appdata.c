@@ -8,8 +8,9 @@
 
 // Application Data
 typedef struct sus_appdata {
-	SUS_HASHMAP data;	// LPCSTR -> SUS_OBJECT
-	SUS_MUTEX	mutex;	// App mutex
+	SUS_HASHMAP data;		// LPCSTR -> SUS_OBJECT
+	SUS_MUTEX	mutex;		// App mutex
+	LONG_PTR	userData;	// User data for the application
 } SUS_APPDATA, *SUS_LPAPPDATA;
 
 static SUS_APPDATA appData = { 0 };
@@ -38,6 +39,18 @@ SUS_OBJECT SUSAPI susAppGet(_In_ LPCSTR key)
 	SUS_PRINTDL("Getting application data - \"%s\"", key);
 	SUS_ASSERT(appData.data && key);
 	return *(SUS_OBJECT*)susMapGet(appData.data, &key);
+}
+// Get your information about the app
+VOID SUSAPI susAppSetData(LONG_PTR data) {
+	SUS_PRINTDL("Setting a new value for appdata");
+	susMutexLock(&appData.mutex);
+	appData.userData = data;
+	susMutexUnlock(&appData.mutex);
+}
+// Get your information about the app
+LONG_PTR SUSAPI susAppGetData() {
+	SUS_PRINTDL("Getting application data");
+	return appData.userData;
 }
 // Get application data
 SUS_LPMUTEX SUSAPI susAppGetMutex()
