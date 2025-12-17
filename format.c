@@ -236,6 +236,51 @@ INT SUSAPIV sus_formattingW(
 	return res;
 }
 
+
+// Get a dynamically formatted string
+LPSTR SUSAPI sus_dformattingA(_In_ _Printf_format_string_ LPCSTR format, _In_ ...)
+{
+	sus_va_list args;
+	sus_va_start(args, format);
+	LPSTR lpFormattedString = sus_calloc(((sus_size_t)sus_vformattingA(NULL, format, args) + 1), sizeof(CHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingA(lpFormattedString, format, args);
+	sus_va_end(args);
+	return lpFormattedString;
+}
+// Get a dynamically formatted string
+LPWSTR SUSAPI sus_dformattingW(_In_ _Printf_format_string_ LPCWSTR format, _In_ ...)
+{
+	sus_va_list args;
+	sus_va_start(args, format);
+	LPWSTR lpFormattedString = sus_calloc(((sus_size_t)sus_vformattingW(NULL, format, args) + 1), sizeof(WCHAR));
+	if (!lpFormattedString) return NULL;
+	sus_vformattingW(lpFormattedString, format, args);
+	sus_va_end(args);
+	return lpFormattedString;
+}
+
+// Get a static formatted string (1024 Characters)
+LPSTR SUSAPI sus_sformattingA(_In_ _Printf_format_string_ LPCSTR format, _In_ ...)
+{
+	sus_va_list args;
+	sus_va_start(args, format);
+	static CHAR formattedString[1024] = { 0 };
+	sus_vformattingA(formattedString, format, args);
+	sus_va_end(args);
+	return formattedString;
+}
+// Get a static formatted string (1024 Characters)
+LPWSTR SUSAPI sus_sformattingW(_In_ _Printf_format_string_ LPCWSTR format, _In_ ...)
+{
+	sus_va_list args;
+	sus_va_start(args, format);
+	static WCHAR formattedString[1024] = { 0 };
+	sus_vformattingW(formattedString, format, args);
+	sus_va_end(args);
+	return formattedString;
+}
+
 static SUS_INLINE BOOL SUSAPI parsing_handleA_d(_In_ BOOLEAN skipAssignment, _Inout_ LPCSTR* str, _Inout_ sus_va_list* args) {
 	LPINT dest = skipAssignment ? NULL : sus_va_arg(*args, LPINT);
 	LPSTR end = NULL;
@@ -294,7 +339,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleA_c(_In_ BOOLEAN skipAssignment, _In
 // Parsing text into variables
 INT sus_vparsingA(
 	_In_ LPCSTR str,
-	_In_ _Printf_format_string_ LPCSTR format,
+	_In_ _Scanf_format_string_ LPCSTR format,
 	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(str && format);
@@ -432,7 +477,7 @@ static SUS_INLINE BOOL SUSAPI parsing_handleW_c(_In_ BOOLEAN skipAssignment, _In
 // Parsing text into variables
 INT sus_vparsingW(
 	_In_ LPCWSTR str,
-	_In_ _Printf_format_string_ LPCWSTR format,
+	_In_ _Scanf_format_string_ LPCWSTR format,
 	_Inout_ sus_va_list args)
 {
 	SUS_ASSERT(str && format);

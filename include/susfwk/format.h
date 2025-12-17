@@ -65,32 +65,25 @@ INT SUSAPIV sus_formattingW(
 #endif // !UNICODE
 
 // Get a dynamically formatted string
-SUS_INLINE LPSTR SUSAPI sus_dformattingA(	_In_ _Printf_format_string_ LPCSTR format,
-											_In_ ...) {
-	sus_va_list args;
-	sus_va_start(args, format);
-	LPSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingA(NULL, format, args) + 1) * sizeof(CHAR));
-	if (!lpFormattedString) return NULL;
-	sus_vformattingA(lpFormattedString, format, args);
-	sus_va_end(args);
-	return lpFormattedString;
-}
+LPSTR SUSAPI sus_dformattingA(_In_ _Printf_format_string_ LPCSTR format, _In_ ...);
 // Get a dynamically formatted string
-SUS_INLINE LPWSTR SUSAPI sus_dformattingW(	_In_ _Printf_format_string_ LPCWSTR format,
-											_In_ ...) {
-	sus_va_list args;
-	sus_va_start(args, format);
-	LPWSTR lpFormattedString = HeapAlloc(GetProcessHeap(), 0, ((sus_size_t)sus_vformattingW(NULL, format, args) + 1) * sizeof(CHAR));
-	if (!lpFormattedString) return NULL;
-	sus_vformattingW(lpFormattedString, format, args);
-	sus_va_end(args);
-	return lpFormattedString;
-}
+LPWSTR SUSAPI sus_dformattingW(_In_ _Printf_format_string_ LPCWSTR format, _In_ ...);
 
 #ifdef UNICODE
 #define sus_dformatting	sus_dformattingW
 #else
 #define sus_dformatting	sus_dformattingA
+#endif // !UNICODE
+
+// Get a static formatted string (1024 Characters)
+LPSTR SUSAPI sus_sformattingA(_In_ _Printf_format_string_ LPCSTR format, _In_ ...);
+// Get a static formatted string (1024 Characters)
+LPWSTR SUSAPI sus_sformattingW(_In_ _Printf_format_string_ LPCWSTR format, _In_ ...);
+
+#ifdef UNICODE
+#define sus_sformatting	sus_sformattingW
+#else
+#define sus_sformatting	sus_sformattingA
 #endif // !UNICODE
 
 // Parsing text into variables
@@ -111,7 +104,6 @@ INT sus_vparsingW(
 #else
 #define sus_vparsing	sus_vparsingA
 #endif // !UNICODE
-
 
 // Parsing text into variables
 INT sus_parsingA(
