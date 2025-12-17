@@ -50,6 +50,7 @@ typedef long long sus_long, * sus_plong;
 typedef unsigned long long sus_ulong, *sus_pulong;
 typedef sus_ulong sus_uint64, *sus_puint64;
 typedef float sus_float, *sus_pfloat;
+typedef double sus_double, *sus_pdouble;
 
 typedef char sus_char;
 typedef unsigned short sus_wchar;
