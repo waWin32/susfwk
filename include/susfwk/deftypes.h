@@ -37,6 +37,7 @@ typedef double sus_f64;
 typedef long double sus_f80;
 
 typedef VOID* sus_ptr;
+typedef VOID* sus_pvoid;
 #ifdef _WIN64
 typedef sus_u64 sus_size_t;
 #else
@@ -77,6 +78,9 @@ typedef sus_flag32 sus_flag;
 typedef sus_u32 sus_bool;
 typedef sus_i32 sus_status;
 typedef sus_i32 sus_result;
+
+// User Data
+typedef sus_ulong SUS_USERDATA, SUS_LPUSERDATA;
 
 // =========================================================
 
