@@ -3,6 +3,7 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/math.h"
+#include "include/susfwk/graphics.h"
 #include "include/susfwk/window.h"
 
 #pragma warning(push)
@@ -30,7 +31,7 @@ typedef struct sus_window_listeners {
 	SUS_WINDOW_MOUSE_LISTENERS	mouseListener;
 	SUS_KEYBOARD_LISTENER		keyboardListener;
 	SUS_WINDOW_TIMER_LISTENER	timerListener;
-	SUS_WINDOW_PAINT_LISTENER	paintListener;
+	BOOL						paintListener;
 } SUS_WINDOW_LISTENERS;
 // type of window signature
 typedef enum sus_window_signature_type {
@@ -40,10 +41,12 @@ typedef enum sus_window_signature_type {
 } SUS_WINDOW_SIGNATURE_TYPE;
 // Basic window structure
 struct sus_window {
-	HWND						_PARENT_;	// System Window descriptor
-	SUS_WINDOW_SIGNATURE_TYPE	type;		// Window type
-	SUS_WINDOW_LISTENERS		listeners;	// Window Listeners
-	SUS_OBJECT					userData;	// User data
+	HWND						_PARENT_;		// System Window descriptor
+	SUS_WINDOW_SIGNATURE_TYPE	type;			// Window type
+	SUS_WINDOW_LISTENERS		listeners;		// Window Listeners
+	SUS_COLOR					background;		// Window background color
+	SUS_GRAPHICS_DOUBLE_BUFFER	doubleBuffer;	// Double buffer system
+	SUS_OBJECT					userData;		// User data
 };
 
 // -------------------------------------------------
@@ -145,6 +148,7 @@ static BOOL SUSAPI susRegisterWindowClass(_In_ WNDCLASSEXW wcEx) {
 // Create a system window
 static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW winParam) {
 	SUS_PRINTDL("Creating a window");
+	SUS_ASSERT(winParam);
 	HWND hWnd = CreateWindowExW(
 		wStruct.dwExStyle,
 		wStruct.lpszClass,
@@ -164,6 +168,7 @@ static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW wi
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
+	susWindowSetBackground(winParam, SUS_COLOR_WHITE);
 	SUS_PRINTDL("The window has been successfully created");
 	return hWnd;
 }
@@ -261,7 +266,7 @@ static LRESULT SUSAPI susDefWindowListener(SUS_WINDOW window, SUS_WINMSG uMsg, L
 // -------------------------------------------------
 
 // Call the window timer handler
-#define susWindowTrackTimerEvent(window, uId) if ((window)->listeners.timerListener) (window)->listeners.timerListener(window, (UINT)uId)
+#define susWindowTrackTimerEvent(window, uId) if ((window)->listeners.timerListener) (window)->listeners.timerListener(window, (UINT)uId); else susWindowTrackEvent(window, SUS_WINMSG_TIMER, uId)
 // Timer Handler
 typedef VOID(SUSAPI* SUS_WINDOW_TIMER_LISTENER)(_In_ SUS_WINDOW window, _In_ UINT uId);
 // Install a timer handler for the window
@@ -283,10 +288,16 @@ BOOL SUSAPI susWindowKillTimer(_In_ SUS_WINDOW window, _In_ UINT uId) {
 
 // -------------------------------------------------
 
-// Install a paint handler for the window
-VOID SUSAPI susWindowSetPaintListener(_Inout_ SUS_WINDOW window, _In_opt_ SUS_WINDOW_PAINT_LISTENER paintListener) {
+// Enable/disable rendering processing
+VOID SUSAPI susWindowSetPaintComponent(_In_ SUS_WINDOW window, _In_ BOOL enabled) {
 	SUS_ASSERT(window);
-	window->listeners.paintListener = paintListener;
+	if (sus_wcscmpi(susWindowGetClassName(window), SUS_WIDGET_CLASSNAME_STATIC)) susWindowSetStyle(window, enabled ? susWindowGetStyle(window) | SS_NOTIFY : susWindowGetStyle(window) & ~SS_NOTIFY);
+	window->listeners.paintListener = enabled;
+}
+// Redraw the entire window
+VOID SUSAPI susWindowRepaint(_In_ SUS_WINDOW window) {
+	SUS_ASSERT(window && window->super);
+	InvalidateRect(window->super, NULL, FALSE);
 }
 
 // -------------------------------------------------
@@ -403,16 +414,19 @@ static VOID SUSAPI susWindowTrackMouseMotionEvent(_In_ SUS_WINDOW window, _In_ S
 // Install a mouse listener
 VOID SUSAPI susWindowSetMouseListener(_Inout_ SUS_WINDOW window, _In_ SUS_MOUSE_LISTENER mouseListener) {
 	SUS_ASSERT(window);
+	if (sus_wcscmpi(susWindowGetClassName(window), SUS_WIDGET_CLASSNAME_STATIC)) susWindowSetStyle(window, mouseListener ? susWindowGetStyle(window) | SS_NOTIFY : susWindowGetStyle(window) & ~SS_NOTIFY);
 	window->listeners.mouseListener.mouse = mouseListener;
 }
 // Install a mouse motion listener
 VOID SUSAPI susWindowSetMouseMotionListener(_Inout_ SUS_WINDOW window, _In_ SUS_MOUSE_MOTION_LISTENER mouseMotionListener) {
 	SUS_ASSERT(window);
+	if (sus_wcscmpi(susWindowGetClassName(window), SUS_WIDGET_CLASSNAME_STATIC)) susWindowSetStyle(window, mouseMotionListener ? susWindowGetStyle(window) | SS_NOTIFY : susWindowGetStyle(window) & ~SS_NOTIFY);
 	window->listeners.mouseListener.motion = mouseMotionListener;
 }
 // Install a mouse wheel listener
 VOID SUSAPI susWindowSetMouseWheelListener(_Inout_ SUS_WINDOW window, _In_ SUS_MOUSE_WHEEL_LISTENER mouseWheelListener) {
 	SUS_ASSERT(window);
+	if (sus_wcscmpi(susWindowGetClassName(window), SUS_WIDGET_CLASSNAME_STATIC)) susWindowSetStyle(window, mouseWheelListener ? susWindowGetStyle(window) | SS_NOTIFY : susWindowGetStyle(window) & ~SS_NOTIFY);
 	window->listeners.mouseListener.wheel = mouseWheelListener;
 }
 
@@ -499,6 +513,7 @@ SUS_FRAME_BUILDER SUSAPI susFrameBuilder(_In_opt_ LPCWSTR title)
 	builder.wcEx = susDefWndClass;
 	builder.wcEx.hInstance = GetModuleHandleW(NULL);
 	builder.wcEx.lpszClassName = builder.classNameBuffer;
+	builder.wcEx.hCursor = LoadCursor(NULL, IDC_ARROW);
 	builder.wStruct = susDefWndStruct;
 	builder.wStruct.hInstance = builder.wcEx.hInstance;
 	if (title) builder.wStruct.lpszName = title;
@@ -510,10 +525,10 @@ SUS_FRAME_BUILDER SUSAPI susFrameBuilder(_In_opt_ LPCWSTR title)
 SUS_FRAME SUSAPI susBuildFrame(_In_ SUS_FRAME_BUILDER builder, _In_opt_ SUS_WINDOW_LISTENER handler)
 {
 	SUS_PRINTDL("Creating a frame");
-	if (!susRegisterWindowClass(builder.wcEx)) return FALSE;
+	if (!susRegisterWindowClass(builder.wcEx)) return NULL;
 	SUS_FRAME_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = builder.wStruct.lpCreateParams, .type = SUS_WINDOW_SIGNATURE_TYPE_FRAME };
 	SUS_FRAME frame = sus_newmem(sizeof(SUS_FRAME_STRUCT), &frameStruct);
-	if (!susBuildWindow(builder.wStruct, (SUS_WINDOW)frame)) { sus_free(frame); return FALSE; }
+	if (!susBuildWindow(builder.wStruct, (SUS_WINDOW)frame)) { sus_free(frame); return NULL; }
 	SUS_PRINTDL("The frame was created successfully!");
 	return frame;
 }
@@ -522,7 +537,6 @@ SUS_FRAME SUSAPI susNewFrame(_In_opt_ LPCWSTR title, _In_ SUS_SIZE size, _In_opt
 {
 	SUS_FRAME_BUILDER builder = susFrameBuilder(title);
 	susFrameBuilderSetSize(&builder, size);
-	susFrameBuilderSetCursor(&builder, LoadCursor(NULL, IDC_ARROW));
 	SUS_FRAME frame = susBuildFrame(builder, handler);
 	if (!frame) return NULL;
 	susWindowSetVisible((SUS_WINDOW)frame, TRUE);
@@ -579,10 +593,10 @@ SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_WIDGET_BUILDER builder, _In_ SUS_WINDO
 {
 	SUS_PRINTDL("Creating a widget");
 	builder.wStruct.hwndParent = parent->super;
-	SUS_WIDGET_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = builder.wStruct.lpCreateParams, .type = SUS_WINDOW_SIGNATURE_TYPE_WIDGET };
+	SUS_WIDGET_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = parent->userData, .type = SUS_WINDOW_SIGNATURE_TYPE_WIDGET };
 	SUS_WIDGET widget = sus_newmem(sizeof(SUS_WIDGET_STRUCT), &frameStruct);
 	widget->super = susBuildWindow(builder.wStruct, (SUS_WINDOW)widget);
-	if (!widget->super) { sus_free(widget); return FALSE; }
+	if (!widget->super) { sus_free(widget); return NULL; }
 	susWindowWriteData(widget->super, (LONG_PTR)widget);
 	susWindowTrackEvent(widget, SUS_WINMSG_CREATE, NULL);
 	SetWindowSubclass(widget->super, susWidgetSystemHandler, (UINT_PTR)builder.wStruct.hMenu, (DWORD_PTR)widget);
@@ -607,32 +621,32 @@ SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR classNam
 
 // Create a button
 SUS_WIDGET SUSAPI susNewButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSTYPE_BUTTON, title, id, handler, BS_PUSHBUTTON, 0);
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_PUSHBUTTON, 0);
 }
 // Create a checkbox button
 SUS_WIDGET SUSAPI susNewCheckBox(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ BOOL selected) {
-	SUS_WIDGET wg = susNewWidget(parent, SUS_WIDGET_CLASSTYPE_BUTTON, title, id, handler, BS_AUTOCHECKBOX, 0);
+	SUS_WIDGET wg = susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_AUTOCHECKBOX, 0);
 	if (wg && selected) SendMessageW(susWindowGetSuper((SUS_WINDOW)wg), BM_SETCHECK, BST_CHECKED, 0);
 	return wg;
 }
 // Create a switch
 SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSTYPE_BUTTON, title, id, handler, BS_AUTORADIOBUTTON, 0);
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_AUTORADIOBUTTON, 0);
 }
 
 // -------------------------------------------------
 
 // Create a panel
 SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSTYPE_STATIC, text, id, handler, SS_LEFT, 0);
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_STATIC, text, id, handler, SS_LEFT, 0);
 }
 // Create a text input field
 SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSTYPE_EDIT, text, id, handler, ES_AUTOHSCROLL | WS_BORDER, 0);
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, id, handler, ES_AUTOHSCROLL | WS_BORDER, 0);
 }
 // Create a text entry area
 SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSTYPE_EDIT, text, id, handler, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER, 0);
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, id, handler, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER, 0);
 }
 
 // -------------------------------------------------
@@ -685,7 +699,12 @@ BOOL SUSAPI susWindowHandler(SUS_WINDOW window, UINT uMsg, WPARAM wParam, LPARAM
 {
 	switch (uMsg)
 	{
-	case WM_PAINT: if (window->listeners.paintListener) window->listeners.paintListener(window); return TRUE;
+	case WM_PAINT: {
+		SUS_GRAPHICS_STRUCT graphics = susGraphicsGDIBegin(window->super, &window->doubleBuffer);
+		susGraphicsClear(&graphics, window->background);
+		if (window->listeners.paintListener) susWindowTrackEvent(window, SUS_WINMSG_PAINT, &graphics);
+		susGraphicsGDIEnd(&graphics, window->super);
+	} return TRUE;
 	case WM_SIZE: {
 		for (HWND hChild = GetWindow(window->super, GW_CHILD); hChild; hChild = GetNextWindow(hChild, GW_HWNDNEXT)) {
 			SUS_WINDOW child = susWindowLoadData(hChild);
@@ -699,11 +718,13 @@ BOOL SUSAPI susWindowHandler(SUS_WINDOW window, UINT uMsg, WPARAM wParam, LPARAM
 		default:				susWindowTrackEvent(window, SUS_WINMSG_RESIZE, lParam); break;
 		}
 	} return TRUE;
-	case WM_MOVE:		susWindowTrackEvent(window, SUS_WINMSG_MOVE, lParam); return TRUE;
-	case WM_SETFOCUS:	susWindowTrackEvent(window, SUS_WINMSG_FOCUS, TRUE); return TRUE;
-	case WM_KILLFOCUS:	susWindowTrackEvent(window, SUS_WINMSG_FOCUS, FALSE); return TRUE;
-	case WM_CREATE:		susWindowTrackEvent(window, SUS_WINMSG_CREATE, NULL); return TRUE;
-	case WM_DESTROY:	susWindowTrackEvent(window, SUS_WINMSG_DESTROY, NULL); return TRUE;
+	case WM_GETMINMAXINFO:	if (window) susWindowTrackEvent(window, SUS_WINMSG_SETMINMAX, lParam); return TRUE;
+	case WM_MOVE:			susWindowTrackEvent(window, SUS_WINMSG_MOVE, lParam); return TRUE;
+	case WM_SETFOCUS:		susWindowTrackEvent(window, SUS_WINMSG_FOCUS, TRUE); return TRUE;
+	case WM_KILLFOCUS:		susWindowTrackEvent(window, SUS_WINMSG_FOCUS, FALSE); return TRUE;
+	case WM_CREATE:			susWindowTrackEvent(window, SUS_WINMSG_CREATE, NULL); return TRUE;
+	case WM_DESTROY:		susWindowTrackEvent(window, SUS_WINMSG_DESTROY, NULL); return TRUE;
+	case WM_NCDESTROY:		susGraphicsGDIDoubleBufferCleanup(&window->doubleBuffer); return FALSE;
 	default: return FALSE;
 	}
 }
@@ -781,13 +802,13 @@ BOOL SUSAPI susWindowSetTransparency(_In_ SUS_WINDOW window, _In_ sus_float tran
 
 // -------------------------------------------------
 
-// Set your window data
-SUS_OBJECT SUSAPI susWindowSetUserData(_In_ SUS_WINDOW window, _In_ SUS_OBJECT userData) {
+// Set user window data
+SUS_OBJECT SUSAPI susWindowSetData(_In_ SUS_WINDOW window, _In_ SUS_OBJECT userData) {
 	SUS_ASSERT(window);
 	return window->userData = userData;
 }
-// Get your window information
-SUS_OBJECT SUSAPI susWindowGetUserData(_In_ SUS_WINDOW window) {
+// Get user window data
+SUS_OBJECT SUSAPI susWindowGetData(_In_ SUS_WINDOW window) {
 	SUS_ASSERT(window);
 	return window->userData;
 }
@@ -807,6 +828,18 @@ SUS_WIDGET SUSAPI susWindowGetWidget(_In_ SUS_WINDOW window, _In_ UINT id) {
 	HWND hWidget = GetDlgItem(window->super, id);
 	if (!hWidget) return NULL;
 	return (SUS_WIDGET)susWindowLoadData(hWidget);
+}
+// Install a double buffering system
+VOID SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WINDOW window, _In_ BOOL enabled) {
+	SUS_ASSERT(window);
+	if (enabled) window->doubleBuffer = susGraphicsGDIDoubleBufferSetup(window->super);
+	else susGraphicsGDIDoubleBufferCleanup(&window->doubleBuffer);
+}
+// Set the window background color
+VOID SUSAPI susWindowSetBackground(_In_ SUS_WINDOW window, _In_ SUS_COLOR color) {
+	SUS_ASSERT(window);
+	window->background = color;
+
 }
 
 // -------------------------------------------------
@@ -835,6 +868,13 @@ DWORD SUSAPI susWindowGetStyle(_In_ SUS_WINDOW window) {
 HWND SUSAPI susWindowGetSuper(_In_ SUS_WINDOW window) {
 	SUS_ASSERT(window);
 	return window->super;
+}
+// Get the window class name as a static string
+LPCWSTR SUSAPI susWindowGetClassName(_In_ SUS_WINDOW window) {
+	SUS_ASSERT(window);
+	static WCHAR className[64];
+	if (!GetClassNameW(window->super, className, sizeof(className) / sizeof(WCHAR))) return NULL;
+	return className;
 }
 
 // -------------------------------------------------
