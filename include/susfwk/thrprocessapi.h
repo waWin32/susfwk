@@ -8,7 +8,7 @@
 // Create a snapshot of the system
 SUS_FILE SUSAPI susCreateSystemSnapshot(_In_ DWORD dwFlags);
 // Waiting for the thread to finish
-BOOL SUSAPI susWaitForObjectFinish(_In_ SUS_FILE hObject);
+DWORD SUSAPI susWaitForObjectFinish(_In_ SUS_FILE hObject);
 
 //////////////////////////////////////////////////////////////////
 //						The Process API							//
