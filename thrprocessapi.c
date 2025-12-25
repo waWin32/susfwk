@@ -18,7 +18,7 @@ SUS_FILE SUSAPI susCreateSystemSnapshot(_In_ DWORD dwFlags)
 	return hSnapShot;
 }
 // Waiting for the thread to finish
-BOOL SUSAPI susWaitForObjectFinish(_In_ SUS_FILE hObject)
+DWORD SUSAPI susWaitForObjectFinish(_In_ SUS_FILE hObject)
 {
 	SUS_PRINTDL("Waiting for the end of the thread ...");
 	SUS_ASSERT(hObject);
