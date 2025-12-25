@@ -169,6 +169,8 @@ SUS_INLINE INT SUSAPIV sus_printfA(
 	sus_va_end(args);
 	return res;
 }
+#define sus_printlnA(format, ...) sus_printfA(format "\n", __VA_ARGS__)
+
 // Formatted output to the console
 SUS_INLINE INT SUSAPI sus_vprintfW(
 	_In_ LPCWSTR format,
@@ -186,13 +188,16 @@ SUS_INLINE INT SUSAPIV sus_printfW(
 	sus_va_end(args);
 	return res;
 }
+#define sus_printlnW(format, ...) sus_printfW(format L"\n", __VA_ARGS__)
 
 #ifdef UNICODE
 #define sus_vprintf		sus_vprintfW
 #define sus_printf		sus_printfW
+#define sus_println		sus_printlnW
 #else
 #define sus_vprintf		sus_vprintfA
 #define sus_printf		sus_printfA
+#define sus_println		sus_printlnA
 #endif // !UNICODE
 
 // Formatted input to the console
@@ -283,19 +288,6 @@ SUS_INLINE INT SUSAPI sus_inputW(_In_opt_ LPCWSTR text, _In_ LPCWSTR format, _In
 #define sus_input		sus_inputW
 #else
 #define sus_input		sus_inputA
-#endif // !UNICODE
-
-// --------------------------------------------------------
-
-// output a message box with a format string
-INT SUSAPIV susMessageBoxA(_In_opt_ HWND hWnd, _In_ LPCSTR ftext, _In_ LPCSTR header, _In_ UINT uType, ...);
-// output a message box with a format string
-INT SUSAPIV susMessageBoxW(_In_opt_ HWND hWnd, _In_ LPCWSTR ftext, _In_ LPCWSTR header, _In_ UINT uType, ...);
-
-#ifdef UNICODE
-#define susMessageBox	susMessageBoxW
-#else
-#define susMessageBox	susMessageBoxA
 #endif // !UNICODE
 
 // --------------------------------------------------------

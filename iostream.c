@@ -66,26 +66,3 @@ INT SUSAPI sus_vfscanfW(
 }
 
 // --------------------------------------------------------
-
-// output a message box with a format string
-INT SUSAPIV susMessageBoxA(_In_opt_ HWND hWnd, _In_ LPCSTR ftext, _In_ LPCSTR header, _In_ UINT uType, ...)
-{
-	sus_va_list list;
-	sus_va_start(list, uType);
-	LPSTR text = ftext ? sus_dvformattingA(ftext, list) : NULL;
-	INT rez = MessageBoxA(hWnd, text ? text : "null", header, uType);
-	if (text) sus_strfree(text);
-	return rez;
-}
-// output a message box with a format string
-INT SUSAPIV susMessageBoxW(_In_opt_ HWND hWnd, _In_ LPCWSTR ftext, _In_ LPCWSTR header, _In_ UINT uType, ...)
-{
-	sus_va_list list;
-	sus_va_start(list, uType);
-	LPWSTR text = ftext ? sus_dvformattingW(ftext, list) : NULL;
-	INT rez = MessageBoxW(hWnd, text ? text : L"null", header, uType);
-	if (text) sus_wcsfree(text);
-	return rez;
-}
-
-// --------------------------------------------------------
