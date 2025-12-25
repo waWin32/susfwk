@@ -182,12 +182,19 @@ SUS_INLINE VOID SUSAPI sus_wcsfree(_In_ LPWSTR str) {
 //					Dynamic virtual memory						//
 //////////////////////////////////////////////////////////////////
 
+// Virtual memory protection
+typedef enum sus_memory_protect {
+	SUS_MEMORY_PROTECT_READWRITE	= PAGE_READWRITE,
+	SUS_MEMORY_PROTECT_READONLY		= PAGE_READONLY,
+	SUS_MEMORY_PROTECT_EXECUTE		= PAGE_EXECUTE,
+	SUS_MEMORY_PROTECT_EXECUTE_READ	= PAGE_EXECUTE_READ,
+	SUS_MEMORY_PROTECT_ALL			= PAGE_EXECUTE_READWRITE,
+	SUS_MEMORY_PROTECT_TOTAL		= PAGE_EXECUTE_READWRITE
+} SUS_MEMORY_PROTECT;
 // Allocate virtual memory
 SUS_LPMEMORY SUSAPI sus_vmalloc(
-	_In_opt_ SUS_LPMEMORY lpAddress,
 	_In_ SIZE_T size,
-	_In_ DWORD flAllocationType,
-	_In_ DWORD flProtect
+	_In_ SUS_MEMORY_PROTECT protect
 );
 // Allocate virtual memory to process
 SUS_LPMEMORY SUSAPI sus_vmallocEx(

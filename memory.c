@@ -12,6 +12,9 @@
 SUS_LPMEMORY SUSAPI sus_malloc(_In_ SIZE_T size)
 {
 	SUS_PRINTDL("Allocating %d bytes of memory", size);
+#ifdef _DEBUG
+	if (size >= (SIZE_T)1 << 20) SUS_PRINTDW("The allocated block exceeds the memory heap limits, use sus_vmalloc!");
+#endif // ~_DEBUG
 	SUS_LPMEMORY hMem = NULL;
 	for (DWORD i = 0; i < SUS_NUMBER_ATTEMPTS_ALLOCATE_MEMORY; i++) {
 		hMem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
@@ -20,7 +23,6 @@ SUS_LPMEMORY SUSAPI sus_malloc(_In_ SIZE_T size)
 		SUS_PRINTDC(GetLastError());
 		Sleep(10);
 	}
-	SUS_PRINTDL("Successful memory allocation");
 	return hMem;
 }
 // Memory reallocation
@@ -31,18 +33,17 @@ SUS_LPMEMORY SUSAPI sus_realloc(
 	SUS_PRINTDL("Changing the memory block to %d bytes", newSize);
 	if (!block) return sus_malloc(newSize);
 	SIZE_T oldSize = HeapSize(GetProcessHeap(), 0, block);
-	if (oldSize == (SIZE_T)-1) return NULL;
 	SUS_LPMEMORY hMem = HeapReAlloc(GetProcessHeap(), 0, block, newSize);
 	if (hMem) {
 		SUS_PRINTDL("The block size has been successfully changed");
 		return hMem;
 	}
 	SUS_LPMEMORY hNewMem = sus_malloc(newSize);
-	if (!hNewMem) return newSize < oldSize ? block : NULL;
+	if (!hNewMem) return newSize <= oldSize ? block : NULL;
 	sus_memcpy(hNewMem, block, min(oldSize, newSize));
 	sus_free(block);
 	SUS_PRINTDL("The block size has been successfully changed");
-	return hMem;
+	return hNewMem;
 }
 // Free a block of memory in the heap
 SUS_LPMEMORY SUSAPI sus_free(_In_ SUS_LPMEMORY block)
@@ -72,17 +73,15 @@ SUS_LPMEMORY SUSAPI sus_newmem(_In_ SIZE_T size, _In_opt_ SUS_OBJECT value)
 
 // Allocate virtual memory
 SUS_LPMEMORY SUSAPI sus_vmalloc(
-	_In_opt_ SUS_LPMEMORY lpAddress,
 	_In_ SIZE_T size,
-	_In_ DWORD flAllocationType,
-	_In_ DWORD flProtect)
+	_In_ SUS_MEMORY_PROTECT protect)
 {
 	SUS_PRINTDL("Allocating %d bytes in virtual memory", size);
 	SUS_LPMEMORY hMem = VirtualAlloc(
-		lpAddress,
+		NULL,
 		size,
-		flAllocationType,
-		flProtect
+		MEM_RESERVE | MEM_COMMIT,
+		protect
 	);
 	if (!hMem) {
 		SUS_PRINTDE("Couldn't allocate memory");
