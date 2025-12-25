@@ -159,15 +159,19 @@ SUS_INLINE DWORD SUSAPI susMapGetIndex(SUS_HASHMAP map, LPBYTE key) {
 // Get an item by key
 SUS_OBJECT SUSAPI susMapGetEntry(
 	_In_ SUS_HASHMAP map,
-	_In_bytecount_(map->valueSize) SUS_OBJECT key
+	_In_bytecount_(map->valueSize) const SUS_OBJECT key
 );
+// Check if the hash table contains an element
+SUS_INLINE BOOL SUSAPI susMapContains(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) const SUS_OBJECT key) {
+	return susMapGetEntry(map, key) ? TRUE : FALSE;
+}
 // Get an item by key
-SUS_INLINE SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key) {
+SUS_INLINE SUS_OBJECT SUSAPI susMapGet(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) const SUS_OBJECT key) {
 	SUS_OBJECT entry = susMapGetEntry(map, key);
 	return entry ? susMapValue(map, entry) : NULL;
 }
 // Get an item by key
-SUS_INLINE SUS_OBJECT SUSAPI susMapGetKey(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) SUS_OBJECT key) {
+SUS_INLINE SUS_OBJECT SUSAPI susMapGetKey(_In_ SUS_HASHMAP map, _In_bytecount_(map->valueSize) const SUS_OBJECT key) {
 	SUS_OBJECT entry = susMapGetEntry(map, key);
 	return entry ? susMapKey(map, entry) : NULL;
 }
@@ -274,8 +278,8 @@ SUS_INLINE SUS_OBJECT SUSAPI susMapIterValue(SUS_MAP_ITER iter) {
 // An unordered array
 typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 
-#define susNewSetSized(typeSize)		(SUS_HASHSET)susNewMapSized(typeSize, 0);
-#define susNewSet(type)					susNewSetSized(sizeof(type));
+#define susNewSetSized(typeSize)		(SUS_HASHSET)susNewMapSized(typeSize, 0)
+#define susNewSet(type)					susNewSetSized(sizeof(type))
 #define susSetCopy						(SUS_HASHSET)susMapCopy
 #define susSetDestroy					susMapDestroy
 
