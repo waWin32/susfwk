@@ -274,56 +274,56 @@ LPWSTR SUSAPI sus_trimW(_Inout_ LPWSTR* str)
 // -----------------------------------------------------------------------------
 
 // The index of the symbol
-LPSTR SUSAPI sus_strchrA(_In_ LPCSTR str, _In_ CHAR s)
+LPSTR SUSAPI sus_strchr(_In_ LPCSTR str, _In_ CHAR s)
 {
 	while (*str != s) if (!(*str++)) return NULL;
 	return (LPSTR)str;
 }
 // The index of the symbol
-LPWSTR SUSAPI sus_strchrW(_In_ LPCWSTR str, _In_ WCHAR s)
+LPWSTR SUSAPI sus_wcschr(_In_ LPCWSTR str, _In_ WCHAR s)
 {
 	while (*str != s) if (!(*str++)) return NULL;
 	return (LPWSTR)str;
 }
 // Find a rock undergrowth in a row
-LPSTR SUSAPI sus_strstrA(_In_ LPCSTR str, _In_ LPCSTR substring)
+LPSTR SUSAPI sus_strstr(_In_ LPCSTR str, _In_ LPCSTR substring)
 {
 	if (!*substring) return (LPSTR)str;
 	DWORD size = lstrlenA(substring) * sizeof(CHAR);
 	for (; *str; str++) {
-		if (!(str = sus_strchrA(str, *substring))) return NULL;
+		if (!(str = sus_strchr(str, *substring))) return NULL;
 		if (sus_memcmp((CONST LPBYTE)str, (CONST LPBYTE)substring, size)) return (LPSTR)str;
 	}
 	return NULL;
 }
 // Find a rock undergrowth in a row
-LPWSTR SUSAPI sus_strstrW(_In_ LPCWSTR str, _In_ LPCWSTR substring)
+LPWSTR SUSAPI sus_wcsstr(_In_ LPCWSTR str, _In_ LPCWSTR substring)
 {
 	if (!*substring) return (LPWSTR)str;
 	DWORD size = lstrlenW(substring) * sizeof(WCHAR);
 	for (; *str; str++) {
-		if (!(str = sus_strchrW(str, *substring))) return NULL;
+		if (!(str = sus_wcschr(str, *substring))) return NULL;
 		if (sus_memcmp((CONST LPBYTE)str, (CONST LPBYTE)substring, size)) return (LPWSTR)str;
 	}
 	return NULL;
 }
 
 // The last index of the symbol
-LPSTR SUSAPI sus_strrchrA(_In_ LPCSTR str, _In_ CHAR s)
+LPSTR SUSAPI sus_strrchr(_In_ LPCSTR str, _In_ CHAR s)
 {
 	LPSTR cur = (LPSTR)str + lstrlenA(str) - 1;
 	while (*cur != s) if (cur-- - str < 0) return NULL;
 	return cur;
 }
 // The last index of the symbol
-LPWSTR SUSAPI sus_strrchrW(_In_ LPCWSTR str, _In_ WCHAR s)
+LPWSTR SUSAPI sus_wcsrchr(_In_ LPCWSTR str, _In_ WCHAR s)
 {
 	LPWSTR cur = (LPWSTR)str + lstrlenW(str) - 1;
 	while (*cur != s) if (cur-- - str < 0) return NULL;
 	return cur;
 }
 // Find a rock undergrowth in a row
-LPSTR SUSAPI sus_strrstrA(_In_ LPCSTR str, _In_ LPCSTR substring)
+LPSTR SUSAPI sus_strrstr(_In_ LPCSTR str, _In_ LPCSTR substring)
 {
 	if (!*substring) return (LPSTR)(str + lstrlenA(str));
 	DWORD size = lstrlenA(substring) * sizeof(CHAR);
@@ -333,7 +333,7 @@ LPSTR SUSAPI sus_strrstrA(_In_ LPCSTR str, _In_ LPCSTR substring)
 	return NULL;
 }
 // Find a rock undergrowth in a row
-LPWSTR SUSAPI sus_strrstrW(_In_ LPCWSTR str, _In_ LPCWSTR substring)
+LPWSTR SUSAPI sus_wcsrstr(_In_ LPCWSTR str, _In_ LPCWSTR substring)
 {
 	if (!*substring) return (LPWSTR)(str + lstrlenW(str));
 	DWORD size = lstrlenW(substring) * sizeof(WCHAR);
@@ -344,25 +344,25 @@ LPWSTR SUSAPI sus_strrstrW(_In_ LPCWSTR str, _In_ LPCWSTR substring)
 }
 
 // parse a string for tokens
-LPSTR SUSAPI sus_strtokA(_Inout_ LPSTR* ctx, _In_ LPCSTR delimiter)
+LPSTR SUSAPI sus_strtok(_Inout_ LPSTR* ctx, _In_ LPCSTR delimiter)
 {
 	SUS_ASSERT(ctx && *ctx && delimiter);
 	LPSTR token = *ctx;
-	for (; *token && sus_strchrA(delimiter, *token); token++);
+	for (; *token && sus_strchr(delimiter, *token); token++);
 	if (!*token) return NULL;
-	LPSTR separator = sus_strstrA(token, delimiter);
+	LPSTR separator = sus_strstr(token, delimiter);
 	if (separator) *separator = '\0';
 	*ctx = (separator ? separator + lstrlenA(delimiter) : token + lstrlenA(token));
 	return token;
 }
 // parse a string for tokens
-LPWSTR SUSAPI sus_strtokW(_Inout_ LPWSTR* ctx, _In_ LPCWSTR delimiter)
+LPWSTR SUSAPI sus_wcstok(_Inout_ LPWSTR* ctx, _In_ LPCWSTR delimiter)
 {
 	SUS_ASSERT(ctx && *ctx && delimiter);
 	LPWSTR token = *ctx;
-	for (; *token && sus_strchrW(delimiter, *token); token++);
+	for (; *token && sus_wcschr(delimiter, *token); token++);
 	if (!*token) return NULL;
-	LPWSTR separator = sus_strstrW(token, delimiter);
+	LPWSTR separator = sus_wcsstr(token, delimiter);
 	if (separator) *separator = L'\0';
 	*ctx = (separator ? separator + lstrlenW(delimiter) : token + lstrlenW(token));
 	return token;

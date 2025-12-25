@@ -34,9 +34,9 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 #define sus_isalnum	sus_isalnumA
 #endif // !UNICODE
 
-// Get length of the string
+// Copy Line to Line
 #define sus_strcpy(str1, str2) lstrcpyA(str1, str2)
-// Get length of the string
+// Copy Line to Line
 #define sus_wcscpy(str1, str2) lstrcpyW(str1, str2)
 
 // Get length of the string
@@ -44,10 +44,15 @@ SUS_INLINE BOOLEAN SUSAPI sus_isalnumW(WCHAR c) { return sus_isalphaW(c) || sus_
 // Get length of the string
 #define sus_wcslen(str) lstrlenW(str)
 
-// Get length of the string
+// Detailed string comparison
 #define sus_strcmp(str1, str2) ((BOOL)(!lstrcmpA(str1, str2) ? TRUE : FALSE))
-// Get length of the string
+// Detailed string comparison
 #define sus_wcscmp(str1, str2) ((BOOL)(!lstrcmpW(str1, str2) ? TRUE : FALSE))
+
+// Comparing strings without case checking
+#define sus_strcmpi(str1, str2) ((BOOL)(!lstrcmpiA(str1, str2) ? TRUE : FALSE))
+// Comparing strings without case checking
+#define sus_wcscmpi(str1, str2) ((BOOL)(!lstrcmpiW(str1, str2) ? TRUE : FALSE))
 
 // -----------------------------------------------------------------------------
 
@@ -210,89 +215,59 @@ LPWSTR SUSAPI sus_trimW(
 // -----------------------------------------------------------------------------
 
 // The index of the symbol
-LPSTR SUSAPI sus_strchrA(
+LPSTR SUSAPI sus_strchr(
 	_In_ LPCSTR str,
 	_In_ CHAR s
 );
 // The index of the symbol
-LPWSTR SUSAPI sus_strchrW(
+LPWSTR SUSAPI sus_wcschr(
 	_In_ LPCWSTR str,
 	_In_ WCHAR s
 );
 
-#ifdef UNICODE
-#define sus_strchr	sus_strchrW
-#else
-#define sus_strchr	sus_strchrA
-#endif // !UNICODE
-
 // Find a rock undergrowth in a row
-LPSTR SUSAPI sus_strstrA(
+LPSTR SUSAPI sus_strstr(
 	_In_ LPCSTR str,
 	_In_ LPCSTR substring
 );
 // Find a rock undergrowth in a row
-LPWSTR SUSAPI sus_strstrW(
+LPWSTR SUSAPI sus_wcsstr(
 	_In_ LPCWSTR str,
 	_In_ LPCWSTR substring
 );
 
-#ifdef UNICODE
-#define sus_strstr	sus_strstrW
-#else
-#define sus_strstr	sus_strstrA
-#endif // !UNICODE
-
 // The last index of the symbol
-LPSTR SUSAPI sus_strrchrA(
+LPSTR SUSAPI sus_strrchr(
 	_In_ LPCSTR str,
 	_In_ CHAR s
 );
 // The last index of the symbol
-LPWSTR SUSAPI sus_strrchrW(
+LPWSTR SUSAPI sus_wcsrchr(
 	_In_ LPCWSTR str,
 	_In_ WCHAR s
 );
 
-#ifdef UNICODE
-#define sus_strrchr	sus_strrchrW
-#else
-#define sus_strrchr	sus_strrchrA
-#endif // !UNICODE
-
 // Find a rock undergrowth in a row
-LPSTR SUSAPI sus_strrstrA(
+LPSTR SUSAPI sus_strrstr(
 	_In_ LPCSTR str,
 	_In_ LPCSTR substring
 );
 // Find a rock undergrowth in a row
-LPWSTR SUSAPI sus_strrstrW(
+LPWSTR SUSAPI sus_wcsrstr(
 	_In_ LPCWSTR str,
 	_In_ LPCWSTR substring
 );
 
-#ifdef UNICODE
-#define sus_strrstr	sus_strrstrW
-#else
-#define sus_strrstr	sus_strrstrA
-#endif // !UNICODE
-
 // parse a string for tokens
-LPSTR SUSAPI sus_strtokA(
+LPSTR SUSAPI sus_strtok(
 	_Inout_ LPSTR* ctx,
 	_In_ LPCSTR delimiter
 );
 // parse a string for tokens
-LPWSTR SUSAPI sus_strtokW(
+LPWSTR SUSAPI sus_wcstok(
 	_Inout_ LPWSTR* ctx,
 	_In_ LPCWSTR delimiter
 );
-
-#ifdef UNICODE
-#define sus_strtok	sus_strtokW
-#else
-#define sus_strtok	sus_strtokA
-#endif // !UNICODE
 
 // -----------------------------------------------------------------------------
 
