@@ -28,7 +28,7 @@ SUS_FILE_MAP SUSAPI susFileMapOpenA(_In_ LPCSTR fileName, _In_ DWORD dwAccess, _
 	SUS_ASSERT(fileName);
 	SUS_FILE_MAP map = { 0 };
 	BOOL fileOwner = !sus_fexistsA(fileName);
-	map.hFile = sus_fopen(fileName, dwAccess);
+	map.hFile = sus_fopenA(fileName, dwAccess);
 	if (!map.hFile) {
 		SUS_PRINTDE("Couldn't open the file in memory");
 		return (SUS_FILE_MAP) { 0 };
