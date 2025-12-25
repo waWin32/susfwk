@@ -80,7 +80,7 @@ and when used, access it via super.
 
 // -----------------------------------------------
 
-//
+// Element count in array
 #define SUS_COUNT_OF(array) (sizeof(array) / sizeof(*array))
 // The return value for exiting recursion
 #define GETTING_OUT_RECURSION (DWORD)-1
@@ -122,6 +122,16 @@ and when used, access it via super.
 
 // Alignment
 #define SUS_ALIGN(size) (((size) + sizeof(sus_ptr) - 1) & ~(sizeof(sus_ptr) - 1))
+
+// Exit the program
+#define sus_exit(code) ExitProcess(code)
+#ifdef _DEBUG
+// Emergency exit from the program
+#define sus_error(code) FatalExit(code)
+#else
+// Emergency exit from the program
+#define sus_error(code) ExitProcess(code)
+#endif // !_DEBUG
 
 #ifdef _WIN32
 	typedef sus_u8* sus_va_list;
