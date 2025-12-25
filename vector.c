@@ -37,7 +37,7 @@ SUS_BUFFER SUSAPI susBufferCopy(_In_ SUS_BUFFER src, _In_ SIZE_T offset)
 // -------------------------------------
 
 // Guaranteed buffer size
-inline static VOID SUSAPI susBufferReserve(
+VOID SUSAPI susBufferReserve(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T required)
 {
@@ -52,7 +52,7 @@ inline static VOID SUSAPI susBufferReserve(
 	*pBuff = (SUS_BUFFER)((LPBYTE)sus_realloc((LPBYTE)buff - offset, sizeof(SUS_BUFFER_STRUCT) + buff->capacity + offset) + offset);
 }
 // Shrink the buffer to the minimum size
-inline static VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
+VOID SUSAPI susBufferCompress(_Inout_ SUS_LPBUFFER pBuff)
 {
 	SUS_ASSERT(pBuff && *pBuff);
 	SUS_BUFFER buff = *pBuff;
@@ -110,7 +110,8 @@ VOID SUSAPI susBufferSwap(
 	SUS_ASSERT(pBuff && *pBuff && size);
 	SUS_BUFFER buff = *pBuff;
 	SUS_ASSERT(!(fromPos + size > (*pBuff)->size) && !(toPos + size > (*pBuff)->size));
-	SUS_ASSERT(!(fromPos == toPos || (toPos >= fromPos && toPos < fromPos + size) || (fromPos >= toPos && fromPos < toPos + size)));
+	if (fromPos == toPos) return;
+	SUS_ASSERT(!((toPos >= fromPos && toPos < fromPos + size) || (fromPos >= toPos && fromPos < toPos + size)));
 	LPBYTE tmp = (LPBYTE)sus_malloc(size);
 	if (!tmp) return;
 	sus_memcpy(tmp, buff->data + fromPos, size);
@@ -278,7 +279,6 @@ INT SUSAPI susVectorLastIndexOf(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In
 	return -1;
 }
 
-
 // -------------------------------------
 
 // Delete the last element of the array
@@ -293,7 +293,6 @@ VOID SUSAPI susVectorPopBack(
 	vector->length--;
 	susBufferTruncate(&buff, vector->itemSize);
 	susVectorSyncBuffer(buff, offset, pVector);
-
 }
 // Remove an element from a dynamic array
 VOID SUSAPI susVectorErase(

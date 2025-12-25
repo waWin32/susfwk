@@ -81,6 +81,15 @@ SUS_INLINE LPWSTR SUSAPI susBufferToCWStr(_In_ SUS_BUFFER buff) {
 // -------------------------------------
 
 // Guaranteed buffer size
+VOID SUSAPI susBufferReserve(
+	_Inout_ SUS_LPBUFFER pBuff,
+	_In_ SIZE_T required
+);
+// Shrink the buffer to the minimum size
+VOID SUSAPI susBufferCompress(
+	_Inout_ SUS_LPBUFFER pBuff
+);
+// Guaranteed buffer size
 VOID SUSAPI susBufferResize(
 	_Inout_ SUS_LPBUFFER pBuff,
 	_In_ SIZE_T size
@@ -114,6 +123,14 @@ SUS_LPMEMORY SUSAPI susBufferAppend(
 	_In_reads_bytes_opt_(size) CONST LPBYTE data,
 	_In_ SIZE_T size
 );
+// Add a C string to the buffer
+SUS_INLINE SUS_LPMEMORY SUSAPI susBufferTextAppend(_Inout_ SUS_LPBUFFER pBuff, _In_ LPCSTR text) {
+	return susBufferAppend(pBuff, (LPBYTE)text, (SIZE_T)sus_strlen(text) * sizeof(CHAR));
+}
+// Add a C string to the buffer
+SUS_INLINE SUS_LPMEMORY SUSAPI susBufferWTextAppend(_Inout_ SUS_LPBUFFER pBuff, _In_ LPCWSTR text) {
+	return susBufferAppend(pBuff, (LPBYTE)text, (SIZE_T)sus_wcslen(text) * sizeof(WCHAR));
+}
 // Delete data from the end of the buffer
 VOID SUSAPI susBufferTruncate(
 	_Inout_ SUS_LPBUFFER pBuff,
@@ -186,6 +203,8 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorGet(_Inout_ SUS_VECTOR vector, _In_ UINT i
 	SUS_ASSERT(vector && vector->size && index < vector->length);
 	return (SUS_OBJECT)((LPBYTE)vector->data + index * vector->itemSize);
 }
+// Work with a vector as an array
+#define SUS_VECARRAY(vector, type) ((type*)((vector)->data))
 // Accessing an array element
 SUS_INLINE SUS_OBJECT SUSAPI susVectorAt(_Inout_ SUS_VECTOR vector, _In_ INT index) {
 	SUS_ASSERT(vector && vector->size);
@@ -248,6 +267,10 @@ INT SUSAPI susVectorLastIndexOf(
 	_In_ SUS_OBJECT obj,
 	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
 );
+// Check whether the array contains an element
+SUS_INLINE BOOL SUSAPI susVectorContains(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher) {
+	return susVectorIndexOf(vector, obj, searcher) != -1 ? TRUE : FALSE;
+}
 
 // -------------------------------------
 
@@ -264,12 +287,13 @@ VOID SUSAPI susVectorErase(
 SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR pVector, _In_ DWORD i) {
 	susVectorSwap(pVector, i, (*pVector)->length - 1);
 	susVectorPopBack(pVector);
-	return susVectorGet(*pVector, i);
+	return (*pVector)->length ? susVectorGet(*pVector, i) : NULL;
 }
 // Delete all elements of the array
 SUS_INLINE VOID SUSAPI susVectorClear(_In_ SUS_VECTOR vector) {
 	SUS_ASSERT(vector);
 	susBufferClear(susVectorBuffer(vector));
+	vector->length = 0;
 }
 // Delete the last element of the array
 SUS_INLINE VOID SUSAPI susVectorPopFront(_Inout_ SUS_LPVECTOR pVector) {
