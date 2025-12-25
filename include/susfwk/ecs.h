@@ -58,16 +58,16 @@ typedef sus_u32 SUS_SYSTEM_ID;
 
 // --------------------------------------------------------------------------------------
 
-// Type of system
-typedef enum sus_system_type {
-	SUS_SYSTEM_TYPE_ENTITY,
-	SUS_SYSTEM_TYPE_FREE
-} SUS_SYSTEM_TYPE;
+// Entity Request Structure
+typedef struct sus_query {
+	SUS_VECTOR			entities;	// SUS_ENTITY, A cached set of matching entities
+} SUS_QUERY_STRUCT, * SUS_QUERY;
 // The archetype of entities
 typedef struct sus_archetype {
-	SUS_COMPONENTMASK mask;		// The mask of the archetype components
-	SUS_VECTOR entities;		// SUS_ENTITY
-	SUS_HASHMAP componentPools; // SUS_COMPONENT_TYPE -> SUS_VECTOR(of components)
+	SUS_COMPONENTMASK	mask;			// The mask of the archetype components
+	SUS_VECTOR			entities;		// SUS_ENTITY
+	SUS_HASHMAP			componentPools; // SUS_COMPONENT_TYPE -> SUS_VECTOR(of components)
+	SUS_VECTOR			questions;		// SUS_QUERY
 } SUS_ARCHETYPE_STRUCT, *SUS_ARCHETYPE;
 // The position of the entity in the archetype
 typedef struct sus_entity_location {
@@ -85,6 +85,11 @@ typedef struct sus_system_timer {
 	DWORD interval;
 	DWORD nextFire;
 } SUS_SYSTEM_TIMER;
+// Type of system
+typedef enum sus_system_type {
+	SUS_SYSTEM_TYPE_ENTITY,
+	SUS_SYSTEM_TYPE_FREE
+} SUS_SYSTEM_TYPE;
 // ECS system structure
 typedef struct sus_system {
 #pragma warning(push)
@@ -117,6 +122,7 @@ typedef struct sus_world {
 	SUS_HASHMAP archetypes;				// SUS_COMPONENTMASK -> SUS_ARCHETYPE_STRUCT
 	SUS_HASHMAP entities;				// SUS_ENTITY -> SUS_ENTITY_LOCATION
 	SUS_VECTOR  systems;				// SUS_SYSTEM
+	SUS_HASHMAP questions;				// SUS_COMPONENTMASK -> SUS_QUERY_STRUCT
 	SUS_VECTOR registeredComponents;	// SUS_REGISTERED_COMPONENT
 	SUS_VECTOR freeEntities;			// SUS_ENTITY
 	SUS_ENTITY next;					// The following entity id
@@ -174,7 +180,7 @@ SUS_SYSTEM_ID SUSAPI susWorldRegisterFreeSystem(
 	_In_opt_ DWORD interval,
 	_In_opt_ SUS_OBJECT userData
 );
-// Get all entities with a mask
+// Get entities with a mask
 SUS_VECTOR SUSAPI susWorldGetEntitiesWith(
 	_Inout_ SUS_WORLD world,
 	_In_ SUS_COMPONENTMASK mask
