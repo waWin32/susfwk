@@ -145,8 +145,8 @@ LPSTR SUSAPI susJsonStringify(_In_ SUS_JSON json)
 static LPSTR SUSAPI susJsonStringParse(_Inout_ LPSTR* text, _Out_ SUS_LPJSON_ERROR error) {
 	SUS_ASSERT(text && *text && **text == '"');
 	*error = SUS_JSON_ERROR_SUCCESS;
-	LPSTR end = sus_strchrA(++(*text), '"');
-	while (end && *(end - 1) == '\\' && *(end - 2) != '\\') end = sus_strchrA(end + 1, '"');
+	LPSTR end = sus_strchr(++(*text), '"');
+	while (end && *(end - 1) == '\\' && *(end - 2) != '\\') end = sus_strchr(end + 1, '"');
 	if (!end) {
 		*error = SUS_JSON_ERROR_SYNTAX;
 		return NULL;
@@ -266,6 +266,7 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text, _Out_ SUS_LPJSON_ERRO
 	}
 	return json;
 }
+#pragma warning(suppress: 6101)
 // Convert string to json
 SUS_JSON SUSAPI susJsonParse(_In_ LPCSTR text, _Out_opt_ SUS_LPJSON_ERROR lpError)
 {

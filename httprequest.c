@@ -66,13 +66,13 @@ static BOOL SUSAPI susHttpParseUrl(_In_ LPCWSTR textUrl, _Out_ SUS_LPHTTP_URL ur
 static BOOL SUSAPI susHttpParseHeaderLine(_Inout_ LPWSTR* pwszHeaders, _Inout_ SUS_LPHASHMAP map) {
 	SUS_ASSERT(map && *map && pwszHeaders);
 	if (!*pwszHeaders) return FALSE;
-	LPWSTR key = sus_strtokW(pwszHeaders, L": ");
+	LPWSTR key = sus_wcstok(pwszHeaders, L": ");
 	if (!key || lstrlenW(key) >= 32) {
 		return FALSE;
 	}
 	WCHAR keyBuff[32] = { 0 };
 	lstrcpyW(keyBuff, key);
-	LPWSTR value = sus_strtokW(pwszHeaders, L"\r\n");
+	LPWSTR value = sus_wcstok(pwszHeaders, L"\r\n");
 	if (!value) return FALSE;
 	SUS_LPBUFFER lpValueBuff = (SUS_BUFFER*)susMapGet(*map, keyBuff);
 	if (!lpValueBuff) {
@@ -172,7 +172,7 @@ static BOOL SUSAPI susHttpQueryHeaders(_In_ HINTERNET hRequest, _Inout_ SUS_LPHA
 			pwszHeaders, &dwHeaderSize, WINHTTP_NO_HEADER_INDEX
 		);
 		LPWSTR ctx = pwszHeaders;
-		sus_strtokW(&ctx, L"\r\n");
+		sus_wcstok(&ctx, L"\r\n");
 		while (susHttpParseHeaderLine(&ctx, headers));
 		sus_free(pwszHeaders);
 		return TRUE;
