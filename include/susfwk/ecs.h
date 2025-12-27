@@ -330,4 +330,23 @@ SUS_INLINE VOID SUSAPI susSystemSetUserdata(_Inout_ SUS_WORLD world, _In_ SUS_SY
 
 // -------------------------------------------------------------------
 
+/* An example of a simple ecs struct
+VOID GameWorldComponentsInit(_Inout_ SUS_WORLD world) {
+	// Init the game components
+}
+VOID GameWorldSystemInit(_Inout_ SUS_WORLD world) {
+	// Init the game systems
+}
+
+int main()
+{
+	SUS_WORLD world = susNewWorld();
+	GameWorldComponentsInit(world);
+	GameWorldSystemInit(world);
+	SUS_DTIMER delta = susDTimerInit();
+	while (TRUE) susWorldUpdate(world, susDTimeGet(&delta));
+	susWorldDestroy(world);
+	sus_exit(0);
+}
+*/
 #endif /* !_SUS_ECS_ */
