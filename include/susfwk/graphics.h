@@ -246,6 +246,169 @@ SUS_INLINE VOID SUSAPI susGraphicsDrawImage(_In_ SUS_GRAPHICS graphics, _In_ SUS
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// ================================================================================================= //
+// ************************************************************************************************* //
+//												 GPU RENDER											 //
+/*								Working with graphics on OpenGL gpu system							 */
+// ************************************************************************************************* //
+// ================================================================================================= //
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//									  Basic set of functions      								  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Version OpenGL Default
+#define SUS_GRAPHICS_DEFAULT_VERSION "3.3"
+
+// -----------------------------------------------
+
+// Basic graphics initialization
+HGLRC SUSAPI susGraphicsBasicSetup(_In_ HWND hWnd);
+// A modern way to initialize graphics
+HGLRC SUSAPI susGraphicsModernSetup(_In_ HWND hWnd, _In_ WORD major, _In_ WORD minor);
+// Get graphics information
+VOID SUSAPI susGraphicsPrint();
+// Initialize graphics
+HGLRC SUSAPI susGraphicsSetup(_In_ HWND hWnd, _In_ WORD major, _In_ WORD minor);
+// Clean up graphics resources
+VOID SUSAPI susGraphicsCleanup(_In_ HWND hWnd, _In_ HGLRC hGlrc);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//									  Working with shaders      								  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Types of shaders
+typedef enum sus_graphics_shader_type {
+	SUS_GRAPHICS_SHADER_TYPE_VERTEX = GL_VERTEX_SHADER,
+	SUS_GRAPHICS_SHADER_TYPE_FRAGMENT = GL_FRAGMENT_SHADER,
+	SUS_GRAPHICS_SHADER_TYPE_GEOMETRY = GL_GEOMETRY_SHADER,
+	SUS_GRAPHICS_SHADER_TYPE_TESS_CONTROL = GL_TESS_CONTROL_SHADER,
+	SUS_GRAPHICS_SHADER_TYPE_TESS_EVALUATION = GL_TESS_EVALUATION_SHADER,
+	SUS_GRAPHICS_SHADER_TYPE_COMPUTE = GL_COMPUTE_SHADER
+} SUS_GRAPHICS_SHADER_TYPE, *SUS_LPGRAPHICS_SHADER_TYPE;
+// Shader
+typedef GLuint SUS_GRAPHICS_SHADER, *SUS_LPGRAPHICS_SHADER;
+// Shader Program
+typedef GLuint SUS_GRAPHICS_PROGRAM, *SUS_LPGRAPHICS_PROGRAM;
+
+// -----------------------------------------------
+
+// Create a shader
+SUS_GRAPHICS_SHADER SUSAPI susGraphicsLoadShader(_In_ SUS_GRAPHICS_SHADER_TYPE type, _In_ LPCSTR source);
+// Download a shader from a file
+SUS_GRAPHICS_SHADER SUSAPI susGraphicsLoadShaderFromFile(_In_ LPCSTR path);
+// Unload the shader
+VOID SUSAPI susGraphicsRemoveShader(_In_ SUS_GRAPHICS_SHADER shader);
+// Get the shader log
+LPSTR SUSAPI susGraphicsShaderGetLog(_In_ SUS_GRAPHICS_SHADER shader);
+
+// -----------------------------------------------
+
+// Load shaders to GPU
+SUS_GRAPHICS_PROGRAM SUSAPI susGraphicsLoadProgram(_In_ UINT shaderCount, _In_ SUS_LPGRAPHICS_SHADER shaders, _In_ BOOL DeleteShadersAfterUploading);
+// Install the program as the current one
+VOID SUSAPI susGraphicsUseShader(_In_ SUS_GRAPHICS_PROGRAM program);
+// Remove the program from the GPU
+VOID SUSAPI susGraphicsRemoveProgram(_In_ SUS_GRAPHICS_PROGRAM program);
+// Get the program log
+LPSTR SUSAPI susGraphicsProgramGetLog(_In_ SUS_GRAPHICS_PROGRAM program);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//										 Meshes and models      								  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Vertex struct
+typedef struct sus_vertex {
+	SUS_VEC3	position;	// Vertex position
+	SUS_VEC3	coord;		// vertex coordinate
+	SUS_COLOR	color;		// Vertex Color
+} SUS_VERTEX, *SUS_LPVERTICES;
+// Index in the array of vertices
+typedef sus_uint SUS_INDEX, *SUS_LPINDEXES;
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// The type of the mesh primitive
+typedef enum sus_graphics_primitive_type {
+	SUS_GRAPHICS_PRIMITIVE_TYPE_TRIANGLES = GL_TRIANGLES,
+	SUS_GRAPHICS_PRIMITIVE_TYPE_TRIANGLES_STRIP = GL_TRIANGLE_STRIP,
+	SUS_GRAPHICS_PRIMITIVE_TYPE_TRIANGLES_FAN = GL_TRIANGLE_FAN,
+	SUS_GRAPHICS_PRIMITIVE_TYPE_LINES = GL_LINES,
+	SUS_GRAPHICS_PRIMITIVE_TYPE_LINES_STRIP = GL_LINE_STRIP,
+	SUS_GRAPHICS_PRIMITIVE_TYPE_POINTS = GL_POINTS
+} SUS_GRAPHICS_PRIMITIVE_TYPE, * SUS_LPGRAPHICS_PRIMITIVE_TYPE;
+// Mesh type by refresh rate
+typedef enum sus_graphics_mesh_update_type {
+	SUS_GRAPHICS_MESH_TYPE_STATIC = GL_STATIC_DRAW,
+	SUS_GRAPHICS_MESH_TYPE_DYNAMIC = GL_DYNAMIC_DRAW,
+	SUS_GRAPHICS_MESH_TYPE_STREAM = GL_STREAM_DRAW
+} SUS_GRAPHICS_MESH_UPDATE_TYPE, *SUS_LPGRAPHICS_MESH_UPDATE_TYPE;
+// The Mesh Builder
+typedef struct sus_graphics_mesh_builder {
+	SUS_VECTOR						vertices;	// SUS_VERTEX
+	SUS_VECTOR						indexes;	// SUS_INDEX
+	SUS_GRAPHICS_PRIMITIVE_TYPE		type;		// Type of primitive
+	SUS_GRAPHICS_MESH_UPDATE_TYPE	updateType;	// The type of mesh update in drawing
+} SUS_GRAPHICS_MESH_BUILDER, * SUS_LPGRAPHICS_MESH_BUILDER;
+// Mesh structure
+typedef struct sus_graphics_mesh {
+	GLuint	vao;	// Vertex Array Objext
+	GLuint	vbo;	// Vertex Buffer Object
+	GLuint	ibo;	// Index Buffer Object
+	UINT	count;	// The number of indexes in the mesh
+	GLenum	type;	// Type of primitive
+} SUS_GRAPHICS_MESH, * SUS_LPGRAPHICS_MESH;
+
+// -----------------------------------------------
+
+// Create a Mesh builder
+SUS_GRAPHICS_MESH_BUILDER SUSAPI susGraphicsMeshBuilder(_In_ SUS_GRAPHICS_PRIMITIVE_TYPE type, _In_ SUS_GRAPHICS_MESH_UPDATE_TYPE updateType);
+// Add vertices to the mesh
+BOOL SUSAPI susGraphicsMeshBuilderAddVertices(_Inout_ SUS_LPGRAPHICS_MESH_BUILDER builder, _In_ SUS_LPVERTICES vertices, _In_ UINT count);
+// Add indexes to the mesh
+BOOL SUSAPI susGraphicsMeshBuilderAddIndexes(_Inout_ SUS_LPGRAPHICS_MESH_BUILDER builder, _In_ SUS_LPINDEXES indexes, _In_ UINT count);
+
+// -----------------------------------------------
+
+// Build a mesh
+SUS_GRAPHICS_MESH SUSAPI susGraphicsBuildMesh(_In_ SUS_GRAPHICS_MESH_BUILDER builder);
+// Draw mesh
+VOID SUSAPI susGraphicsDrawMesh(_In_ SUS_LPGRAPHICS_MESH mesh);
+// Clear the cache from the gpu
+VOID SUSAPI susGraphicsMeshDestroy(_Inout_ SUS_LPGRAPHICS_MESH mesh);
+// Set new vertices
+VOID SUSAPI susGraphicsMeshSetVertices(_In_ SUS_LPGRAPHICS_MESH mesh, _In_ SUS_LPVERTICES vertices, _In_ UINT count);
+// Set new vertex indexes
+VOID SUSAPI susGraphicsMeshSetIndexes(_In_ SUS_LPGRAPHICS_MESH mesh, _In_ SUS_LPINDEXES indexes, _In_ UINT count);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
 #pragma warning(pop)
 
 #endif /* !_SUS_GRAPHICS_ */

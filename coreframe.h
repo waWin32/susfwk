@@ -9,6 +9,7 @@
 #define NOMCX
 #define NOIME
 #define _WIN32_WINNT _WIN32_WINNT_WIN10
+#define _WINSOCKAPI_
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -19,5 +20,12 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <winhttp.h>
+#include <GL/glew.h>
+#include <GL/wglew.h>
 
 #define SUS_DEBUGONLYERRORS
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "opengl32.lib")
+#pragma comment(lib, "comctl32.lib")
+
