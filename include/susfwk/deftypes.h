@@ -75,12 +75,10 @@ typedef sus_flag32 sus_flag;
 
 // custom data types :
 
-typedef sus_u32 sus_bool;
-typedef sus_i32 sus_status;
-typedef sus_i32 sus_result;
-
-// User Data
-typedef sus_ulong SUS_USERDATA, SUS_LPUSERDATA;
+typedef sus_uint sus_bool, SUS_BOOL;
+typedef sus_ulong SUS_RESULT;
+typedef sus_ulong SUS_PARAM;
+typedef sus_ptr SUS_USERDATA;
 
 // =========================================================
 

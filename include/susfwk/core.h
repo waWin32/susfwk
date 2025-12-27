@@ -81,7 +81,7 @@ and when used, access it via super.
 // -----------------------------------------------
 
 // Element count in array
-#define SUS_COUNT_OF(array) (sizeof(array) / sizeof(*array))
+#define SUS_COUNT_OF(array) (sizeof(array) / sizeof(*(array)))
 // The return value for exiting recursion
 #define GETTING_OUT_RECURSION (DWORD)-1
 
