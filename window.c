@@ -3,6 +3,8 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/math.h"
+#include "include/susfwk/tmath.h"
+#include "include/susfwk/vector.h"
 #include "include/susfwk/graphics.h"
 #include "include/susfwk/window.h"
 
@@ -46,7 +48,7 @@ struct sus_window {
 	SUS_WINDOW_LISTENERS		listeners;		// Window Listeners
 	SUS_COLOR					background;		// Window background color
 	SUS_GRAPHICS_DOUBLE_BUFFER	doubleBuffer;	// Double buffer system
-	SUS_OBJECT					userData;		// User data
+	SUS_USERDATA				userData;		// User data
 };
 
 // -------------------------------------------------
@@ -168,7 +170,6 @@ static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW wi
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
-	susWindowSetBackground(winParam, SUS_COLOR_WHITE);
 	SUS_PRINTDL("The window has been successfully created");
 	return hWnd;
 }
@@ -243,20 +244,20 @@ INT SUSAPI susWindowMainLoop()
 // -------------------------------------------------
 
 // Call the window handler
-#define susWindowTrackEvent(window, msg, param) (LRESULT)((window)->listeners.mainListener((SUS_WINDOW)(window), msg, (LPARAM)(param)))
+#define susWindowTrackEvent(window, msg, param) (SUS_RESULT)((window)->listeners.mainListener((SUS_WINDOW)(window), msg, (SUS_PARAM)(param)))
 
 // Send a message immediately
-LRESULT SUSAPI susWindowSendMessage(_In_ SUS_WINDOW window, _In_ UINT msg, LPARAM param) {
+SUS_RESULT SUSAPI susWindowSendMessage(_In_ SUS_WINDOW window, _In_ UINT msg, SUS_PARAM param) {
 	SUS_ASSERT(window && window->super && msg >= SUS_WINMSG_USER);
 	return SendMessageW(window->super, msg - SUS_WINMSG_USER + WM_USER, 0, param);
 }
 // Send a message
-BOOL SUSAPI susWindowPostMessage(_In_ SUS_WINDOW window, _In_ UINT msg, LPARAM param) {
+BOOL SUSAPI susWindowPostMessage(_In_ SUS_WINDOW window, _In_ UINT msg, SUS_PARAM param) {
 	SUS_ASSERT(window && window->super && msg >= SUS_WINMSG_USER);
 	return PostMessageW(window->super, msg - SUS_WINMSG_USER + WM_USER, 0, param);
 }
 // Default window listener
-static LRESULT SUSAPI susDefWindowListener(SUS_WINDOW window, SUS_WINMSG uMsg, LPARAM lParam) {
+static SUS_RESULT SUSAPI susDefWindowListener(SUS_WINDOW window, SUS_WINMSG uMsg, SUS_PARAM lParam) {
 	UNREFERENCED_PARAMETER(window);
 	UNREFERENCED_PARAMETER(uMsg);
 	UNREFERENCED_PARAMETER(lParam);
@@ -526,7 +527,7 @@ SUS_FRAME SUSAPI susBuildFrame(_In_ SUS_FRAME_BUILDER builder, _In_opt_ SUS_WIND
 {
 	SUS_PRINTDL("Creating a frame");
 	if (!susRegisterWindowClass(builder.wcEx)) return NULL;
-	SUS_FRAME_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = builder.wStruct.lpCreateParams, .type = SUS_WINDOW_SIGNATURE_TYPE_FRAME };
+	SUS_FRAME_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = (SUS_USERDATA)builder.wStruct.lpCreateParams, .type = SUS_WINDOW_SIGNATURE_TYPE_FRAME, .background = SUS_COLOR_WHITE };
 	SUS_FRAME frame = sus_newmem(sizeof(SUS_FRAME_STRUCT), &frameStruct);
 	if (!susBuildWindow(builder.wStruct, (SUS_WINDOW)frame)) { sus_free(frame); return NULL; }
 	SUS_PRINTDL("The frame was created successfully!");
@@ -537,10 +538,7 @@ SUS_FRAME SUSAPI susNewFrame(_In_opt_ LPCWSTR title, _In_ SUS_SIZE size, _In_opt
 {
 	SUS_FRAME_BUILDER builder = susFrameBuilder(title);
 	susFrameBuilderSetSize(&builder, size);
-	SUS_FRAME frame = susBuildFrame(builder, handler);
-	if (!frame) return NULL;
-	susWindowSetVisible((SUS_WINDOW)frame, TRUE);
-	return frame;
+	return susBuildFrame(builder, handler);
 }
 
 // -------------------------------------------------
@@ -578,13 +576,14 @@ static const CREATESTRUCTW susDefWidgetStruct = {
 // -------------------------------------------------
 
 // Create a Window builder
-SUS_WIDGET_BUILDER SUSAPI susWidgetBuilder(_In_opt_ LPCWSTR className, _In_ UINT id)
+SUS_WIDGET_BUILDER SUSAPI susWidgetBuilder(_In_opt_ LPCWSTR className)
 {
 	SUS_PRINTDL("Setting up the widget");
 	SUS_WIDGET_BUILDER builder = { 0 };
 	builder.wStruct = susDefWidgetStruct;
 	builder.wStruct.hInstance = GetModuleHandleW(NULL);
-	builder.wStruct.hMenu = (HMENU)((ULONG_PTR)id);
+	static UINT id = SUS_WIDGET_RESERVED_IDS;
+	builder.wStruct.hMenu = (HMENU)((ULONG_PTR)id++);
 	if (className) builder.wStruct.lpszClass = className;
 	return builder;
 }
@@ -593,7 +592,7 @@ SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_WIDGET_BUILDER builder, _In_ SUS_WINDO
 {
 	SUS_PRINTDL("Creating a widget");
 	builder.wStruct.hwndParent = parent->super;
-	SUS_WIDGET_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = parent->userData, .type = SUS_WINDOW_SIGNATURE_TYPE_WIDGET };
+	SUS_WIDGET_STRUCT frameStruct = { .listeners.mainListener = handler ? handler : susDefWindowListener, .userData = parent->userData, .type = SUS_WINDOW_SIGNATURE_TYPE_WIDGET, .background = SUS_COLOR_WHITE };
 	SUS_WIDGET widget = sus_newmem(sizeof(SUS_WIDGET_STRUCT), &frameStruct);
 	widget->super = susBuildWindow(builder.wStruct, (SUS_WINDOW)widget);
 	if (!widget->super) { sus_free(widget); return NULL; }
@@ -604,9 +603,9 @@ SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_WIDGET_BUILDER builder, _In_ SUS_WINDO
 	return widget;
 }
 // Create a window
-SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_ UINT id, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles, _In_opt_ DWORD exstyles)
+SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles, _In_opt_ DWORD exstyles)
 {
-	SUS_WIDGET_BUILDER builder = susWidgetBuilder(className, id);
+	SUS_WIDGET_BUILDER builder = susWidgetBuilder(className);
 	if (title) susWidgetBuilderSetTitle(&builder, title);
 	susWidgetBuilderAddExStyle(&builder, exstyles);
 	susWidgetBuilderAddStyle(&builder, styles);
@@ -620,33 +619,39 @@ SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR classNam
 // -------------------------------------------------
 
 // Create a button
-SUS_WIDGET SUSAPI susNewButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_PUSHBUTTON, 0);
+SUS_WIDGET SUSAPI susNewButton(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, handler, BS_PUSHBUTTON, 0);
 }
 // Create a checkbox button
-SUS_WIDGET SUSAPI susNewCheckBox(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ BOOL selected) {
-	SUS_WIDGET wg = susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_AUTOCHECKBOX, 0);
+SUS_WIDGET SUSAPI susNewCheckBox(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ BOOL selected) {
+	SUS_WIDGET wg = susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, handler, BS_AUTOCHECKBOX, 0);
 	if (wg && selected) SendMessageW(susWindowGetSuper((SUS_WINDOW)wg), BM_SETCHECK, BST_CHECKED, 0);
 	return wg;
 }
 // Create a switch
-SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, id, handler, BS_AUTORADIOBUTTON, 0);
+SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_BUTTON, title, handler, BS_AUTORADIOBUTTON, 0);
 }
 
 // -------------------------------------------------
 
+// Create a label
+SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_STATIC, text, handler, SS_LEFT, 0);
+}
 // Create a panel
-SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_STATIC, text, id, handler, SS_LEFT, 0);
+SUS_WIDGET SUSAPI susNewPanel(_In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	SUS_WIDGET panel = susNewLabel(parent, NULL, handler);
+	if (panel) susWidgetSetLayout(panel, (SUS_LAYOUT_CACHE) { 0.0f, 0.0f, 1.0f, 1.0f });
+	return panel;
 }
 // Create a text input field
-SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, id, handler, ES_AUTOHSCROLL | WS_BORDER, 0);
+SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, handler, ES_AUTOHSCROLL | WS_BORDER, 0);
 }
 // Create a text entry area
-SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
-	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, id, handler, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER, 0);
+SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler) {
+	return susNewWidget(parent, SUS_WIDGET_CLASSNAME_EDIT, text, handler, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER, 0);
 }
 
 // -------------------------------------------------
@@ -803,24 +808,24 @@ BOOL SUSAPI susWindowSetTransparency(_In_ SUS_WINDOW window, _In_ sus_float tran
 // -------------------------------------------------
 
 // Set user window data
-SUS_OBJECT SUSAPI susWindowSetData(_In_ SUS_WINDOW window, _In_ SUS_OBJECT userData) {
+SUS_USERDATA SUSAPI susWindowSetData(_In_ SUS_WINDOW window, _In_ SUS_USERDATA userData) {
 	SUS_ASSERT(window);
 	return window->userData = userData;
 }
 // Get user window data
-SUS_OBJECT SUSAPI susWindowGetData(_In_ SUS_WINDOW window) {
+SUS_USERDATA SUSAPI susWindowGetData(_In_ SUS_WINDOW window) {
 	SUS_ASSERT(window);
 	return window->userData;
 }
 // Set a property for a window
-BOOL SUSAPI susWindowSetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key, _In_ LONG_PTR value) {
+BOOL SUSAPI susWindowSetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key, _In_ SUS_PARAM value) {
 	SUS_ASSERT(window && window->super);
 	return SetPropW(window->super, key, (HANDLE)value);
 }
 // Get a window property
-LONG_PTR SUSAPI susWindowGetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key) {
+SUS_PARAM SUSAPI susWindowGetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key) {
 	SUS_ASSERT(window && window->super);
-	return (LONG_PTR)GetPropW(window->super, key);
+	return (SUS_PARAM)GetPropW(window->super, key);
 }
 // Get a widget from a window
 SUS_WIDGET SUSAPI susWindowGetWidget(_In_ SUS_WINDOW window, _In_ UINT id) {
@@ -828,6 +833,11 @@ SUS_WIDGET SUSAPI susWindowGetWidget(_In_ SUS_WINDOW window, _In_ UINT id) {
 	HWND hWidget = GetDlgItem(window->super, id);
 	if (!hWidget) return NULL;
 	return (SUS_WIDGET)susWindowLoadData(hWidget);
+}
+// Set your id for the window
+VOID SUSAPI susWindowSetId(_In_ SUS_WINDOW window, _In_ UINT id) {
+	SUS_ASSERT(window && window->super);
+	SetWindowLongPtrW(window->super, GWL_ID, id);
 }
 // Install a double buffering system
 VOID SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WINDOW window, _In_ BOOL enabled) {
@@ -940,7 +950,7 @@ VOID SUSAPI susWindowSetCloseOperation(_Inout_ SUS_FRAME window, _In_ SUS_WINDOW
 	window->closeOperation = closeOperation;
 }
 // Set Fullscreen for the window
-BOOL SUSAPI susWindowFullscreen(_In_ SUS_FRAME window, _In_ BOOL enabled) {
+BOOL SUSAPI susWindowSetFullscreen(_In_ SUS_FRAME window, _In_ BOOL enabled) {
 	SUS_ASSERT(window && window->super);
 	susWindowSetVisible((SUS_WINDOW)window, FALSE);
 	if (enabled && !window->fullScreen.enabled) {

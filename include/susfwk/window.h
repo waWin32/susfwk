@@ -107,12 +107,12 @@ typedef enum sus_winmsg {
 } SUS_WINMSG;
 
 // Window Listener
-typedef LRESULT(SUSAPI* SUS_WINDOW_LISTENER)(SUS_WINDOW window, SUS_WINMSG msg, LPARAM param);
+typedef SUS_RESULT(SUSAPI* SUS_WINDOW_LISTENER)(SUS_WINDOW window, SUS_WINMSG msg, SUS_PARAM param);
 
 // Send a message immediately
-LRESULT SUSAPI susWindowSendMessage(_In_ SUS_WINDOW window, _In_ UINT msg, LPARAM param);
+SUS_RESULT SUSAPI susWindowSendMessage(_In_ SUS_WINDOW window, _In_ UINT msg, SUS_PARAM param);
 // Send a message
-BOOL SUSAPI susWindowPostMessage(_In_ SUS_WINDOW window, _In_ UINT msg, LPARAM param);
+BOOL SUSAPI susWindowPostMessage(_In_ SUS_WINDOW window, _In_ UINT msg, SUS_PARAM param);
 
 // -------------------------------------------------
 
@@ -410,13 +410,13 @@ typedef struct sus_widget_builder {
 // -------------------------------------------------
 
 // Create a Window builder
-SUS_WIDGET_BUILDER SUSAPI susWidgetBuilder(_In_opt_ LPCWSTR className, _In_ UINT id);
+SUS_WIDGET_BUILDER SUSAPI susWidgetBuilder(_In_opt_ LPCWSTR className);
 
 // Build a window
 SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_WIDGET_BUILDER builder, _In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler);
 
 // Create a window
-SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_ UINT id, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles, _In_opt_ DWORD exstyles);
+SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles, _In_opt_ DWORD exstyles);
 
 // -------------------------------------------------
 
@@ -424,6 +424,7 @@ SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR classNam
 
 // -------------------------------------------------
 
+#define SUS_WIDGET_RESERVED_IDS		0xff
 #define SUS_WIDGET_CLASSNAME_BUTTON L"BUTTON"
 #define SUS_WIDGET_CLASSNAME_STATIC L"STATIC"
 #define SUS_WIDGET_CLASSNAME_EDIT	L"EDIT"
@@ -431,20 +432,22 @@ SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR classNam
 // -------------------------------------------------
 
 // Create a button
-SUS_WIDGET SUSAPI susNewButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewButton(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler);
 // Create a checkbox button
-SUS_WIDGET SUSAPI susNewCheckBox(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ BOOL selected);
+SUS_WIDGET SUSAPI susNewCheckBox(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ BOOL selected);
 // Create a switch
-SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler);
 
 // -------------------------------------------------
 
+// Create a label
+SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
 // Create a panel
-SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewPanel(_In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler);
 // Create a text input field
-SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
 // Create a text entry area
-SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_ UINT id, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
 
 // -------------------------------------------------
 
@@ -563,15 +566,17 @@ BOOL SUSAPI susWindowSetTransparency(_In_ SUS_WINDOW window, _In_ sus_float tran
 // -------------------------------------------------
 
 // Set user window data
-SUS_OBJECT SUSAPI susWindowSetData(_In_ SUS_WINDOW window, _In_ SUS_OBJECT userData);
+SUS_USERDATA SUSAPI susWindowSetData(_In_ SUS_WINDOW window, _In_ SUS_USERDATA userData);
 // Get user window data
-SUS_OBJECT SUSAPI susWindowGetData(_In_ SUS_WINDOW window);
+SUS_USERDATA SUSAPI susWindowGetData(_In_ SUS_WINDOW window);
 // Set a property for a window
-BOOL SUSAPI susWindowSetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key, _In_ LONG_PTR value);
+BOOL SUSAPI susWindowSetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key, _In_ SUS_PARAM value);
 // Get a window property
-LONG_PTR SUSAPI susWindowGetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key);
+SUS_PARAM SUSAPI susWindowGetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key);
 // Get a widget from a window
 SUS_WIDGET SUSAPI susWindowGetWidget(_In_ SUS_WINDOW window, _In_ UINT id);
+// Set your id for the window
+VOID SUSAPI susWindowSetId(_In_ SUS_WINDOW window, _In_ UINT id);
 // Install a double buffering system
 VOID SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WINDOW window, _In_ BOOL enabled);
 // Set the window background color
@@ -640,7 +645,7 @@ VOID SUSAPI susWindowSetCloseOperation(_Inout_ SUS_FRAME window, _In_ SUS_WINDOW
 // -------------------------------------------------
 
 // Set Fullscreen for the window
-BOOL SUSAPI susWindowFullscreen(_In_ SUS_FRAME window, _In_ BOOL enabled);
+BOOL SUSAPI susWindowSetFullscreen(_In_ SUS_FRAME window, _In_ BOOL enabled);
 // Minimize the window
 BOOL SUSAPI susWindowMinimize(_In_ SUS_FRAME window);
 // Expand the window
@@ -723,47 +728,68 @@ LRESULT WINAPI susWidgetSystemHandler(
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* An example of a simple windowed application
-// Button click handler
-VOID SUSAPI ButtonClickListener(SUS_WIDGET window, SUS_MOUSE_MESSAGE msg, SUS_MOUSE_EVENT event)
-{
-	switch (msg)
-	{
-	case SUS_MOUSE_MESSAGE_CLICK: {
-		switch (event.specific.button)
-		{
-		case SUS_MOUSE_BUTTON_LEFT: {
-			sus_printfW(L"You clicked the button with the left mouse button\n");
-		} break;
-		case SUS_MOUSE_BUTTON_RIGHT: {
-			sus_printfW(L"You clicked the button with the right mouse button\n");
-		} break;
-		}
-	} break;
-	}
+// Main frame handler
+SUS_RESULT SUSAPI FrameHandler(SUS_FRAME frame, SUS_WINMSG msg, SUS_PARAM param);
+// Main panel handler
+SUS_RESULT SUSAPI PanelHandler(SUS_WIDGET panel, SUS_WINMSG msg, SUS_PARAM param);
+
+int main() {
+	SUS_FRAME frame = susNewFrame(L"Application", (SUS_SIZE) { 800, 600 }, FrameHandler);
+	if (!frame) sus_error(1);
+	sus_exit(susWindowMainLoop());
 }
 
-LRESULT SUSAPI WindowHandler(SUS_WINDOW window, SUS_WINMSG msg, LPARAM param)
+// Window Data
+typedef struct main_window {
+	struct {
+		CHAR dummy;
+		// ...
+	} data; // Data
+	struct {
+		CHAR dummy;
+		// ...
+	} wgs; // Widgets
+	struct {
+		CHAR dummy;
+		// ...
+	} res; // Resources
+} MAIN_WINDOW_STRUCT, *MAIN_WINDOW;
+
+// Main frame handler
+SUS_RESULT SUSAPI FrameHandler(SUS_FRAME frame, SUS_WINMSG msg, SUS_PARAM param)
 {
 	switch (msg)
 	{
 	case SUS_WINMSG_CREATE: {
-		SUS_WIDGET panel = susNewLabel(window, 1, NULL, NULL); // Creating the main window panel
-		susWidgetSetLayout(panel, (SUS_LAYOUT_CACHE) { 0.0f, 0.0f, 1.0f, 1.0f });
-		SUS_WIDGET btn = susNewButton(panel, 2, L"Hello", NULL); // Creating a button on the panel
-		susWidgetSetLayout(btn, (SUS_LAYOUT_CACHE) { 0.1f, 0.1f, 0.8f, 0.3f });	// Setting the layout
-		susWindowSetMouseListener(btn, ButtonClickListener);
+		susWindowSetData(frame, sus_malloc(sizeof(MAIN_WINDOW_STRUCT)));
+		SUS_ASSERT(susWindowGetData(frame));
+		susWindowSetCloseOperation(frame, SUS_WINDOW_EXIT_ON_CLOSE);
+		SUS_WIDGET panel = susNewPanel(frame, PanelHandler);
+		susWindowSetDoubleBuffer(panel, TRUE);
+		susWindowSetBackground(panel, SUS_COLOR_MAGENTA);
+		susWindowSetVisible(frame, TRUE);
+	} return 0;
+	case SUS_WINMSG_DESTROY: {
+		sus_free(susWindowGetData(frame));
 	} return 0;
 	default: return 0;
 	}
 }
-
-int main()
+// Main panel handler
+SUS_RESULT SUSAPI PanelHandler(SUS_WIDGET panel, SUS_WINMSG msg, SUS_PARAM param)
 {
-	// Creating the main window - frame
-	if (!susNewFrame(L"My Program", (SUS_SIZE) { 700, 500 }, WindowHandler)) {
-		SUS_PRINTDE("Couldn't create a window");
+	MAIN_WINDOW window = susWindowGetData(panel);
+	switch (msg)
+	{
+	case SUS_WINMSG_CREATE: {
+		// Widget Placement
+	} return 0;
+	case SUS_WINMSG_PAINT: {
+		SUS_GRAPHICS gr = (SUS_GRAPHICS)param;
+		// Painting
+	} return 0;
+	default: return 0;
 	}
-	ExitProcess(susWindowMainLoop());
 }
 */
 
