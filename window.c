@@ -888,6 +888,9 @@ LRESULT WINAPI susFrameSystemHandler(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM
 			if (window->minmaxinfo.ptMinTrackSize.x)
 				mmi->ptMinTrackSize = window->minmaxinfo.ptMinTrackSize;
 		} break;
+		case WM_SIZE: {
+			if (window->graphics) susRendererSize();
+		} break;
 		case WM_NCCREATE: {
 			window = (SUS_FRAME)susGetWindowParam(lParam);
 			susWindowWriteData(hWnd, (LONG_PTR)window);
