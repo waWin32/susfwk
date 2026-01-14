@@ -1018,7 +1018,7 @@ VOID SUSAPI susRendererMeshDestroy(_Inout_ SUS_MESH mesh)
 {
 	SUS_PRINTDL("Freeing up resources from the GPU");
 	SUS_ASSERT(mesh);
-	if (mesh->refc > 1) { mesh->refc--; return; }
+	if (mesh->refc > 0) { mesh->refc--; return; }
 	SUS_ASSERT(mesh->refc >= 0);
 	if (mesh->ibo) glDeleteBuffers(1, &mesh->ibo);
 	if (mesh->vbo) glDeleteBuffers(1, &mesh->vbo);
@@ -1069,9 +1069,18 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model)
 
 // -----------------------------------------------
 
+// A mesh instance
+struct sus_mesh_instance {
+	SUS_MESH		sample;			// Instance Template
+	SUS_GPU_VECTOR	instanceData;	// Instance Data\param SUS_MESH_INSTANCE_FORMAT_MODEL ? SUS_MAT4 + SUS_MESH_INSTANCE_FORMAT_COLOR ? VEC4 + SUS_MESH_INSTANCE_FORMAT_UVOFFSET ? SUS_VEC2
+	GLuint			vao;			// Array of instances
+};
+
+// -----------------------------------------------
+
 // Calculate the size of the instance
 static sus_size_t SUSAPI susCalculateInstanceStride(_In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes) {
-	sus_size_t stride = sizeof(SUS_MAT4); // SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX is default
+	sus_size_t stride = sizeof(SUS_MAT4);
 	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) stride += sizeof(SUS_VEC4);
 	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET) stride += sizeof(SUS_VEC2);
 	stride = SUS_ALIGN(stride, 16);
@@ -1346,6 +1355,62 @@ BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
 //	return susRendererBuildMesh(&builder);
 //}
 
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//									   Graphics Resource Manager      							  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Initialize the resource manager
+VOID SUSAPI susRendererResourceManagerInit(_Out_ SUS_LPRENDERER_RESOURCE_MANAGER manager) {
+	SUS_PRINTDL("Initializing the Resource Manager");
+	SUS_ASSERT(manager);
+	for (UINT i = 0; i < SUS_RENDERER_RESOURCE_TYPE_COUNT; i++) {
+		manager->res[i] = susNewMap(sus_uint_t, SUS_OBJECT);
+	}
+}
+// Destroy the renderer's resource manager
+VOID SUSAPI susRendererResourceManagerCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager) {
+	SUS_PRINTDL("Cleaning up all resources");
+	SUS_ASSERT(manager);
+	for (UINT i = 0; i < SUS_RENDERER_RESOURCE_TYPE_COUNT; i++) {
+		susMapForeach(manager->res[i], j) {
+			SUS_OBJECT resource = *(SUS_OBJECT*)susMapIterValue(j);
+			RendererResourceDestructorTable[i](resource);
+		}
+		susMapDestroy(manager->res[i]);
+	}
+}
+// Register a resource
+VOID SUSAPI susRendererResourceRegister(_Inout_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key, _In_ SUS_OBJECT resource) {
+	SUS_PRINTDL("Registering a resource");
+	SUS_ASSERT(manager && key.name && (UINT)key.type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && !susMapContains(manager->res[key.type], &key.name) && resource);
+	susMapAdd(&manager->res[key.type], &key.name, &resource);
+}
+// Get a resource
+SUS_OBJECT SUSAPI susRendererResourceGet(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key) {
+	SUS_PRINTDL("Getting a resource");
+	SUS_ASSERT(manager && key.name && (UINT)key.type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && susMapContains(manager->res[key.type], &key.name));
+	return *(SUS_OBJECT*)susMapGet(manager->res[key.type], &key.name);
+}
+// Delete a resource
+VOID SUSAPI susRendererResourceRemove(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key) {
+	SUS_PRINTDL("Deleting a resource");
+	SUS_ASSERT(manager && key.name && (UINT)key.type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && susMapContains(manager->res[key.type], &key.name));
+	SUS_OBJECT resource = susRendererResourceGet(manager, key);
+	RendererResourceDestructorTable[key.type](resource);
+}
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //								    High-level work with graphics      							  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1366,6 +1431,7 @@ SUS_RENDERER SUSAPI susRendererSetup(_In_ HWND hWnd)
 	renderer->hWnd = hWnd;
 	susRendererSetCurrent(renderer);
 	sus_timer_start(&renderer->frameTimer);
+	susRendererResourceManagerInit(&renderer->resources);
 	return renderer;
 error:
 	SUS_PRINTDE("Failed to initialize rendering on the window");
@@ -1382,6 +1448,7 @@ VOID SUSAPI susRendererSetCurrent(_In_opt_ SUS_RENDERER renderer) {
 VOID SUSAPI susRendererCleanup(_In_ SUS_RENDERER renderer) {
 	SUS_PRINTDL("Clearing the graphical context");
 	SUS_ASSERT(renderer);
+	susRendererResourceManagerCleanup(&renderer->resources);
 	susRendererDirectCleanup(renderer->hWnd, renderer->super);
 	if (RendererContext.currentRenderer == renderer) susRendererSetCurrent(0);
 	sus_timer_stop(&renderer->frameTimer);
@@ -1427,7 +1494,5 @@ VOID SUSAPI susRendererEndFrame() {
 }
 
 // -----------------------------------------------
-
-////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////

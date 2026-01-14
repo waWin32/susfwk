@@ -12,6 +12,9 @@
 #include "hashtable.h"
 #include "..\susgl\suswgl.h"
 
+#pragma warning(push)
+#pragma warning(disable: 4201)
+
 // ================================================================================================= //
 // ************************************************************************************************* //
 //												 GPU RENDER											 //
@@ -652,11 +655,7 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model);
 // -----------------------------------------------
 
 // A mesh instance
-typedef struct sus_mesh_instance {
-	SUS_MESH					sample;
-	SUS_GPU_VECTOR				instanceData;	// \param SUS_MESH_INSTANCE_FORMAT_MODEL ? SUS_MAT4 + SUS_MESH_INSTANCE_FORMAT_COLOR ? VEC4 + SUS_MESH_INSTANCE_FORMAT_UVOFFSET ? SUS_VEC2
-	GLuint						vao;
-} SUS_MESH_INSTANCE_STRUCT, *SUS_MESH_INSTANCE;
+typedef struct sus_mesh_instance  SUS_MESH_INSTANCE_STRUCT, *SUS_MESH_INSTANCE;
 
 // -----------------------------------------------
 
@@ -681,6 +680,66 @@ BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+//									   Graphics Resource Manager      							  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Reserved keys
+#define SUS_RENDERER_RESOURCE_MANAGER_RESERVED_KEYS 64
+// Type of resource
+typedef enum sus_renderer_resource_type {
+	SUS_RENDERER_RESOURCE_TYPE_SHADER,
+	SUS_RENDERER_RESOURCE_TYPE_TEXTURE,
+	SUS_RENDERER_RESOURCE_TYPE_MESH,
+	SUS_RENDERER_RESOURCE_TYPE_INSTANCE,
+	SUS_RENDERER_RESOURCE_TYPE_COUNT,
+	SUS_RENDERER_RESOURCE_TYPE_UNKNOWN
+} SUS_RENDERER_RESOURCE_TYPE;
+// The descriptor of the graphic resource
+typedef union sus_renderer_resource {
+	struct {
+		SUS_RENDERER_RESOURCE_TYPE	type;
+		sus_uint32_t				name;
+	};
+	sus_uint64_t key;
+} SUS_RENDERER_RESOURCE;
+// The resource's destructor template
+typedef VOID(SUSAPI* SUS_RENDERER_RESOURCE_DESTRUCTOR)(_In_ SUS_OBJECT resource);
+// Resource Destructor table
+static const SUS_RENDERER_RESOURCE_DESTRUCTOR RendererResourceDestructorTable[SUS_RENDERER_RESOURCE_TYPE_COUNT] = { susRendererShaderDestroy, susRendererTextureDestroy, susRendererMeshDestroy, susRendererMeshInstanceDestroy };
+// Renderer Resource Manager
+typedef struct sus_renderer_resource_manager {
+	SUS_HASHMAP	res[SUS_RENDERER_RESOURCE_TYPE_COUNT];
+} SUS_RENDERER_RESOURCE_MANAGER, * SUS_LPRENDERER_RESOURCE_MANAGER;
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Initialize the resource manager
+VOID SUSAPI susRendererResourceManagerInit(_Out_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
+// Destroy the renderer's resource manager
+VOID SUSAPI susRendererResourceManagerCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
+
+// -----------------------------------------------
+
+// Register a resource
+VOID SUSAPI susRendererResourceRegister(_Inout_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key, _In_ SUS_OBJECT resource);
+// Get a resource
+SUS_OBJECT SUSAPI susRendererResourceGet(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key);
+// Delete a resource
+VOID SUSAPI susRendererResourceRemove(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 //								    High-level work with graphics      							  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -690,10 +749,13 @@ BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
 
 // The structure of the renderer
 typedef struct sus_renderer {
-	SUS_RENDERER_DIRECT _PARENT_;
-	HWND				hWnd;
-	SUS_TIMER			frameTimer;
+	SUS_RENDERER_DIRECT				_PARENT_;
+	HWND							hWnd;
+	SUS_TIMER						frameTimer;
+	SUS_RENDERER_RESOURCE_MANAGER	resources;
 } SUS_RENDERER_STRUCT, * SUS_RENDERER;
+
+// -----------------------------------------------
 
 // Initialize the graphics for the window and set current
 SUS_RENDERER SUSAPI susRendererSetup(_In_ HWND hWnd);
@@ -715,6 +777,17 @@ VOID SUSAPI susRendererEndFrame();
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+
+
+
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //										  Graphics context      								  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -733,5 +806,7 @@ typedef struct sus_renderer_context {
 // -----------------------------------------------
 
 ////////////////////////////////////////////////////////////////////////////////
+
+#pragma warning(pop)
 
 #endif /* !_SUS_RENDERER_ */
