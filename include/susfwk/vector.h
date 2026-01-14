@@ -11,6 +11,10 @@ extern "C" {
 #pragma warning(disable: 4200)
 #pragma warning(disable: 4201)
 
+// This is an old implementation that uses inefficient algorithms.
+// TODO: Rewrite the implementation from scratch
+// Use the old version of the code for now, as the API will not change with the update
+
 //////////////////////////////////////////////////////////////////
 //						Dynamic buffer							//
 //////////////////////////////////////////////////////////////////
@@ -52,7 +56,7 @@ SUS_INLINE VOID SUSAPI susBufferDestroy(_Inout_ SUS_BUFFER buff) {
 
 // Set the buffer data value
 SUS_INLINE VOID SUSAPI susBufferSet(_Inout_ SUS_BUFFER buff, _In_ BYTE value) {
-	sus_memset(buff->data, buff->capacity, value);
+	sus_memset(buff->data, value, buff->capacity);
 }
 // Set the buffer data value to 0
 SUS_INLINE VOID SUSAPI susBufferZero(_Inout_ SUS_BUFFER buff) {
@@ -106,7 +110,7 @@ SUS_LPMEMORY SUSAPI susBufferInsert(
 );
 // Swap bytes
 VOID SUSAPI susBufferSwap(
-	_Inout_ SUS_LPBUFFER pBuff,
+	_Inout_ SUS_BUFFER pBuff,
 	_In_ SIZE_T fromPos,
 	_In_ SIZE_T toPos,
 	_In_ SIZE_T size
@@ -162,10 +166,12 @@ SUS_INLINE VOID SUSAPI susBufferPrint(_In_ SUS_BUFFER buff) {
 // -------------------------------------
 
 // Vector element comparison function
-typedef BOOL(SUSAPI* SUS_VECTOR_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
+typedef INT(SUSAPI* SUS_VECTOR_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
+// Checks if A is greater than B
+typedef INT(SUSAPI* SUS_VECTOR_ELEMENTS_SORTER)(_In_ SUS_OBJECT vector, _In_ UINT a, _In_ UINT b);
 // Dynamic array
 typedef struct sus_vector {
-	SIZE_T	itemSize;	// The size of the type in the array
+	DWORD	itemSize;	// The size of the type in the array
 	DWORD	length;		// Length of the array
 	SUS_BUFFER_STRUCT;	// Vector data
 } SUS_VECTOR_STRUCT, *SUS_VECTOR, **SUS_LPVECTOR;
@@ -175,7 +181,7 @@ typedef struct sus_vector {
 // Get the array buffer
 #define susVectorBuffer(array) ((SUS_BUFFER)((LPBYTE)(array) + array->offset))
 // Get the array buffer
-#define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)buff - offset)
+#define susVectorSyncBuffer(buff, offset, pVector) *(pVector) = (SUS_VECTOR)((LPBYTE)(buff) - (offset))
 // Go through all the elements of the array
 #define susVecForeach(i, vec) for (UINT i = 0; i < (vec)->length; i++)
 // Go through all the elements of the array
@@ -227,7 +233,7 @@ SUS_INLINE SUS_OBJECT SUSAPI susVectorBack(_Inout_ SUS_VECTOR vector) {
 
 // Swap bytes
 VOID SUSAPI susVectorSwap(
-	_Inout_ SUS_LPVECTOR pVector,
+	_Inout_ SUS_VECTOR pVector,
 	_In_ DWORD from,
 	_In_ DWORD to
 );
@@ -267,6 +273,13 @@ INT SUSAPI susVectorLastIndexOf(
 	_In_ SUS_OBJECT obj,
 	_In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher
 );
+// Hoare sorting
+VOID SUSAPI susVectorSort(
+	_In_ SUS_VECTOR vector,
+	_In_ UINT start,
+	_In_ UINT end, 
+	_In_opt_ SUS_VECTOR_ELEMENTS_SORTER sorter
+);
 // Check whether the array contains an element
 SUS_INLINE BOOL SUSAPI susVectorContains(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher) {
 	return susVectorIndexOf(vector, obj, searcher) != -1 ? TRUE : FALSE;
@@ -285,7 +298,7 @@ VOID SUSAPI susVectorErase(
 );
 // Swap places and Delete
 SUS_INLINE SUS_OBJECT SUSAPI susVectorSwapErase(_Inout_ SUS_LPVECTOR pVector, _In_ DWORD i) {
-	susVectorSwap(pVector, i, (*pVector)->length - 1);
+	susVectorSwap(*pVector, i, (*pVector)->length - 1);
 	susVectorPopBack(pVector);
 	return (*pVector)->length ? susVectorGet(*pVector, i) : NULL;
 }

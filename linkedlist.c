@@ -80,12 +80,46 @@ VOID SUSAPI susListErase(_Inout_ SUS_LPLIST list, _In_ SUS_LIST_NODE node)
 	}
 	list->count--;
 }
+// Move the node by the specified number
+VOID SUSAPI susListMove(_Inout_ SUS_LPLIST list, _In_ SUS_LIST_NODE node, _In_ INT move)
+{
+	SUS_ASSERT(list && node);
+	if (list->count <= 1) return;
+	if (node->prev) node->prev->next = node->next;
+	if (node->next) node->next->prev = node->prev;
+	if (list->head == node) list->head = node->next;
+	if (list->tail == node) list->tail = node->prev;
+	SUS_LIST_NODE next = node;
+	SUS_LIST_NODE prev = node;
+	move = move % (INT)(list->count - 1);
+	if (move > 0) {
+		next = (node->next) ? node->next : list->head;
+		move--;
+		for (int i = 1; i < move && next && next->next; i++) {
+			next = next->next;
+		}
+		prev = (next) ? next->next : NULL;
+	}
+	else {
+		prev = (node->prev) ? node->prev : list->tail;
+		move--;
+		for (int i = 1; i < move && prev && prev->prev; i++) {
+			prev = prev->prev;
+		}
+		next = (prev) ? prev->prev : NULL;
+	}
+	node->prev = next;
+	node->next = prev;
+	if (next) next->next = node;
+	else list->head = node;
+	if (prev) prev->prev = node;
+	else list->tail = node;
+}
 
 // The default list element comparison function
 static BOOL SUSAPI susDefListSearcher(_In_ SUS_OBJECT v1, _In_ SUS_OBJECT v2, _In_ SIZE_T size) {
 	return sus_memcmp(v1, v2, size);
 }
-
 // Search for an item from the list based on data
 SUS_LIST_NODE SUSAPI susListFind(_In_ SUS_LIST list, _In_ SUS_LPMEMORY value, _In_opt_ SUS_LIST_ELEMENTS_COMPARE searcher)
 {

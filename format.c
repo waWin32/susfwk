@@ -11,7 +11,7 @@ static SUS_INLINE VOID SUSAPI format_handleA_d(_Inout_ LPSTR* buffer, _Inout_ LP
 	INT padLen = (width > len) ? width - len : 0;
 	if (*buffer) {
 		if (width) {
-			sus_memset((LPBYTE)*buffer, padLen, '0');
+			sus_memset((LPBYTE)*buffer, '0', padLen);
 			*buffer += padLen;
 		}
 		*buffer = sus_itoa(*buffer, (INT64)value);
@@ -24,7 +24,7 @@ static SUS_INLINE VOID SUSAPI format_handleA_p(_Inout_ LPSTR* buffer, _Inout_ LP
 	INT padLen = width > len ? width - len : 0;
 	if (*buffer) {
 		if (width) {
-			sus_memset((LPBYTE)*buffer, padLen, '0');
+			sus_memset((LPBYTE)*buffer, '0', padLen);
 			*buffer += padLen;
 		}
 		*buffer = sus_itoa(*buffer, (INT64)value);
@@ -127,7 +127,7 @@ static SUS_INLINE VOID SUSAPI format_handleW_d(_Inout_ LPWSTR* buffer, _Inout_ L
 	INT padLen = (width > len) ? width - len : 0;
 	if (*buffer) {
 		if (width) {
-			sus_memset((LPBYTE)*buffer, padLen, L'0');
+			sus_memset((LPBYTE)*buffer, L'0', padLen);
 			*buffer += padLen;
 		}
 		*buffer = sus_itow(*buffer, (INT64)value);
@@ -140,7 +140,7 @@ static SUS_INLINE VOID SUSAPI format_handleW_p(_Inout_ LPWSTR* buffer, _Inout_ L
 	INT padLen = width > len ? width - len : 0;
 	if (*buffer) {
 		if (width) {
-			sus_memset((LPBYTE)*buffer, padLen, L'0');
+			sus_memset((LPBYTE)*buffer, L'0', padLen);
 			*buffer += padLen;
 		}
 		*buffer = sus_itow(*buffer, (INT64)value);
@@ -398,7 +398,7 @@ INT sus_vparsingA(
 				continue;
 			}
 			}
-			format++;
+			//format++;
 			if (!skipAssignment) count++;
 		}
 		else if (*str++ != *format++) break;
@@ -536,7 +536,7 @@ INT sus_vparsingW(
 				continue;
 			}
 			}
-			format++;
+			//format++;
 			if (!skipAssignment) count++;
 		}
 		else if (*str++ != *format++) break;

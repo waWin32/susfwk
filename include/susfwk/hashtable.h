@@ -64,11 +64,13 @@ SUS_INLINE BOOL SUSAPI susDefCmpKeys(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T si
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpStringKeysA(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
 	SUS_ASSERT(key1 && key2 && size == sizeof(LPCSTR));
+	UNREFERENCED_PARAMETER(size);
 	return !lstrcmpA(*(LPCSTR*)key1, *(LPCSTR*)key2);
 }
 // Default Key Comparison
 SUS_INLINE BOOL SUSAPI susDefCmpStringKeysW(SUS_OBJECT key1, SUS_OBJECT key2, SIZE_T size) {
 	SUS_ASSERT(key1 && key2 && size == sizeof(LPCWSTR));
+	UNREFERENCED_PARAMETER(size);
 	return !lstrcmpW(*(LPCWSTR*)key1, *(LPCWSTR*)key2);
 }
 

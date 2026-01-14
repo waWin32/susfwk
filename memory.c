@@ -42,7 +42,6 @@ SUS_LPMEMORY SUSAPI sus_realloc(
 	if (!hNewMem) return newSize <= oldSize ? block : NULL;
 	sus_memcpy(hNewMem, block, min(oldSize, newSize));
 	sus_free(block);
-	SUS_PRINTDL("The block size has been successfully changed");
 	return hNewMem;
 }
 // Free a block of memory in the heap
@@ -54,7 +53,6 @@ SUS_LPMEMORY SUSAPI sus_free(_In_ SUS_LPMEMORY block)
 		SUS_PRINTDC(GetLastError());
 		return block;
 	}
-	SUS_PRINTDL("The memory block has been successfully released");
 	return NULL;
 }
 // Create and initialize memory
@@ -88,7 +86,6 @@ SUS_LPMEMORY SUSAPI sus_vmalloc(
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
-	SUS_PRINTDL("Virtual memory has been allocated successfully");
 	return hMem;
 }
 // Allocate virtual memory to process
@@ -112,6 +109,5 @@ SUS_LPMEMORY SUSAPI sus_vmallocEx(
 		SUS_PRINTDC(GetLastError());
 		return NULL;
 	}
-	SUS_PRINTDL("Virtual memory has been allocated successfully");
 	return hMem;
 }

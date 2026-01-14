@@ -69,7 +69,7 @@ static inline SUS_ARCHETYPE SUSAPI susCreateArchetype(_Inout_ SUS_WORLD world, _
 // --------------------------------------------------------------------------------------
 
 // Add an entity to an archetype
-static inline sus_u32 SUSAPI susArchetypeAddEntityEx(_In_ SUS_WORLD world, _Inout_ SUS_ARCHETYPE archetype, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY_LOCATION constructor) {
+static inline sus_uint_t SUSAPI susArchetypeAddEntityEx(_In_ SUS_WORLD world, _Inout_ SUS_ARCHETYPE archetype, _In_ SUS_ENTITY entity, _In_opt_ SUS_ENTITY_LOCATION constructor) {
 	SUS_ASSERT(world && archetype);
 	susVectorPushBack(&archetype->entities, &entity);
 	susQueryAddEntity(archetype, entity);
@@ -205,7 +205,7 @@ VOID SUSAPI susWorldDestroy(_In_ SUS_WORLD world)
 	sus_free(world);
 }
 // Update the state of the world
-VOID SUSAPI susWorldUpdate(_In_ SUS_WORLD world, _In_ sus_float deltaTime)
+VOID SUSAPI susWorldUpdate(_In_ SUS_WORLD world, _In_ sus_float_t deltaTime)
 {
 	SUS_ASSERT(world);
 	susVecForeach(i, world->systems) {

@@ -6,47 +6,15 @@
 #include "bitset.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-//								Dealing with time differences							//
-//////////////////////////////////////////////////////////////////////////////////////////
-
-// --------------------------------------------------------------------------------------
-
-// The structure of the time delta
-typedef struct sus_delta_time {
-	LARGE_INTEGER	lastTime;
-	LARGE_INTEGER	frequency;
-	FLOAT			invFrequency;
-} SUS_DTIMER, *SUS_LPDTIMER;
-
-// Initialize the time delta
-SUS_INLINE SUS_DTIMER SUSAPI susDTimerInit() {
-	SUS_DTIMER timer = { 0 };
-	QueryPerformanceFrequency(&timer.frequency);
-	QueryPerformanceCounter(&timer.lastTime);
-	timer.invFrequency = 1.0f / (FLOAT)timer.frequency.QuadPart;
-	return timer;
-}
-// Update the delta from time to time
-SUS_INLINE FLOAT SUSAPI susDTimeGet(SUS_LPDTIMER timer) {
-	LARGE_INTEGER currentTime;
-	QueryPerformanceCounter(&currentTime);
-	LONGLONG delta = currentTime.QuadPart - timer->lastTime.QuadPart;
-	timer->lastTime = currentTime;
-	return delta * timer->invFrequency;
-}
-
-// --------------------------------------------------------------------------------------
-
-//////////////////////////////////////////////////////////////////////////////////////////
 //										ECS structures									//
 //////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------------------------
 
 typedef SUS_BITMASK256 SUS_COMPONENTMASK, *SUS_LPCOMPONENTMASK;
-typedef sus_u32 SUS_COMPONENT_TYPE, *SUS_LPCOMPONENT_TYPE;
-typedef sus_u32 SUS_ENTITY;
-typedef sus_u32 SUS_SYSTEM_ID;
+typedef sus_uint_t SUS_COMPONENT_TYPE, *SUS_LPCOMPONENT_TYPE;
+typedef sus_uint_t SUS_ENTITY;
+typedef sus_uint_t SUS_SYSTEM_ID;
 // Maximum number of possible registered components (SUS_BITMASK256 limit - 256 bits)
 #define SUS_MAX_COMPONENTS	256
 #define SUS_INVALID_ENTITY	INFINITE
@@ -72,7 +40,7 @@ typedef struct sus_archetype {
 // The position of the entity in the archetype
 typedef struct sus_entity_location {
 	SUS_ARCHETYPE	archetype;	// The Archetype
-	sus_u32			index;		// The index of the entity in the archetype
+	sus_uint_t		index;		// The index of the entity in the archetype
 	SUS_ENTITY		parent;		// Parent Entity
 	SUS_HASHSET		children;	// Children of the entity
 } SUS_ENTITY_LOCATION, *SUS_LPENTITY_LOCATION;
@@ -100,10 +68,10 @@ typedef struct sus_system {
 	};
 #pragma warning(pop)
 	SUS_COMPONENTMASK	mask;		// System Mask
-	sus_bool			enabled;	// System status
+	sus_bool_t			enabled;	// System status
 	SUS_SYSTEM_TYPE		type;		// Type of system
 	SUS_SYSTEM_TIMER	timer;		// System startup timer (optional)
-	SUS_OBJECT			userData;	// User data
+	SUS_USERDATA		userData;	// User data
 } SUS_SYSTEM, *SUS_LPSYSTEM;
 
 // ECS Component Constructor
@@ -119,13 +87,14 @@ typedef struct sus_registered_component {
 } SUS_REGISTERED_COMPONENT, *SUS_LPREGISTERED_COMPONENT;
 // A pool for storing all the world's data
 typedef struct sus_world {
-	SUS_HASHMAP archetypes;				// SUS_COMPONENTMASK -> SUS_ARCHETYPE_STRUCT
-	SUS_HASHMAP entities;				// SUS_ENTITY -> SUS_ENTITY_LOCATION
-	SUS_VECTOR  systems;				// SUS_SYSTEM
-	SUS_HASHMAP questions;				// SUS_COMPONENTMASK -> SUS_QUERY_STRUCT
-	SUS_VECTOR registeredComponents;	// SUS_REGISTERED_COMPONENT
-	SUS_VECTOR freeEntities;			// SUS_ENTITY
-	SUS_ENTITY next;					// The following entity id
+	SUS_HASHMAP		archetypes;				// SUS_COMPONENTMASK -> SUS_ARCHETYPE_STRUCT
+	SUS_HASHMAP		entities;				// SUS_ENTITY -> SUS_ENTITY_LOCATION
+	SUS_VECTOR		systems;				// SUS_SYSTEM
+	SUS_HASHMAP		questions;				// SUS_COMPONENTMASK -> SUS_QUERY_STRUCT
+	SUS_VECTOR		registeredComponents;	// SUS_REGISTERED_COMPONENT
+	SUS_VECTOR		freeEntities;			// SUS_ENTITY
+	SUS_ENTITY		next;					// The following entity id
+	SUS_USERDATA	userData;				// User data
 } SUS_WORLD_STRUCT, *SUS_WORLD;
 
 // --------------------------------------------------------------------------------------
@@ -151,8 +120,21 @@ VOID SUSAPI susWorldDestroy(
 // Update the state of the world
 VOID SUSAPI susWorldUpdate(
 	_In_ SUS_WORLD world,
-	_In_ sus_float deltaTime
+	_In_ sus_float_t deltaTime
 );
+
+// --------------------------------------------------------------------------------------
+
+// Set the user data of the world
+SUS_INLINE VOID SUSAPI susWorldSetData(_Inout_ SUS_WORLD world, _In_ SUS_USERDATA userData) {
+	SUS_ASSERT(world);
+	world->userData = userData;
+}
+// Get user data from the world
+SUS_INLINE SUS_USERDATA SUSAPI susWorldGetData(_In_ SUS_WORLD world) {
+	SUS_ASSERT(world);
+	return world->userData;
+}
 
 // --------------------------------------------------------------------------------------
 
@@ -331,6 +313,21 @@ SUS_INLINE VOID SUSAPI susSystemSetUserdata(_Inout_ SUS_WORLD world, _In_ SUS_SY
 // -------------------------------------------------------------------
 
 /* An example of a simple ecs struct
+// The general data structure of the game
+typedef struct game_data {
+	struct {
+		BOOL running;
+	} state;
+	CHAR dummy;
+	// Game data
+} GAME_DATA, *LPGAME_DATA;
+
+VOID GameSetup() {
+	// Initializing game data
+}
+VOID GameCleanup() {
+	// Initializing game data
+}
 VOID GameWorldComponentsInit(_Inout_ SUS_WORLD world) {
 	// Init the game components
 }
@@ -341,10 +338,13 @@ VOID GameWorldSystemInit(_Inout_ SUS_WORLD world) {
 int main()
 {
 	SUS_WORLD world = susNewWorld();
+	if (!world) sus_error(1);
+	GameSetup();
 	GameWorldComponentsInit(world);
 	GameWorldSystemInit(world);
 	SUS_DTIMER delta = susDTimerInit();
 	while (TRUE) susWorldUpdate(world, susDTimeGet(&delta));
+	GameCleanup();
 	susWorldDestroy(world);
 	sus_exit(0);
 }

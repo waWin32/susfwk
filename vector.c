@@ -101,15 +101,14 @@ SUS_LPMEMORY SUSAPI susBufferInsert(
 }
 // Swap bytes
 VOID SUSAPI susBufferSwap(
-	_Inout_ SUS_LPBUFFER pBuff,
+	_Inout_ SUS_BUFFER buff,
 	_In_ SIZE_T fromPos,
 	_In_ SIZE_T toPos,
 	_In_ SIZE_T size)
 {
 	SUS_PRINTDL("Swapping the byte buffer");
-	SUS_ASSERT(pBuff && *pBuff && size);
-	SUS_BUFFER buff = *pBuff;
-	SUS_ASSERT(!(fromPos + size > (*pBuff)->size) && !(toPos + size > (*pBuff)->size));
+	SUS_ASSERT(buff && size);
+	SUS_ASSERT(!(fromPos + size > buff->size) && !(toPos + size > buff->size));
 	if (fromPos == toPos) return;
 	SUS_ASSERT(!((toPos >= fromPos && toPos < fromPos + size) || (fromPos >= toPos && fromPos < toPos + size)));
 	LPBYTE tmp = (LPBYTE)sus_malloc(size);
@@ -185,7 +184,7 @@ SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T itemSize) {
 	SUS_BUFFER buff = susNewBufferEx(itemSize * 4, offset);
 	if (!buff) return NULL;
 	SUS_VECTOR array = (SUS_VECTOR)((LPBYTE)buff - offset);
-	array->itemSize = itemSize;
+	array->itemSize = (DWORD)itemSize;
 	array->length = 0;
 	return array;
 }
@@ -194,17 +193,16 @@ SUS_VECTOR SUSAPI susNewVectorEx(_In_ SIZE_T itemSize) {
 
 // Swap bytes
 VOID SUSAPI susVectorSwap(
-	_Inout_ SUS_LPVECTOR pVector,
+	_Inout_ SUS_VECTOR vector,
 	_In_ DWORD from,
 	_In_ DWORD to)
 {
 	SUS_PRINTDL("Replacing a vector array");
-	SUS_ASSERT(pVector && *pVector);
-	SUS_VECTOR array = *pVector;
-	SUS_BUFFER buff = susVectorBuffer(array);
+	SUS_ASSERT(vector);
+	SUS_BUFFER buff = susVectorBuffer(vector);
 	SIZE_T offset = buff->offset;
-	susBufferSwap(&buff, from * array->itemSize, to * array->itemSize, array->itemSize);
-	susVectorSyncBuffer(buff, offset, pVector);
+	susBufferSwap(buff, from * vector->itemSize, to * vector->itemSize, vector->itemSize);
+	susVectorSyncBuffer(buff, offset, &vector);
 }
 // Add an element to the end of the array
 SUS_OBJECT SUSAPI susVectorPushBack(
@@ -257,15 +255,15 @@ SUS_OBJECT SUSAPI susVectorInsert(
 // -------------------------------------
 
 // The default vector element comparison function
-static BOOL SUSAPI susDefVectorSearcher(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size) {
-	return sus_memcmp(obj, sought, size);
+static INT SUSAPI susDefVectorSearcher(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size) {
+	return sus_memcmp(obj, sought, size) ? 0 : 1;
 }
 // Find the first element and get the index
 INT SUSAPI susVectorIndexOf(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In_opt_ SUS_VECTOR_ELEMENTS_COMPARE searcher) {
 	SUS_ASSERT(vector && obj);
 	searcher = searcher ? searcher : susDefVectorSearcher;
 	susVecForeach(i, vector) {
-		if (searcher(susVectorGet(vector, i), obj, vector->itemSize)) return i;
+		if (searcher(susVectorGet(vector, i), obj, vector->itemSize) == 0) return i;
 	}
 	return -1;
 }
@@ -274,9 +272,36 @@ INT SUSAPI susVectorLastIndexOf(_In_ SUS_VECTOR vector, _In_ SUS_OBJECT obj, _In
 	SUS_ASSERT(vector && obj);
 	searcher = searcher ? searcher : susDefVectorSearcher;
 	susVecForeachReverse(i, vector) {
-		if (searcher(susVectorGet(vector, i), obj, vector->itemSize)) return i;
+		if (searcher(susVectorGet(vector, i), obj, vector->itemSize) == 0) return i;
 	}
 	return -1;
+}
+
+// The default vector element sorter function
+static BOOL SUSAPI susDefVectorSorter(_In_ SUS_VECTOR vector, _In_ UINT a, _In_ UINT b) {
+	return *((int*)susVectorGet(vector, a)) > *((int*)susVectorGet(vector, b));
+}
+// The first part of sorting by the lomuto method
+static UINT susVectorSortPart(_In_ SUS_VECTOR vector, _In_ UINT start, UINT end, _In_ SUS_VECTOR_ELEMENTS_SORTER sorter) {
+	SUS_ASSERT(sorter);
+	susVectorSwap(vector, start + (end - start) / 2, end);
+	for (UINT current = start; current < end; current++) {
+		if (sorter(vector, end, current)) {
+			susVectorSwap(vector, current, start);
+			start++;
+		}
+	}
+	susVectorSwap(vector, end, start);
+	return start;
+}
+// Lomuto sorting
+VOID SUSAPI susVectorSort(_In_ SUS_VECTOR vector, _In_ UINT start, _In_ UINT end, _In_opt_ SUS_VECTOR_ELEMENTS_SORTER sorter)
+{
+	if (end <= start) return;
+	if (!sorter) sorter = susDefVectorSorter;
+	UINT right = susVectorSortPart(vector, start, end, sorter);
+	susVectorSort(vector, start, right - 1, sorter);
+	susVectorSort(vector, right + 1, end, sorter);
 }
 
 // -------------------------------------

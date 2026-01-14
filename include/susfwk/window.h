@@ -40,6 +40,52 @@ typedef struct sus_widget SUS_WIDGET_STRUCT, * SUS_WIDGET;
 ////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
+//				 Low-level functions for working with the system window					//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -------------------------------------------------
+
+// Get userData parameters by lParam
+SUS_INLINE SUS_OBJECT susGetWindowParam(LPARAM lParam) {
+	CONST LPCREATESTRUCT pCreate = (CONST LPCREATESTRUCT)lParam;
+	return pCreate ? pCreate->lpCreateParams : NULL;
+}
+// Save data to a window
+SUS_INLINE SUS_OBJECT susWindowWriteData(HWND hWnd, LONG_PTR dwNewLong) {
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, dwNewLong);
+	return (SUS_OBJECT)dwNewLong;
+}
+// Get a window from a window procedure
+SUS_INLINE SUS_OBJECT susWindowLoadData(HWND hWnd) {
+	return (SUS_OBJECT)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+}
+
+// -------------------------------------------------
+
+// Get the location of an object located in the center of the area
+SUS_INLINE SUS_POINT SUSAPI susGetCenterPos(_In_ SIZE objSize, _In_ SIZE areaSize) {
+	return (SUS_POINT) { (areaSize.cx - objSize.cx) / 2, (areaSize.cy - objSize.cy) / 2 };
+}
+// Getting the screen size X
+SUS_INLINE INT SUSAPI susGetScreenSizeX() {
+	return GetSystemMetrics(SM_CXSCREEN);
+}
+// Getting the screen size Y
+SUS_INLINE INT SUSAPI susGetScreenSizeY() {
+	return GetSystemMetrics(SM_CYSCREEN);
+}
+// Getting the screen size
+SUS_INLINE SUS_SIZE SUSAPI susGetScreenSize() {
+	return (SUS_SIZE) { susGetScreenSizeX(), susGetScreenSizeY() };
+}
+
+// -------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
 //									The main window handler								//
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,6 +95,8 @@ typedef struct sus_widget SUS_WIDGET_STRUCT, * SUS_WIDGET;
 
 // The main Window cycle
 INT SUSAPI susWindowMainLoop();
+// Process current window messages, Process current window messages without blocking the flow
+BOOL SUSAPI susWindowProcessing(_Out_ LPMSG msg);
 
 // -------------------------------------------------
 
@@ -65,9 +113,9 @@ INT SUSAPI susWindowMainLoop();
 // Check if the window is valid
 BOOL SUSAPI susWindowIsValid(_In_ SUS_WINDOW window);
 // Check if the window is a valid widget
-BOOL SUSAPI susWindowIsWidget(_In_ SUS_WINDOW window);
+BOOL SUSAPI susWindowIsWidget(_In_ SUS_WIDGET window);
 // Check if the window is a valid frame
-BOOL SUSAPI susWindowIsFrame(_In_ SUS_WINDOW window);
+BOOL SUSAPI susWindowIsFrame(_In_ SUS_FRAME window);
 
 // -------------------------------------------------
 
@@ -100,9 +148,6 @@ typedef enum sus_winmsg {
 	SUS_WINMSG_MINIMIZED,	// The window was rolled down\param param: NULL
 	SUS_WINMSG_TIMER,		// The window call timer\param param: id
 	SUS_WINMSG_MAXIMIZED,	// The window has been expanded to full screen\param param: NULL
-	SUS_WINMSG_RESTORED,	// The window has regained its size\param param: NULL
-	SUS_WINMSG_SETMINMAX,	// The window has regained its size\param param: MINMAXINFO*
-	SUS_WINMSG_PAINT,		// The window can be redrawn\param param: SUS_GRAPHICS
 	SUS_WINMSG_USER			// The User messages
 } SUS_WINMSG;
 
@@ -122,18 +167,9 @@ typedef VOID(SUSAPI* SUS_WINDOW_TIMER_LISTENER)(_In_ SUS_WINDOW window, _In_ UIN
 VOID SUSAPI susWindowSetTimerListener(_Inout_ SUS_WINDOW window, _In_opt_ SUS_WINDOW_TIMER_LISTENER timerListener);
 
 // Set a timer
-BOOL SUSAPI susWindowSetTimer(_In_ SUS_WINDOW window, _In_ UINT uId, _In_ UINT elapse);
+BOOL SUSAPI susWindowSetTimer(_In_ SUS_WINDOW window, _In_ UINT id, _In_ UINT elapse);
 // Delete the timer
-BOOL SUSAPI susWindowKillTimer(_In_ SUS_WINDOW window, _In_ UINT uId);
-
-// -------------------------------------------------
-
-// Enable/disable rendering processing
-VOID SUSAPI susWindowSetPaintComponent(_In_ SUS_WINDOW window, _In_ BOOL enabled);
-// Redraw the entire window
-VOID SUSAPI susWindowRepaint(_In_ SUS_WINDOW window);
-
-// -------------------------------------------------
+BOOL SUSAPI susWindowKillTimer(_In_ SUS_WINDOW window, _In_ UINT id);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -302,7 +338,7 @@ typedef struct sus_frame_builder {
 SUS_FRAME_BUILDER SUSAPI susFrameBuilder(_In_opt_ LPCWSTR title);
 
 // Build a window
-SUS_FRAME SUSAPI susBuildFrame(_In_ SUS_FRAME_BUILDER builder, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_FRAME SUSAPI susBuildFrame(_In_ SUS_LPFRAME_BUILDER builder, _In_opt_ SUS_WINDOW_LISTENER handler);
 
 // Create a window
 SUS_FRAME SUSAPI susNewFrame(_In_opt_ LPCWSTR title, _In_ SUS_SIZE size, _In_opt_ SUS_WINDOW_LISTENER handler);
@@ -413,10 +449,10 @@ typedef struct sus_widget_builder {
 SUS_WIDGET_BUILDER SUSAPI susWidgetBuilder(_In_opt_ LPCWSTR className);
 
 // Build a window
-SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_WIDGET_BUILDER builder, _In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susBuildWidget(_In_ SUS_LPWIDGET_BUILDER builder, _In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler);
 
 // Create a window
-SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles, _In_opt_ DWORD exstyles);
+SUS_WIDGET SUSAPI susNewWidget(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR className, _In_opt_ LPCWSTR title, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ DWORD styles);
 
 // -------------------------------------------------
 
@@ -440,14 +476,22 @@ SUS_WIDGET SUSAPI susNewRadioButton(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR tit
 
 // -------------------------------------------------
 
+// The type of alignment for the widget text
+typedef enum sus_widget_text_align {
+	SUS_WIDGET_TEXT_ALIGN_NONE,
+	SUS_WIDGET_TEXT_ALIGN_LEFT,
+	SUS_WIDGET_TEXT_ALIGN_CENTER,
+	SUS_WIDGET_TEXT_ALIGN_RIGHT
+} SUS_WIDGET_TEXT_ALIGN;
+
 // Create a label
-SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ SUS_WIDGET_TEXT_ALIGN align);
 // Create a panel
 SUS_WIDGET SUSAPI susNewPanel(_In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler);
 // Create a text input field
-SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewTextField(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ SUS_WIDGET_TEXT_ALIGN align);
 // Create a text entry area
-SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler);
+SUS_WIDGET SUSAPI susNewTextArea(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In_opt_ SUS_WINDOW_LISTENER handler, _In_opt_ SUS_WIDGET_TEXT_ALIGN align);
 
 // -------------------------------------------------
 
@@ -556,12 +600,14 @@ SUS_BOUNDS SUSAPI susWindowGetBounds(_In_ SUS_WINDOW window);
 SUS_POINT SUSAPI susWindowGetPosition(_In_ SUS_WINDOW window);
 // Get the window size
 SUS_SIZE SUSAPI susWindowGetSize(_In_ SUS_WINDOW window);
+// Get the client area of the window
+SUS_SIZE SUSAPI susWindowGetContent(_In_ SUS_WINDOW window);
 // Set the title for the window
 BOOL SUSAPI susWindowSetText(_In_ SUS_WINDOW window, _In_ LPCWSTR title);
 // Get a dynamic window title
 LPWSTR SUSAPI susWindowGetText(_In_ SUS_WINDOW window);
 // Set transparency for the window (From 0 to 1)
-BOOL SUSAPI susWindowSetTransparency(_In_ SUS_WINDOW window, _In_ sus_float transparency);
+BOOL SUSAPI susWindowSetTransparency(_In_ SUS_WINDOW window, _In_ sus_float_t transparency);
 
 // -------------------------------------------------
 
@@ -577,10 +623,6 @@ SUS_PARAM SUSAPI susWindowGetProperty(_In_ SUS_WINDOW window, _In_ LPCWSTR key);
 SUS_WIDGET SUSAPI susWindowGetWidget(_In_ SUS_WINDOW window, _In_ UINT id);
 // Set your id for the window
 VOID SUSAPI susWindowSetId(_In_ SUS_WINDOW window, _In_ UINT id);
-// Install a double buffering system
-VOID SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WINDOW window, _In_ BOOL enabled);
-// Set the window background color
-VOID SUSAPI susWindowSetBackground(_In_ SUS_WINDOW window, _In_ SUS_COLOR color);
 
 // -------------------------------------------------
 
@@ -596,6 +638,8 @@ DWORD SUSAPI susWindowGetStyle(_In_ SUS_WINDOW window);
 HWND SUSAPI susWindowGetSuper(_In_ SUS_WINDOW window);
 // Get the window class name as a static string
 LPCWSTR SUSAPI susWindowGetClassName(_In_ SUS_WINDOW window);
+// Get the parent's window
+SUS_WINDOW SUSAPI susWindowGetParent(_In_ SUS_WINDOW window);
 
 // -------------------------------------------------
 
@@ -660,6 +704,14 @@ HCURSOR SUSAPI susWindowSetCursor(_In_ SUS_FRAME window, _In_ HCURSOR hCursor);
 HICON SUSAPI susWindowSetIcon(_In_ SUS_FRAME window, _In_ HICON hIcon);
 // Set the Menu for the window
 BOOL SUSAPI susWindowSetMenuBar(_In_ SUS_FRAME window, _In_ HMENU hMenu);
+// Set the minimum size for the window
+VOID SUSAPI susWindowSetMinimumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE minSize);
+// Set the maximum size for the window
+VOID SUSAPI susWindowSetMaximumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE maxSize);
+// Set a fixed size for the window
+VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size);
+// Install a renderer for an OpenGL-based window
+BOOL SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable);
 
 // -------------------------------------------------
 
@@ -683,11 +735,11 @@ BOOL SUSAPI susWindowSetMenuBar(_In_ SUS_FRAME window, _In_ HMENU hMenu);
 // Layout data cache
 typedef union sus_layout_cache {
 	struct {
-		sus_float x, y;		// Relative window position, ranging from 0 to 1.
-		sus_float cx, cy;	// Relative window size, ranging from 0 to 1.
+		sus_float_t x, y;		// Relative window position, ranging from 0 to 1.
+		sus_float_t cx, cy;	// Relative window size, ranging from 0 to 1.
 	};
-	sus_float arr[4]; // Value 0 - ignoring the parameter
-} SUS_LAYOUT_CACHE;
+	sus_float_t arr[4]; // Value 0 - ignoring the parameter
+} SUS_LAYOUT;
 
 // -------------------------------------------------
 
@@ -695,7 +747,7 @@ typedef union sus_layout_cache {
 VOID SUSAPI susWidgetUpdateLayout(_In_ SUS_WIDGET widget, _In_ SUS_SIZE newScreenSize);
 
 // Set a new layout for the widget
-VOID SUSAPI susWidgetSetLayout(_In_ SUS_WIDGET widget, SUS_LAYOUT_CACHE layout);
+VOID SUSAPI susWidgetSetLayout(_In_ SUS_WIDGET widget, SUS_LAYOUT layout);
 
 // -------------------------------------------------
 
@@ -718,6 +770,56 @@ LRESULT WINAPI susWidgetSystemHandler(
 	UINT_PTR uIdSubclass,
 	DWORD_PTR dwRefData
 );
+
+// -------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//							Functions for working with the widget						//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -------------------------------------------------
+
+// Paint Listener
+typedef VOID(SUSAPI* SUS_WINDOW_PAINT_COMPONENT)(_In_ SUS_WIDGET window, _In_ SUS_GRAPHICS gr);
+// Enable/disable rendering processing
+VOID SUSAPI susWindowSetPaintComponent(_In_ SUS_WIDGET window, _In_ SUS_WINDOW_PAINT_COMPONENT paintComponent);
+// Get the context of the window graphics
+SUS_LPGRAPHICS_CONTEXT SUSAPI susWindowGetGraphics(_In_ SUS_WIDGET window);
+// Redraw the entire window
+VOID SUSAPI susWindowRepaint(_In_ SUS_WIDGET window);
+// immediately redraw the window
+VOID SUSAPI susWindowRepaintImmediately(_In_ SUS_WIDGET window);
+
+// -------------------------------------------------
+
+// Window background rendering component
+typedef VOID(SUSAPI* SUS_WINDOW_BACKGROUND_COMPONENT)(_In_ SUS_WIDGET window, _In_ SUS_GRAPHICS gr);
+// Install the background rendering component
+VOID SUSAPI susWindowSetBackgroundComponent(_In_ SUS_WIDGET window, _In_ SUS_WINDOW_BACKGROUND_COMPONENT backgroundComponent);
+// Standard window drawing
+VOID SUSAPI susWindowDefBackgroundComponent(_In_ SUS_WIDGET window, _In_ SUS_GRAPHICS gr);
+// The standard window drawing is an image
+VOID SUSAPI susWindowDefBackgroundComponentImage(_In_ SUS_WIDGET window, _In_ SUS_GRAPHICS gr);
+
+// -------------------------------------------------
+
+// Install a double buffering system
+BOOL SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WIDGET window, _In_ BOOL enabled);
+// Set the window background color
+VOID SUSAPI susWindowSetBackground(_In_ SUS_WIDGET window, _In_ SUS_COLOR color);
+
+// -------------------------------------------------
+
+// A component for working with graphics
+typedef struct sus_window_graphics_component {
+	SUS_GRAPHICS_CONTEXT			context;
+	SUS_WINDOW_PAINT_COMPONENT		paintComponent;
+	SUS_WINDOW_BACKGROUND_COMPONENT backgroundComponent;
+} SUS_WINDOW_GRAPHICS_COMPONENT;
 
 // -------------------------------------------------
 
@@ -784,11 +886,6 @@ SUS_RESULT SUSAPI PanelHandler(SUS_WIDGET panel, SUS_WINMSG msg, SUS_PARAM param
 	case SUS_WINMSG_CREATE: {
 		// Widget Placement
 	} return 0;
-	case SUS_WINMSG_PAINT: {
-		SUS_GRAPHICS gr = (SUS_GRAPHICS)param;
-		// Painting
-	} return 0;
-	default: return 0;
 	}
 }
 */

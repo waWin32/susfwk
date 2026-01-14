@@ -142,7 +142,7 @@ VOID SUSAPI susJnetSetup(
 // Get auto id for json request
 SUS_INLINE SUS_JSON SUSAPI susJnetAutoId() {
 	static INT id = 1;
-	return susJsonNumber((sus_f32)id++);
+	return susJsonNumber((sus_f32_t)id++);
 }
 
 // -----------------------------------------------

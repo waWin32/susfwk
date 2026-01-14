@@ -57,8 +57,8 @@ SUS_LPMEMORY SUSAPI sus_newmem(
 // Initialize a memory block
 SUS_INLINE VOID SUSAPI sus_memset(
 	_Out_writes_bytes_all_(size) LPBYTE data,
-	_In_ SIZE_T size,
-	_In_ BYTE value)
+	_In_ BYTE value,
+	_In_ SIZE_T size)
 {
 	SUS_ASSERT(data);
 	__stosb(data, value, size);
@@ -130,6 +130,8 @@ typedef struct sus_data_view {
 	SIZE_T size;
 } SUS_DATAVIEW, *SUS_PDATAVIEW, *SUS_LPDATAVIEW;
 
+// Data constuctor
+#define susDataView(data_, size_) (SUS_DATAVIEW) { .data = (LPBYTE)(data_), .size = (SIZE_T)(size_) }
 // Create new dynamic memory
 SUS_INLINE SUS_DATAVIEW SUSAPI susNewData(_In_ SIZE_T size) {
 	return (SUS_DATAVIEW) {

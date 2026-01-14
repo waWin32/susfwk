@@ -28,9 +28,9 @@ typedef enum sus_json_type {
 typedef struct sus_json {
 	SUS_JSON_TYPE type;		// Json type
 	union {
-		sus_str str;
-		sus_f32 number;
-		sus_bool boolean;
+		sus_str_t str;
+		sus_f32_t number;
+		sus_bool_t boolean;
 		SUS_VECTOR array; // SUS_JSON
 		SUS_HASHMAP object; // LPSTR -> SUS_JSON
 	} value;

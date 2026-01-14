@@ -126,7 +126,7 @@ static BOOL SUSAPI susSocketShutdown(_Inout_ SUS_LPSOCKET sock)
 	SUS_PRINTDL("Secure connection closure");
 	SUS_ASSERT(sock && sock->super != INVALID_SOCKET);
 	susSocketCallMessage(sock, SUS_SM_CLOSE, 0, 0);
-	for (sus_uint i = 0; i < 10 && susSocketFlush(sock) == WSAEWOULDBLOCK; i++) Sleep(SUS_SOCKET_POLL_TIMEOUT);
+	for (sus_uint_t i = 0; i < 10 && susSocketFlush(sock) == WSAEWOULDBLOCK; i++) Sleep(SUS_SOCKET_POLL_TIMEOUT);
 	if (shutdown(sock->super, SD_SEND) == SOCKET_ERROR) {
 		SUS_PRINTDE("Couldn't close network socket");
 		SUS_PRINTDC(WSAGetLastError());

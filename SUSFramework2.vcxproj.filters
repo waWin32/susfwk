@@ -58,6 +58,18 @@
     <Filter Include="Исходные файлы\game">
       <UniqueIdentifier>{f9b03f77-58f6-4816-ad51-7f8368fa9538}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Файлы заголовков\ui">
+      <UniqueIdentifier>{fd997c18-3ec8-4a67-9cae-03ef5f1c604f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\ui">
+      <UniqueIdentifier>{2bab13ef-0f69-45ea-95bc-aea8db8d77ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\susgl">
+      <UniqueIdentifier>{d42073c7-7796-49f3-91f9-992609f12d52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\susgl">
+      <UniqueIdentifier>{c875ee71-f702-46f2-b2c4-b4cedee58d80}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\susfwk\conio.h">
@@ -138,17 +150,35 @@
     <ClInclude Include="include\susfwk\appdata.h">
       <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\windowapi.h">
-      <Filter>Файлы заголовков\system</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\filemap.h">
       <Filter>Файлы заголовков\io</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\graphics.h">
-      <Filter>Файлы заголовков\system</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\tmath.h">
       <Filter>Файлы заголовков\math</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\window.h">
+      <Filter>Файлы заголовков\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\graphics.h">
+      <Filter>Файлы заголовков\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susgl\susgl.h">
+      <Filter>Файлы заголовков\susgl</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susgl\suswgl.h">
+      <Filter>Файлы заголовков\susgl</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\renderer.h">
+      <Filter>Файлы заголовков\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\uicommon.h">
+      <Filter>Файлы заголовков\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\sus_image.h">
+      <Filter>Файлы заголовков\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\susfwk\time.h">
+      <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -212,17 +242,29 @@
     <ClCompile Include="appdata.c">
       <Filter>Исходные файлы\system</Filter>
     </ClCompile>
-    <ClCompile Include="windowapi.c">
-      <Filter>Исходные файлы\system</Filter>
-    </ClCompile>
     <ClCompile Include="filemap.c">
       <Filter>Исходные файлы\io</Filter>
     </ClCompile>
-    <ClCompile Include="graphics.c">
-      <Filter>Исходные файлы\system</Filter>
-    </ClCompile>
     <ClCompile Include="tmath.c">
-      <Filter>Исходные файлы</Filter>
+      <Filter>Исходные файлы\math</Filter>
+    </ClCompile>
+    <ClCompile Include="window.c">
+      <Filter>Исходные файлы\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics.c">
+      <Filter>Исходные файлы\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="susgl.c">
+      <Filter>Исходные файлы\susgl</Filter>
+    </ClCompile>
+    <ClCompile Include="suswgl.c">
+      <Filter>Исходные файлы\susgl</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer.c">
+      <Filter>Исходные файлы\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="time.c">
+      <Filter>Исходные файлы\system</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

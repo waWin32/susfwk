@@ -82,7 +82,7 @@ LRESULT SUSAPI susJnetSocketHandler(_In_ SUS_LPSOCKET sock, _In_ SUS_SOCKET_MESS
 	case SUS_SM_CREATE: {
 		SUS_JNET jnet = susNewJnet();
 		if (!jnet) return 1;
-		susSocketSetProperty(sock, SUS_JNET_PROPERTY, (LPARAM)jnet);
+		susSocketSetProperty(sock, SUS_JNET_PROPERTY, (SUS_USERDATA)jnet);
 	} return 0;
 	case SUS_SM_END:
 		susJnetDestroy((SUS_JNET)susSocketGetProperty(sock, SUS_JNET_PROPERTY));

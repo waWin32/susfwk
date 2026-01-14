@@ -44,6 +44,13 @@ SUS_INLINE BOOL SUSAPI sus_execute(LPCSTR command) {
 	WaitForSingleObject(ps.hProcess, 1000);
 	return TRUE;
 }
+// Run the command in the system
+SUS_INLINE BOOL SUSAPI sus_executeW(LPCWSTR command) {
+	PROCESS_INFORMATION ps = { 0 };
+	if (!susCreateProcessW(command, TRUE, NULL, &ps)) return FALSE;
+	WaitForSingleObject(ps.hProcess, 1000);
+	return TRUE;
+}
 
 #ifdef UNICODE
 #define susCreateProcess	susCreateProcessW

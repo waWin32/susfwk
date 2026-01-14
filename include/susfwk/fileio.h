@@ -92,14 +92,14 @@ BOOL SUSAPI sus_fremoveW(
 SUS_FILE SUSAPI susCreateTempFileA(
 	_In_opt_ LPCSTR lpPrefixString,
 	_In_opt_ LPCSTR lpFileExtension,
-	_In_ sus_flag32 flags,
+	_In_ DWORD flags,
 	_Out_writes_opt_(MAX_PATH) LPSTR lpTempFileName
 );
 // Create a temporary file
 SUS_FILE SUSAPI susCreateTempFileW(
 	_In_opt_ LPCWSTR lpPrefixString,
 	_In_opt_ LPCWSTR lpFileExtension,
-	_In_ sus_flag32 flags,
+	_In_ DWORD flags,
 	_Out_writes_opt_(MAX_PATH) LPWSTR lpTempFileName
 );
 

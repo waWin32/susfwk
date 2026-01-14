@@ -20,10 +20,8 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <winhttp.h>
-#include <GL/glew.h>
-#include <GL/wglew.h>
 
-#define SUS_DEBUGONLYERRORS
+//#define SUS_DEBUGONLYERRORS
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "opengl32.lib")

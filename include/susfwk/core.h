@@ -121,7 +121,7 @@ and when used, access it via super.
 // =======================================================================================//
 
 // Alignment
-#define SUS_ALIGN(size) (((size) + sizeof(sus_ptr) - 1) & ~(sizeof(sus_ptr) - 1))
+#define SUS_ALIGN(size, align) (((size) + (align) - 1) & ~((align) - 1))
 
 // Exit the program
 #define sus_exit(code) ExitProcess(code)
@@ -134,9 +134,9 @@ and when used, access it via super.
 #endif // !_DEBUG
 
 #ifdef _WIN32
-	typedef sus_u8* sus_va_list;
-	#define sus_va_start(ap, last) (ap = (sus_va_list)&last + SUS_ALIGN(sizeof(last)))
-	#define sus_va_arg(ap, type) (*(type*)((ap += SUS_ALIGN(sizeof(type))) - SUS_ALIGN(sizeof(type))))
+	typedef sus_u8_t* sus_va_list;
+	#define sus_va_start(ap, last) (ap = (sus_va_list)&last + SUS_ALIGN(sizeof(last), sizeof(sus_size_t)))
+	#define sus_va_arg(ap, type) (*(type*)((ap += SUS_ALIGN(sizeof(type), sizeof(sus_size_t))) - SUS_ALIGN(sizeof(type), sizeof(sus_size_t))))
 	#define sus_va_end(ap) (ap = NULL)
 #else
 	typedef __builtin_va_list sus_va_list;
@@ -147,8 +147,8 @@ and when used, access it via super.
 
 #include "debug.h"
 #include "string.h"
-#include "format.h"
 #include "memory.h"
+#include "format.h"
 #include "iostream.h"
 
 #endif /* !_SUS_CORE_ */

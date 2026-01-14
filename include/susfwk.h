@@ -19,6 +19,7 @@ Abstract:
 
 /*
 * SUSNOTMATH
+* SUSNOTTMATH
 * SUSNOTWINDOW
 * SSUSINIMAL
 * SUSNOTCONSOLEAPI
@@ -30,6 +31,7 @@ Abstract:
 * SUSNOTHTTP
 * SUSNOTJSON
 * SUSNOTJNET
+* SUSNOTAPPDATA
 */
 
 #include "susfwk/core.h"
@@ -54,16 +56,20 @@ Abstract:
     #include "susfwk/thrprocessapi.h"
     #endif // !SUSNOTPROCESSAPI
     #ifndef SUSNOTWINDOW
-    #include "susfwk/windowapi.h"
+    #include "susfwk/window.h"
     #endif // !SUSNOTWINDOW
     #ifndef SUSNOTMATH
     #include "susfwk/math.h"
+    #ifndef SUSNOTTMATH
+    #include "susfwk/tmath.h"
+    #endif // !SUSNOTTMATH
     #endif // !SUSNOTMATH
     #ifndef SUSNOTECS
     #include "susfwk/ecs.h"
     #endif // !SUSNOTECS
     #ifndef SUSNOTNETWORK
     #include <WinSock2.h>
+    #include <WS2tcpip.h>
     #include "susfwk/network.h"
     #ifndef SUSNOTJNET
     #include "susfwk/jnet.h"
@@ -76,6 +82,9 @@ Abstract:
     #ifndef SUSNOTJSON
     #include "susfwk/json.h"
     #endif // !SUSNOTJSON
+    #ifndef SUSNOTAPPDATA
+    #include "susfwk/appdata.h"
+    #endif // !SUSNOTAPPDATA
 #endif // !SSUSINIMAL
 
 #endif /* !_SUS_FRAMEWORK_ */

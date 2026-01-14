@@ -20,8 +20,6 @@ LPWSTR susLoadStringW(_In_ UINT idString, _Out_opt_ PINT pLen);
 * @param pdwSize	The optimal value returned is the size of the resource.
 * @return TRUE if successful, FALSE otherwise.
 */
-
-// Get a custom resource
 LPVOID susLoadResourceA(
 	_In_ LPCSTR lpName,
 	_In_ LPCSTR lpType,
@@ -74,7 +72,7 @@ BOOL susLoadResourceToFileW(
 SUS_FILE susLoadResourceToTmpFileA(
 	_In_ LPCSTR lpName,
 	_In_ LPCSTR lpType,
-	_In_ sus_flag32 flags,
+	_In_ DWORD flags,
 	_In_opt_ LPCSTR lpPrefixString,
 	_In_opt_ LPCSTR lpFileExtension,
 	_Out_opt_ LPSTR lpPath
@@ -83,7 +81,7 @@ SUS_FILE susLoadResourceToTmpFileA(
 SUS_FILE susLoadResourceToTmpFileW(
 	_In_ LPCWSTR lpName,
 	_In_ LPCWSTR lpType,
-	_In_ sus_flag32 flags,
+	_In_ DWORD flags,
 	_In_opt_ LPCWSTR lpPrefixString,
 	_In_opt_ LPCWSTR lpFileExtension,
 	_Out_opt_ LPWSTR lpPath

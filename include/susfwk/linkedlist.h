@@ -15,7 +15,7 @@ extern "C" {
 // -------------------------------------------------------------------
 
 // A callback function for comparing elements
-typedef BOOL(SUSAPI* SUS_LIST_ELEMENTS_COMPARE)(_In_ SUS_OBJECT obj, _In_ SUS_OBJECT sought, _In_ SIZE_T size);
+typedef BOOL(SUSAPI* SUS_LIST_ELEMENTS_COMPARE)(_In_ SUS_OBJECT a, _In_ SUS_OBJECT b, _In_ SIZE_T size);
 // A node of two linked lists
 typedef struct sus_list_node{
 	struct sus_list_node*	next;	// The next node
@@ -61,6 +61,12 @@ VOID SUSAPI susListErase(
 	_Inout_ SUS_LPLIST list,
 	_In_ SUS_LIST_NODE node
 );
+// Move the node by the specified number
+VOID SUSAPI susListMove(
+	_Inout_ SUS_LPLIST list,
+	_In_ SUS_LIST_NODE node,
+	_In_ INT move
+);
 
 // -------------------------------------------------------------------
 
@@ -102,7 +108,7 @@ SUS_LIST_NODE SUSAPI susListFindLast(
 // Check the node for presence in the list
 BOOL SUSAPI susListContains(
 	_In_ SUS_LIST list,
-	_In_ SUS_LIST_NODE node
+	_In_opt_ SUS_LIST_NODE node
 );
 
 // -------------------------------------------------------------------
