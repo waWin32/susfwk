@@ -21,6 +21,7 @@ SUS_LPMEMORY SUSAPI sus_malloc(_In_ SIZE_T size)
 		if (hMem) break;
 		SUS_PRINTDE("Couldn't allocate memory");
 		SUS_PRINTDC(GetLastError());
+		susErrorPushEx((SUS_ERROR) { .sev = SUS_ERROR_SEVERITY_CRITICAL, .type = SUS_ERROR_TYPE_MEMORY, .code = SUS_ERROR_SYSTEM_ERROR });
 		Sleep(10);
 	}
 	return hMem;
@@ -51,6 +52,7 @@ SUS_LPMEMORY SUSAPI sus_free(_In_ SUS_LPMEMORY block)
 	if (!HeapFree(GetProcessHeap(), 0, block)) {
 		SUS_PRINTDE("The memory block could not be released");
 		SUS_PRINTDC(GetLastError());
+		susErrorPushEx((SUS_ERROR) { .sev = SUS_ERROR_SEVERITY_CRITICAL, .type = SUS_ERROR_TYPE_MEMORY, .code = SUS_ERROR_SYSTEM_ERROR });
 		return block;
 	}
 	return NULL;
@@ -69,25 +71,6 @@ SUS_LPMEMORY SUSAPI sus_newmem(_In_ SIZE_T size, _In_opt_ SUS_OBJECT value)
 //					Dynamic virtual memory						//
 //////////////////////////////////////////////////////////////////
 
-// Allocate virtual memory
-SUS_LPMEMORY SUSAPI sus_vmalloc(
-	_In_ SIZE_T size,
-	_In_ SUS_MEMORY_PROTECT protect)
-{
-	SUS_PRINTDL("Allocating %d bytes in virtual memory", size);
-	SUS_LPMEMORY hMem = VirtualAlloc(
-		NULL,
-		size,
-		MEM_RESERVE | MEM_COMMIT,
-		protect
-	);
-	if (!hMem) {
-		SUS_PRINTDE("Couldn't allocate memory");
-		SUS_PRINTDC(GetLastError());
-		return NULL;
-	}
-	return hMem;
-}
 // Allocate virtual memory to process
 SUS_LPMEMORY SUSAPI sus_vmallocEx(
 	_In_ SUS_FILE hProcess,
@@ -107,6 +90,27 @@ SUS_LPMEMORY SUSAPI sus_vmallocEx(
 	if (!hMem) {
 		SUS_PRINTDE("Couldn't allocate memory");
 		SUS_PRINTDC(GetLastError());
+		susErrorPushEx((SUS_ERROR) { .sev = SUS_ERROR_SEVERITY_CRITICAL, .type = SUS_ERROR_TYPE_MEMORY, .code = SUS_ERROR_SYSTEM_ERROR });
+		return NULL;
+	}
+	return hMem;
+}
+// Allocate virtual memory
+SUS_LPMEMORY SUSAPI sus_vmalloc(
+	_In_ SIZE_T size,
+	_In_ SUS_MEMORY_PROTECT protect)
+{
+	SUS_PRINTDL("Allocating %d bytes in virtual memory", size);
+	SUS_LPMEMORY hMem = VirtualAlloc(
+		NULL,
+		size,
+		MEM_RESERVE | MEM_COMMIT,
+		protect
+	);
+	if (!hMem) {
+		SUS_PRINTDE("Couldn't allocate memory");
+		SUS_PRINTDC(GetLastError());
+		susErrorPushEx((SUS_ERROR) { .sev = SUS_ERROR_SEVERITY_CRITICAL, .type = SUS_ERROR_TYPE_MEMORY, .code = SUS_ERROR_SYSTEM_ERROR });
 		return NULL;
 	}
 	return hMem;

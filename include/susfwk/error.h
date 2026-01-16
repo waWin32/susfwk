@@ -90,6 +90,10 @@ SUS_INLINE BOOL SUSAPI susErrorPushEx(_In_ SUS_ERROR error) {
 }
 // Create a simple error
 #define susErrorPush(code_, type_) susErrorPushEx((SUS_ERROR) { .code = code_, .sev = SUS_ERROR_SEVERITY_COMMON, .type = type_ });
+// Create a critical error
+#define susErrorPushCritical(code_, type_) susErrorPushEx((SUS_ERROR) { .code = code_, .sev = SUS_ERROR_SEVERITY_CRITICAL, .type = type_ });
+// Create a fatal error
+#define susErrorPushFatal(code_, type_) susErrorPushEx((SUS_ERROR) { .code = code_, .sev = SUS_ERROR_SEVERITY_FATAL, .type = type_ });
 // Peek at the error
 SUS_INLINE SUS_ERROR SUSAPI susErrorPeek() {
 	if (!SUSErrorManager.error.sp) return (SUS_ERROR) { 0 };
@@ -123,11 +127,13 @@ enum {
 	SUS_ERROR_INVALID_STATE,		// Wrong context
 	SUS_ERROR_INVALID_OPERATION,	// Invalid operation from the context
 	SUS_ERROR_INVALID_INPUT,		// Incorrect data was received
+	SUS_ERROR_WRITE_MEMORY,			// Couldn't write data
 	SUS_ERROR_OUT_OF_MEMORY,		// Memory overflow
 	SUS_ERROR_OUT_OF_RANGE,			// Going beyond the boundaries of access
 	SUS_ERROR_STACK_OVERFLOW,		// Static stack overflow
 	SUS_ERROR_SYNTAX_ERROR,			// Error during parsing
 	SUS_ERROR_SYSTEM_ERROR,			// System error
+	SUS_ERROR_API_ERROR,			// System error
 	SUS_ERROR_USER1					// User errors
 };
 #pragma warning(pop)

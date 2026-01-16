@@ -7360,6 +7360,7 @@ SUS_INLINE sus_lpubyte_t SUSAPI susLoadImageFromMemory(SUS_DATAVIEW buffer, _In_
     sus_lpubyte_t image = (sus_lpubyte_t)stbi_load_from_memory(buffer.data, (int)buffer.size, (int*)&size->cx, (int*)&size->cy, channels, 0);
     if (!image) {
         SUS_PRINTDE("Failed to load image from memory");
+        susErrorPush(SUS_ERROR_API_ERROR, SUS_ERROR_TYPE_RESOURCE);
         return NULL;
     }
     SUS_PRINTDL("The image has been successfully loaded from memory");
