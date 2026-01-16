@@ -3,7 +3,18 @@
 #ifndef _SUS_RENDERER_
 #define _SUS_RENDERER_
 
-// v1.0
+// Renderer - graphics output
+// v1.1
+/*
+* Renderer is an api for working with high-level graphics,
+* providing functions for working with shaders, cameras, meshes, textures, etc.
+* Sample code at the end of the file
+* 
+* Use the window module for convenient operation.
+* Using the window module, some of the work will be done automatically!
+*/
+
+// -----------------------------------------------
 
 #include "tmath.h"
 #include "time.h"
@@ -11,6 +22,8 @@
 #include "vector.h"
 #include "hashtable.h"
 #include "..\susgl\suswgl.h"
+
+// -----------------------------------------------
 
 #pragma warning(push)
 #pragma warning(disable: 4201)
@@ -21,8 +34,6 @@
 /*								Working with graphics on a opengl api gpu							 */
 // ************************************************************************************************* //
 // ================================================================================================= //
-
-////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //									  Basic set of functions      								  //
@@ -188,6 +199,17 @@ SUS_INLINE VOID SUSAPI susGpuVectorShift(_In_ SUS_LPGPU_VECTOR vector) {
 //							  The structure of working with the camera    						  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// How do I work with the camera?
+/*
+* To start working with the camera, you need to:
+* 1. Create a camera, 2d for orthographic projection, 3d for perspective projection
+* 2. Set the camera as the current one
+* 3. You can start working
+* 
+* Do not call the susRendererCameraSize and susRendererCameraUpdate functions directly!
+* The camera is controlled automatically, so you don't need to remove it unnecessarily.
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------
@@ -243,7 +265,7 @@ VOID SUSAPI susRendererCameraDestroy(_In_ SUS_CAMERA camera);
 VOID SUSAPI susRendererSetCamera(_In_ SUS_CAMERA camera);
 
 // -----------------------------------------------
-// 
+
 // Set the camera position
 VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 pos);
 // Set the camera position
@@ -283,6 +305,19 @@ sus_uint_t SUSAPI susRendererCamera3DGetFov(_In_ SUS_CAMERA3D camera);
 //								   Creating and installing shaders    							  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// What is a shader?
+/*
+* A shader in the susfwk context is a GPU program that you can load or use templates for
+* 
+* It is important to note that a shader
+* is one of the key components of graphics, and in susfwk,
+* you are required to use and understand it.
+* 
+* Many components require a shader,
+* and some objects require
+* a specific shader (or a general shader) when initialized
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------
@@ -319,8 +354,8 @@ typedef struct sus_vertex_format {
 
 // The format of the instance variables
 typedef enum sus_mesh_instance_attribute {
-	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX = 0,		// mat4 - default
-	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR = 1 << 0,	// vec4
+	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX = 0,			// mat4 - default
+	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR = 1 << 0,		// vec4
 	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET = 1 << 1	// vec2
 } SUS_MESH_INSTANCE_ATTRIBUTE;
 
@@ -343,62 +378,8 @@ typedef struct sus_shader_format {
 
 // -----------------------------------------------
 
-// Basic 2D Shader Code - Vertex Shader
-static const CHAR* SUSBuiltinShader2D_VS =
-"#version 330 core\n"
-"layout(location = 0) in vec2 aPos;\n"
-"layout(location = 1) in vec4 aColor;\n"
-"layout(location = 2) in vec2 aTexCoord;\n"
-"out vec4 vColor;\n"
-"out vec2 vTexCoord;\n"
-"uniform mat4 sus_mvp;\n"
-"void main() {\n"
-"    gl_Position = sus_mvp * vec4(aPos, 0.0, 1.0);\n"
-"    vColor = aColor;\n"
-"    vTexCoord = aTexCoord;\n"
-"}\n";
-// Basic 2D Shader Code - Fragment Shader
-static const CHAR* SUSBuiltinShader2D_FS =
-"#version 330 core\n"
-"in vec4 vColor;\n"
-"in vec2 vTexCoord;\n"
-"out vec4 FragColor;\n"
-"uniform sampler2D uTexture;\n"
-"void main() {\n"
-"    vec4 texColor = texture(uTexture, vTexCoord);\n"
-"    FragColor = vColor * texColor;\n"
-"}\n";
-// Format for a regular 2D shader
-#define g_BuiltinShader2D_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } }
-
-// -----------------------------------------------
-
-// Basic 2D shader code - Vertex shader without textures
-static const CHAR* SUSBuiltinShader2DColor_VS =
-"#version 330 core\n"
-"layout(location = 0) in vec2 aPos;\n"
-"layout(location = 1) in vec4 aColor;\n"
-"out vec4 vColor;\n"
-"uniform mat4 sus_mvp;\n"
-"void main() {\n"
-"    gl_Position = sus_mvp * vec4(aPos, 0.0, 1.0);\n"
-"    vColor = aColor;\n"
-"}\n";
-// Basic 2D shader code - Fragment shader without textures
-static const CHAR* SUSBuiltinShader2DColor_FS =
-"#version 330 core\n"
-"in vec4 vColor;\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"    FragColor = vColor;\n"
-"}\n";
-// Format for a 2D shader without textures
-#define g_BuiltinShader2DColor_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE & ~SUS_VERTEX_ATTRIBUT_TEXTURE } }
-
-// -----------------------------------------------
-
-// Basic 3D shader code - vertex shader
-static const CHAR* SUSBuiltinShader3D_VS =
+// Basic 3D Shader Code - Vertex Shader
+static const CHAR* SUSBuiltinShaderVS =
 "#version 330 core\n"
 "layout(location = 0) in vec3 aPos;\n"
 "layout(location = 1) in vec4 aColor;\n"
@@ -411,8 +392,8 @@ static const CHAR* SUSBuiltinShader3D_VS =
 "    vColor = aColor;\n"
 "    vTexCoord = aTexCoord;\n"
 "}\n";
-// Basic 3D shader code - fragment shader
-static const CHAR* SUSBuiltinShader3D_FS =
+// Basic 3D Shader Code - Fragment Shader
+static const CHAR* SUSBuiltinShaderFS =
 "#version 330 core\n"
 "in vec4 vColor;\n"
 "in vec2 vTexCoord;\n"
@@ -422,32 +403,13 @@ static const CHAR* SUSBuiltinShader3D_FS =
 "    vec4 texColor = texture(uTexture, vTexCoord);\n"
 "    FragColor = vColor * texColor;\n"
 "}\n";
-// The format for the 3d shader
-#define g_BuiltinShader3D_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } }
+// Format for a regular 2D shader
+#define SUS_BUILTIN_SHADER_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } }
 
 // -----------------------------------------------
 
-// 2D vertex shader for instancing
-static const CHAR* g_BuiltinShader2D_Instanced_VS =
-"#version 330 core\n"
-"layout(location = 0) in vec2 aPos;\n"
-"layout(location = 1) in vec4 aColor;\n"
-"layout(location = 2) in vec2 aTexCoord;\n"
-"layout(location = 4) in mat4 aInstanceMatrix;\n"
-"layout(location = 8) in vec4 aInstanceColor;\n"
-"out vec4 vColor;\n"
-"out vec2 vTexCoord;\n"
-"uniform mat4 sus_projview;\n"
-"void main() {\n"
-"    vec4 worldPos = aInstanceMatrix * vec4(aPos, 0.0, 1.0);\n"
-"    gl_Position = sus_projview * worldPos;\n"
-"    vColor = aColor * aInstanceColor;\n"
-"    vTexCoord = aTexCoord;\n"
-"}\n";
-// Format for 2d shader instances
-#define g_BuiltinShader2D_Instanced_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX | SUS_MESH_INSTANCE_ATTRIBUTE_COLOR }
 // 3D vertex shader for instancing
-static const CHAR* g_BuiltinShader3D_Instanced_VS =
+static const CHAR* SUSBuiltinInstancedShaderVS =
 "#version 330 core\n"
 "layout(location = 0) in vec3 aPos;\n"
 "layout(location = 1) in vec4 aColor;\n"
@@ -462,8 +424,8 @@ static const CHAR* g_BuiltinShader3D_Instanced_VS =
 "    vColor = aColor;\n"
 "    vTexCoord = aTexCoord;\n"
 "}\n";
-// Format for 2d shader instances
-#define g_BuiltinShader3D_Instanced_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX }
+// Format for 3d shader instances
+#define SUS_BUILTIN_INSTANCED_SHADER_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX }
 
 // -----------------------------------------------
 
@@ -486,6 +448,7 @@ typedef enum sus_renderer_base_uniforms {
 	SUS_RENDERER_BASE_UNIFORM_SINTIME,	// sus_stime -> float
 	SUS_RENDERER_BASE_UNIFORM_DELTA,	// sus_delta -> float
 	SUS_RENDERER_BASE_UNIFORM_PROJVIEW,	// sus_projview -> mat4
+	SUS_RENDERER_BASE_UNIFORM_TEXTURE,	// sus_texture -> sampler2D
 	SUS_RENDERER_BASE_UNIFORM_COUNT
 } SUS_RENDERER_BASE_UNIFORM;
 // High-level shader structure
@@ -516,6 +479,16 @@ VOID SUSAPI susRendererFrameFlush(sus_float_t time, sus_float_t delta);
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //									  Working with 2d textures     								  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// How to work with textures?
+/*
+* To load a texture, write - susRendererLoadTexture with the following parameters
+* To load it into the GPU slot, call susRendererTextureBind
+* To use the renderer, call susRendererSetTexture
+* Quick Start - susprenderertextureactive
+* 
+* Textures are managed automatically, and you don't need to release them manually
+*/
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -561,6 +534,12 @@ VOID SUSAPI susRendererTextureDestroy(_In_ SUS_RENDERER_TEXTURE texture);
 SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTexture(_In_ LPCWSTR path, _In_ SUS_RENDERER_TEXTURE_FORMAT format);
 // Load an image from resources by type - TEXTURE
 SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceName, _In_ SUS_RENDERER_TEXTURE_FORMAT format);
+// Load the texture into the GPU slot
+VOID SUSAPI susRendererTextureBind(_In_ SUS_RENDERER_TEXTURE texture, _In_ sus_uint_t slot);
+// Set the texture as the current one for the slot
+VOID SUSAPI susRendererSetTexture(_In_ sus_uint_t slot);
+// Load and activate the texture on slot 0
+VOID SUSAPI susRendererTextureActive(_In_ SUS_RENDERER_TEXTURE texture);
 
 // -----------------------------------------------
 
@@ -683,36 +662,47 @@ BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
 //									   Graphics Resource Manager      							  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// What is a resource manager?
+/*
+* The Resource Manager is an important rendering module
+* It serves as an automatic RAII for graphics resources
+* It has a pool system that is necessary for professional work with resources
+* 
+* All resources you create are automatically added to the current pool in the resource manager.
+* The manager manages the resources itself, so you don't need to release them manually.
+* If you have created your own resource pool and no longer need it, simply clean it up using susRendererResourcePoolCleanup
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------
 
 // Reserved keys
-#define SUS_RENDERER_RESOURCE_MANAGER_RESERVED_KEYS 64
+#define SUS_RENDERER_RESOURCE_RESERVED_KEYS 64
+// Name of the main resource
+#define SUS_RENDERER_RESOURCE_MANAGER_MAIN 0
 // Type of resource
 typedef enum sus_renderer_resource_type {
 	SUS_RENDERER_RESOURCE_TYPE_SHADER,
+	SUS_RENDERER_RESOURCE_TYPE_CAMERA,
 	SUS_RENDERER_RESOURCE_TYPE_TEXTURE,
 	SUS_RENDERER_RESOURCE_TYPE_MESH,
 	SUS_RENDERER_RESOURCE_TYPE_INSTANCE,
 	SUS_RENDERER_RESOURCE_TYPE_COUNT,
 	SUS_RENDERER_RESOURCE_TYPE_UNKNOWN
 } SUS_RENDERER_RESOURCE_TYPE;
-// The descriptor of the graphic resource
-typedef union sus_renderer_resource {
-	struct {
-		SUS_RENDERER_RESOURCE_TYPE	type;
-		sus_uint32_t				name;
-	};
-	sus_uint64_t key;
-} SUS_RENDERER_RESOURCE;
 // The resource's destructor template
 typedef VOID(SUSAPI* SUS_RENDERER_RESOURCE_DESTRUCTOR)(_In_ SUS_OBJECT resource);
 // Resource Destructor table
-static const SUS_RENDERER_RESOURCE_DESTRUCTOR RendererResourceDestructorTable[SUS_RENDERER_RESOURCE_TYPE_COUNT] = { susRendererShaderDestroy, susRendererTextureDestroy, susRendererMeshDestroy, susRendererMeshInstanceDestroy };
+static const SUS_RENDERER_RESOURCE_DESTRUCTOR RendererResourceDestructorTable[SUS_RENDERER_RESOURCE_TYPE_COUNT] = { susRendererShaderDestroy, susRendererCameraDestroy, susRendererTextureDestroy, susRendererMeshDestroy, susRendererMeshInstanceDestroy };
+// Renderer Resource Manager
+typedef struct sus_renderer_resource_pool {
+	SUS_HASHSET pool[SUS_RENDERER_RESOURCE_TYPE_COUNT];
+} SUS_RENDERER_RESOURCE_POOL, * SUS_LPRENDERER_RESOURCE_POOL;
 // Renderer Resource Manager
 typedef struct sus_renderer_resource_manager {
-	SUS_HASHMAP	res[SUS_RENDERER_RESOURCE_TYPE_COUNT];
+	SUS_HASHMAP level;		// UINT -> SUS_RENDERER_RESOURCE_POOL
+	UINT		current;	// Name of the current resource pool
 } SUS_RENDERER_RESOURCE_MANAGER, * SUS_LPRENDERER_RESOURCE_MANAGER;
 
 // -----------------------------------------------
@@ -722,18 +712,45 @@ typedef struct sus_renderer_resource_manager {
 // -----------------------------------------------
 
 // Initialize the resource manager
-VOID SUSAPI susRendererResourceManagerInit(_Out_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
+VOID SUSAPI susRendererResourcePoolInit(_Out_ SUS_LPRENDERER_RESOURCE_POOL pool);
 // Destroy the renderer's resource manager
+VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_POOL pool);
+
+// -----------------------------------------------
+
+// Get a resource
+BOOL SUSAPI susRendererResourcePoolContains(_In_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource);
+// Register a resource
+VOID SUSAPI susRendererResourcePoolRegister(_Inout_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource);
+// Delete a resource
+VOID SUSAPI susRendererResourcePoolRemove(_In_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Create a Resource manager
+VOID SUSAPI susRendererResourceManagerInit(_Out_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
+// Destroy the resource manager and its resources
 VOID SUSAPI susRendererResourceManagerCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
 
 // -----------------------------------------------
 
-// Register a resource
-VOID SUSAPI susRendererResourceRegister(_Inout_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key, _In_ SUS_OBJECT resource);
-// Get a resource
-SUS_OBJECT SUSAPI susRendererResourceGet(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key);
-// Delete a resource
-VOID SUSAPI susRendererResourceRemove(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_RENDERER_RESOURCE key);
+// Set the resource pool as current
+VOID SUSAPI susRendererResourceManagerSetCurrent(_Inout_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ UINT pool);
+// Set the resource pool as current
+SUS_LPRENDERER_RESOURCE_POOL SUSAPI susRendererResourceManagerCurrent(_Inout_ SUS_LPRENDERER_RESOURCE_MANAGER manager);
+// Get a pool of resources
+SUS_LPRENDERER_RESOURCE_POOL SUSAPI susRendererResourceManagerGet(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ UINT pool);
+
+// -----------------------------------------------
+
+// Add a new pool to the resource manager
+SUS_LPRENDERER_RESOURCE_POOL SUSAPI susRendererResourceManagerAddPool(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ UINT pool);
+// Delete a pool from the resource manager
+VOID SUSAPI susRendererResourceManagerRemovePool(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ UINT pool);
 
 // -----------------------------------------------
 
@@ -747,12 +764,18 @@ VOID SUSAPI susRendererResourceRemove(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manag
 
 // -----------------------------------------------
 
+// The context of the renderer
+typedef struct sus_renderer_context {
+	SUS_RENDERER_SHADER		currentShader;
+	SUS_CAMERA				currentCamera;
+} SUS_RENDERER_CONTEXT;
 // The structure of the renderer
 typedef struct sus_renderer {
 	SUS_RENDERER_DIRECT				_PARENT_;
 	HWND							hWnd;
 	SUS_TIMER						frameTimer;
 	SUS_RENDERER_RESOURCE_MANAGER	resources;
+	SUS_RENDERER_CONTEXT			context;
 } SUS_RENDERER_STRUCT, * SUS_RENDERER;
 
 // -----------------------------------------------
@@ -777,35 +800,19 @@ VOID SUSAPI susRendererEndFrame();
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//										  Graphics context      								  //
+//											  Sample code      									  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------
 
-// A single renderer context
-typedef struct sus_renderer_context {
-	SUS_RENDERER			currentRenderer;
-	SUS_RENDERER_SHADER		currentShader;
-	SUS_CAMERA				currentCamera;
-} SUS_RENDERER_CONTEXT, *SUS_LPRENDERER_CONTEXT;
+/* There will be no sample code. -_-
+* 
+* 
+* 
+*/
 
 // -----------------------------------------------
-
-////////////////////////////////////////////////////////////////////////////////
 
 #pragma warning(pop)
 

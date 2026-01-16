@@ -288,7 +288,7 @@ typedef SUS_HASHMAP_STRUCT SUS_HASHSET_STRUCT, *SUS_HASHSET, **SUS_LPHASHSET;
 // ---------------------------------------------------------
 
 #define susSetForeach(set, entry)		susMapForeach(set, entry)
-#define susSetFind(set, key)			susMapFind(set, key)
+#define susSetContains(set, key)		susMapContains(set, key)
 #define susSetClear(set)				susMapClear(set)
 #define susSetValue(set, entry)			susMapKey(set, entry)
 #define susSetAdd(lpSet, key)			susMapAdd(lpSet, key, NULL)
