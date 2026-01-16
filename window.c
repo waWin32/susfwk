@@ -96,6 +96,7 @@ static BOOL SUSAPI susRegisterWindowClass(_In_ WNDCLASSEXW wcEx) {
 		if (!RegisterClassExW(&wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
+			susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_SYSTEM);
 			return FALSE;
 		}
 	}
@@ -123,6 +124,7 @@ static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW wi
 	if (!hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
+		susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_RESOURCE);
 		return NULL;
 	}
 	SUS_PRINTDL("The window has been successfully created");
@@ -1000,6 +1002,11 @@ BOOL SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable) {
 	if (window->graphics) susRendererCleanup(window->graphics);
 	if (enable) return (window->graphics = susRendererSetup(window->super)) != NULL;
 	return TRUE;
+}
+// Get a window renderer
+SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window) {
+	SUS_ASSERT(window);
+	return window->graphics;
 }
 
 // -------------------------------------------------

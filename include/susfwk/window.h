@@ -712,6 +712,8 @@ VOID SUSAPI susWindowSetMaximumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE maxSize
 VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size);
 // Install a renderer for an OpenGL-based window
 BOOL SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable);
+// Get a window renderer
+SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window);
 
 // -------------------------------------------------
 
