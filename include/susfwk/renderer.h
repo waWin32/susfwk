@@ -268,7 +268,7 @@ VOID SUSAPI susRendererSetCamera(_In_ SUS_CAMERA camera);
 
 // Set the camera position
 VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 pos);
-// Set the camera position
+// Set the camera rotation
 VOID SUSAPI susRendererCameraSetRotation(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation);
 // Apply camera changes if camera is dirty
 VOID SUSAPI susRendererCameraUpdate(_Inout_ SUS_CAMERA camera);
@@ -322,62 +322,6 @@ sus_uint_t SUSAPI susRendererCamera3DGetFov(_In_ SUS_CAMERA3D camera);
 
 // -----------------------------------------------
 
-// Vertex type
-typedef enum sus_vertext_type {
-	SUS_VERTEX_TYPE_2D = 2,
-	SUS_VERTEX_TYPE_3D = 3,
-} SUS_VERTEX_TYPE, * SUS_LPVERTEX_TYPE;
-// Vertex Attributes
-typedef enum sus_vertex_attribute {
-	SUS_VERTEX_ATTRIBUT_NONE = 0,
-	SUS_VERTEX_ATTRIBUT_POSITION = 1 << 0,
-	SUS_VERTEX_ATTRIBUT_ALPHA_COLOR = 1 << 1,
-	SUS_VERTEX_ATTRIBUT_COLOR = 1 << 2,
-	SUS_VERTEX_ATTRIBUT_TEXTURE = 1 << 3,
-	SUS_VERTEX_ATTRIBUT_NORMAL = 1 << 4,
-	SUS_VERTEX_ATTRIBUT_COUNT = 4,
-	SUS_VERTEX_ATTRIBUT_BASE = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE,
-	SUS_VERTEX_ATTRIBUT_FULL = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE | SUS_VERTEX_ATTRIBUT_NORMAL
-} SUS_VERTEX_ATTRIBUT;
-// The format for mesh vertices
-typedef struct sus_vertex_format {
-	SUS_VERTEX_TYPE		type;
-	SUS_VERTEX_ATTRIBUT attributes;
-} SUS_VERTEX_FORMAT;
-
-// Vertex format template - 2d vertices
-#define SUS_VERTEX_FORMAT_2D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }
-// Vertex format template - 3d vertices
-#define SUS_VERTEX_FORMAT_3D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_FULL }
-
-// -----------------------------------------------
-
-// The format of the instance variables
-typedef enum sus_mesh_instance_attribute {
-	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX = 0,			// mat4 - default
-	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR = 1 << 0,		// vec4
-	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET = 1 << 1	// vec2
-} SUS_MESH_INSTANCE_ATTRIBUTE;
-
-// -----------------------------------------------
-
-// Shader format
-typedef struct sus_shader_format {
-	SUS_VERTEX_FORMAT			vFormat;	// The vertex format
-	SUS_MESH_INSTANCE_ATTRIBUTE iFormat;	// The format of the instances
-} SUS_SHADER_FORMAT;
-
-// Shader format - 2D shader
-#define SUS_SHADER_FORMAT_2D (SUS_SHADER_FORMAT) { .vFormat = SUS_VERTEX_FORMAT_2D, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX }
-// Shader format - 3D shader
-#define SUS_SHADER_FORMAT_3D (SUS_SHADER_FORMAT) { .vFormat = SUS_VERTEX_FORMAT_3D, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX }
-
-// -----------------------------------------------
-
-////////////////////////////////////////////////////////////////////////////////
-
-// -----------------------------------------------
-
 // Basic 3D Shader Code - Vertex Shader
 static const CHAR* SUSBuiltinShaderVS =
 "#version 330 core\n"
@@ -403,8 +347,6 @@ static const CHAR* SUSBuiltinShaderFS =
 "    vec4 texColor = texture(uTexture, vTexCoord);\n"
 "    FragColor = vColor * texColor;\n"
 "}\n";
-// Format for a regular 2D shader
-#define SUS_BUILTIN_SHADER_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } }
 
 // -----------------------------------------------
 
@@ -424,8 +366,6 @@ static const CHAR* SUSBuiltinInstancedShaderVS =
 "    vColor = aColor;\n"
 "    vTexCoord = aTexCoord;\n"
 "}\n";
-// Format for 3d shader instances
-#define SUS_BUILTIN_INSTANCED_SHADER_FORMAT (SUS_SHADER_FORMAT) { .vFormat = (SUS_VERTEX_FORMAT){ .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }, .iFormat = SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX }
 
 // -----------------------------------------------
 
@@ -454,12 +394,11 @@ typedef enum sus_renderer_base_uniforms {
 // High-level shader structure
 typedef struct sus_renderer_shader {
 	GLuint				program;									// Shader program
-	SUS_SHADER_FORMAT	format;										// Shader meta data
 	GLuint				uniforms[SUS_RENDERER_BASE_UNIFORM_COUNT];	// SUS_RENDERER_BASE_UNIFORMS
 } SUS_RENDERER_SHADER_STRUCT, *SUS_RENDERER_SHADER;
 
 // Load the shader as the current one
-SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPRENDERER_SHADER_MODULE modules, _In_ SUS_SHADER_FORMAT format);
+SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPRENDERER_SHADER_MODULE modules);
 // Destroy the shader
 VOID SUSAPI susRendererShaderDestroy(_In_ SUS_RENDERER_SHADER shader);
 // Set the shader as the current one
@@ -579,6 +518,36 @@ VOID SUSAPI susVertexUVTransform(_Inout_ SUS_DATAVIEW vertexes, _In_ SUS_VEC2 of
 
 // -----------------------------------------------
 
+// Vertex type
+typedef enum sus_vertext_type {
+	SUS_VERTEX_TYPE_2D = 2,
+	SUS_VERTEX_TYPE_3D = 3,
+} SUS_VERTEX_TYPE, * SUS_LPVERTEX_TYPE;
+// Vertex Attributes
+typedef enum sus_vertex_attribute {
+	SUS_VERTEX_ATTRIBUT_NONE = 0,
+	SUS_VERTEX_ATTRIBUT_POSITION = 1 << 0,
+	SUS_VERTEX_ATTRIBUT_ALPHA_COLOR = 1 << 1,
+	SUS_VERTEX_ATTRIBUT_COLOR = 1 << 2,
+	SUS_VERTEX_ATTRIBUT_TEXTURE = 1 << 3,
+	SUS_VERTEX_ATTRIBUT_NORMAL = 1 << 4,
+	SUS_VERTEX_ATTRIBUT_COUNT = 4,
+	SUS_VERTEX_ATTRIBUT_BASE = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE,
+	SUS_VERTEX_ATTRIBUT_FULL = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE | SUS_VERTEX_ATTRIBUT_NORMAL
+} SUS_VERTEX_ATTRIBUT;
+// The format for mesh vertices
+__declspec(align(1)) typedef struct sus_vertex_format {
+	SUS_VERTEX_TYPE		type : 16;
+	SUS_VERTEX_ATTRIBUT attributes : 16;
+} SUS_VERTEX_FORMAT;
+
+// Vertex format template - 2d vertices
+#define SUS_VERTEX_FORMAT_2D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }
+// Vertex format template - 3d vertices
+#define SUS_VERTEX_FORMAT_3D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_FULL }
+
+// -----------------------------------------------
+
 // The type of the mesh primitive
 typedef enum sus_mesh_primitive_type {
 	SUS_MESH_PRIMITIVE_TYPE_TRIANGLES = GL_TRIANGLES,
@@ -601,9 +570,10 @@ typedef struct sus_mesh_geometry {
 } SUS_MESH_GEOMETRY;
 // The Mesh Builder
 typedef struct sus_mesh_builder {
-	SUS_MESH_GEOMETRY		geometry;		// Mesh geometry
-	SUS_MESH_PRIMITIVE_TYPE	primitiveType;	// Type of primitive
-	SUS_MESH_UPDATE_TYPE	updateType;		// The type of mesh update in drawing
+	SUS_MESH_GEOMETRY			geometry;		// Mesh geometry
+	SUS_MESH_PRIMITIVE_TYPE		primitiveType;	// Type of primitive
+	SUS_MESH_UPDATE_TYPE		updateType;		// The type of mesh update in drawing
+	SUS_VERTEX_FORMAT			format;			// Mesh format
 } SUS_MESH_BUILDER, * SUS_LPMESH_BUILDER;
 // Mesh structure
 typedef struct sus_mesh SUS_MESH_STRUCT, * SUS_MESH;
@@ -633,13 +603,19 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model);
 
 // -----------------------------------------------
 
+// The format of the instance variables
+typedef enum sus_mesh_instance_attribute {
+	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX		= 0,			// mat4 - default
+	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR		= 1 << 0,		// vec4
+	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET	= 1 << 1	// vec2
+} SUS_MESH_INSTANCE_ATTRIBUTE;
 // A mesh instance
 typedef struct sus_mesh_instance  SUS_MESH_INSTANCE_STRUCT, *SUS_MESH_INSTANCE;
 
 // -----------------------------------------------
 
 // Create an instance for meshes
-SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base);
+SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes);
 // Delete a mesh instance
 VOID SUSAPI susRendererMeshInstanceDestroy(_In_ SUS_MESH_INSTANCE instance);
 // Draw mesh instances
@@ -653,6 +629,25 @@ BOOL SUSAPIV susRendererMeshInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...)
 BOOL SUSAPIV susRendererMeshInstanceRemove(_Inout_ SUS_MESH_INSTANCE instance, _In_ UINT index);
 // apply changes
 BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
+
+// -----------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//											Primitive meshes    								  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------
+
+// Build a 2d square
+SUS_MESH susRendererPrimitivesBuild_Square(_In_ SUS_VEC2 scale);
+// Build a 2d circle
+SUS_MESH susRendererPrimitivesBuild_Circle(_In_ sus_uint_t segments, _In_ sus_float_t radius);
+// Build a 3d cube
+SUS_MESH susRendererPrimitivesBuild_Cube(_In_ SUS_VEC3 scale);
 
 // -----------------------------------------------
 

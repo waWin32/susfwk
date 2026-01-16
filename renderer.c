@@ -77,6 +77,7 @@ SUS_RENDERER_DIRECT SUSAPI susRendererDirectBasicSetup(_In_ HWND hWnd)
 error:
 	SUS_PRINTDE("Failed to initialize graphics");
 	SUS_PRINTDC(GetLastError());
+	susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_RESOURCE);
 	return (SUS_RENDERER_DIRECT) { 0 };
 }
 
@@ -185,6 +186,7 @@ SUS_RENDERER_DIRECT SUSAPI susRendererDirectModernSetup(_In_ HWND hWnd, _In_ WOR
 error:
 	SUS_PRINTDE("Failed to initialize graphics");
 	SUS_PRINTDC(GetLastError());
+	susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_RESOURCE);
 	return (SUS_RENDERER_DIRECT) { 0 };
 }
 // Clean up graphics resources
@@ -231,6 +233,7 @@ static BOOL SUSAPI susRendererDirectAssembleShader(_In_ GLuint shader, _In_ LPCS
 		SUS_PRINTDE("Couldn't load shader code");
 		SUS_PRINTDC(glGetError());
 		SUS_PRINTDE("OpenGL Log - '%s'", susRendererDirectShaderGetLog(shader));
+		susErrorPushCritical(SUS_ERROR_SYNTAX_ERROR, SUS_ERROR_TYPE_SYSTEM);
 		return FALSE;
 	}
 	SUS_PRINTDL("Shader code loaded successfully");
@@ -285,6 +288,7 @@ GLuint SUSAPI susRendererDirectLinkProgram(_In_ UINT shaderCount, _In_ GLuint* s
 	if (!success) {
 		SUS_PRINTDE("Couldn't install shaders on GPU");
 		SUS_PRINTDC(glGetError());
+		susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_RESOURCE);
 #ifdef _DEBUG
 		SUS_PRINTDE("OpenGL Log - '%s'", susRendererDirectProgramGetLog(program));
 #endif // !_DEBUG
@@ -304,6 +308,12 @@ GLuint SUSAPI susRendererDirectLinkProgram(_In_ UINT shaderCount, _In_ GLuint* s
 #endif // !_DEBUG
 	for (UINT i = 0; i < shaderCount; i++) glDetachShader(program, shaders[i]);
 	if (DeleteShadersAfterUploading) for (UINT i = 0; i < shaderCount; i++) glDeleteShader(shaders[i]);
+	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
+		SUS_PRINTDE("OpenGL error %d: Shader binding error", error);
+		susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_SYSTEM);
+		susRendererDirectProgramCleanup(program);
+		return 0;
+	}
 	SUS_PRINTDL("Successful loading of shaders on the GPU");
 	return program;
 }
@@ -360,6 +370,7 @@ static BOOL SUSAPI susGpuVectorRealloc(SUS_LPGPU_VECTOR vector)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Couldn't reallocate memory to GPU", error);
+		susErrorPushCritical(SUS_ERROR_OUT_OF_MEMORY, SUS_ERROR_TYPE_MEMORY);
 		return FALSE;
 	}
 	glDeleteBuffers(1, &vector->vbo);
@@ -399,6 +410,7 @@ SUS_GPU_VECTOR SUSAPI susNewGpuVector(_In_ sus_uint_t itemSize)
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Couldn't reallocate memory to GPU", error);
 		if (vector.vbo) glDeleteBuffers(1, &vector.vbo);
+		susErrorPushCritical(SUS_ERROR_OUT_OF_MEMORY, SUS_ERROR_TYPE_MEMORY);
 		return (SUS_GPU_VECTOR) { 0 };
 	}
 	return vector;
@@ -445,6 +457,7 @@ BOOL SUSAPI susGpuVectorInsertArr(_In_ SUS_LPGPU_VECTOR vector, _In_ sus_uint_t 
 	vector->length += count;
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Error when adding an element to the array", error);
+		susErrorPushCritical(SUS_ERROR_WRITE_MEMORY, SUS_ERROR_TYPE_MEMORY);
 		return FALSE;
 	}
 	return TRUE;
@@ -466,6 +479,7 @@ BOOL SUSAPI susGpuVectorEraseArr(_In_ SUS_LPGPU_VECTOR vector, _In_ sus_uint_t i
 	susGpuVectorCompress(vector);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Error when deleting from the array", error);
+		susErrorPushCritical(SUS_ERROR_WRITE_MEMORY, SUS_ERROR_TYPE_MEMORY);
 		return FALSE;
 	}
 	return TRUE;
@@ -503,6 +517,7 @@ BOOL SUSAPI susGpuVectorSwap(_In_ SUS_LPGPU_VECTOR vector, _In_ sus_uint_t a, _I
 	if (vector->itemSize > sizeof(buff)) sus_free(tmp);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Error when swapped the array", error);
+		susErrorPushCritical(SUS_ERROR_WRITE_MEMORY, SUS_ERROR_TYPE_MEMORY);
 		return FALSE;
 	}
 	return TRUE;
@@ -656,14 +671,22 @@ sus_uint_t SUSAPI susRendererCamera3DGetFov(_In_ SUS_CAMERA3D camera) {
 // Set the camera position
 VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 pos) {
 	SUS_ASSERT(camera && camera->type);
+	if (sus_memcmp((LPBYTE)&camera->position, (LPBYTE)&pos, sizeof(pos))) return;
 	camera->position = pos;
 	camera->viewDirty = TRUE;
 }
-// Set the camera position
+// Set the camera rotation
 VOID SUSAPI susRendererCameraSetRotation(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation) {
 	SUS_ASSERT(camera && camera->type);
-	if (camera->type == SUS_CAMERA_TYPE_3D) ((SUS_CAMERA3D)camera)->forward = susVec3ToForward(rotation);
-	else ((SUS_CAMERA2D)camera)->rotation = rotation.z;
+	if (camera->type == SUS_CAMERA_TYPE_3D) {
+		SUS_VEC3 forward = susVec3ToForward(rotation);
+		if (sus_memcmp((LPBYTE)&((SUS_CAMERA3D)camera)->forward, (LPBYTE)&forward, sizeof(forward))) return;
+		((SUS_CAMERA3D)camera)->forward = forward;
+	}
+	else {
+		if (sus_memcmp((LPBYTE)&((SUS_CAMERA2D)camera)->rotation, (LPBYTE)&rotation, sizeof(rotation))) return;
+		((SUS_CAMERA2D)camera)->rotation = rotation.z;
+	}
 	camera->viewDirty = TRUE;
 }
 // Set the view matrix for the camera
@@ -740,7 +763,7 @@ error:
 // -----------------------------------------------
 
 // Load the shader as the current one
-SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPRENDERER_SHADER_MODULE modules, _In_ SUS_SHADER_FORMAT format)
+SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPRENDERER_SHADER_MODULE modules)
 {
 	SUS_PRINTDL("Loading the shader");
 	SUS_ASSERT(count && modules && CurrentRenderer);
@@ -754,16 +777,10 @@ SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPREND
 		sus_free(shader);
 		return NULL;
 	}
-	shader->format = format;
 	// Table of basic uniforms
 	static LPCSTR uniformNames[SUS_RENDERER_BASE_UNIFORM_COUNT] = { "sus_mvp", "sus_time", "sus_ctime", "sus_stime", "sus_delta", "sus_projview", "sus_texture" };
 	for (UINT i = 0; i < SUS_RENDERER_BASE_UNIFORM_COUNT; i++) {
 		shader->uniforms[i] = glGetUniformLocation(shader->program, uniformNames[i]);
-		error = glGetError();
-		if (error != GL_NO_ERROR) {
-			SUS_PRINTDE("Error when loading uniforms from a shader variable");
-			SUS_PRINTDC(error);
-		}
 	}
 	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&(CurrentRenderer->resources)), SUS_RENDERER_RESOURCE_TYPE_SHADER, shader);
 	return shader;
@@ -917,7 +934,9 @@ SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceN
 	imageData.data = susLoadResourceA(resourceName, "TEXTURE", (DWORD*)&imageData.size, NULL);
 	builder.data = susLoadImageFromMemory(imageData, TRUE, &builder.size, (sus_pint_t)&builder.channels);
 	if (!builder.data) return NULL;
-	return susRendererNewTexture(&builder);
+	SUS_RENDERER_TEXTURE texture = susRendererNewTexture(&builder);
+	sus_free(builder.data);
+	return texture;
 }
 // Load the texture into the GPU slot
 VOID SUSAPI susRendererTextureBind(_In_ SUS_RENDERER_TEXTURE texture, _In_ sus_uint_t slot) {
@@ -968,12 +987,13 @@ VOID SUSAPI susVertexUVTransform(_Inout_ SUS_DATAVIEW vertexes, _In_ SUS_VEC2 of
 
 // Mesh structure
 struct sus_mesh {
-	GLuint		vao;	// Vertex Array Objext
-	GLuint		vbo;	// Vertex Buffer Object
-	GLuint		ibo;	// Index Buffer Object
-	UINT		count;	// The number of indexes in the mesh
-	GLuint		type;	// The type of feature of the mesh
-	sus_int_t	refc;	// The link counter for this mesh
+	GLuint				vao;	// Vertex Array Objext
+	GLuint				vbo;	// Vertex Buffer Object
+	GLuint				ibo;	// Index Buffer Object
+	UINT				count;	// The number of indexes in the mesh
+	GLuint				type;	// The type of feature of the mesh
+	sus_int32_t			refc;	// The link counter for this mesh
+	SUS_VERTEX_FORMAT	format;	// Mesh Attributes
 };
 
 // -----------------------------------------------
@@ -1009,7 +1029,7 @@ static VOID SUSAPI susRendererMeshInit(_Inout_ SUS_MESH mesh, _In_ SUS_LPMESH_BU
 	glBindVertexArray(mesh->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 	glBufferData(GL_ARRAY_BUFFER, builder->geometry.vertexes.size, builder->geometry.vertexes.data, builder->updateType);
-	susRendererMeshSetAttributes(CurrentRenderer->context.currentShader->format.vFormat);
+	susRendererMeshSetAttributes(builder->format);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	if (builder->geometry.indexes.size) {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
@@ -1025,6 +1045,7 @@ SUS_MESH SUSAPI susRendererBuildMesh(_In_ const SUS_LPMESH_BUILDER builder)
 	SUS_MESH mesh = sus_malloc(sizeof(SUS_MESH_STRUCT));
 	if (!mesh) return NULL;
 	mesh->refc = 0;
+	mesh->format = builder->format;
 	glGenVertexArrays(1, &mesh->vao);
 	glGenBuffers(1, &mesh->vbo);
 	if (builder->geometry.indexes.size) glGenBuffers(1, &mesh->ibo);
@@ -1098,9 +1119,10 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model)
 
 // A mesh instance
 struct sus_mesh_instance {
-	SUS_MESH		sample;			// Instance Template
-	SUS_GPU_VECTOR	instanceData;	// Instance Data\param SUS_MESH_INSTANCE_FORMAT_MODEL ? SUS_MAT4 + SUS_MESH_INSTANCE_FORMAT_COLOR ? VEC4 + SUS_MESH_INSTANCE_FORMAT_UVOFFSET ? SUS_VEC2
-	GLuint			vao;			// Array of instances
+	SUS_MESH					sample;			// Instance Template
+	SUS_GPU_VECTOR				instanceData;	// Instance Data\param SUS_MESH_INSTANCE_FORMAT_MODEL ? SUS_MAT4 + SUS_MESH_INSTANCE_FORMAT_COLOR ? VEC4 + SUS_MESH_INSTANCE_FORMAT_UVOFFSET ? SUS_VEC2
+	GLuint						vao;			// Array of instances
+	SUS_MESH_INSTANCE_ATTRIBUTE attributes;		// Attributes for instances
 };
 
 // -----------------------------------------------
@@ -1151,17 +1173,18 @@ static VOID SUSAPI susRendererMeshInstanceInit(_In_ SUS_MESH_INSTANCE instance, 
 	glBindVertexArray(0);
 }
 // Create an instance for meshes
-SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base)
+SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes)
 {
 	SUS_PRINTDL("Creating a Mesh instance");
 	SUS_ASSERT(CurrentRenderer && base && base->vbo && CurrentRenderer->context.currentShader);
 	SUS_MESH_INSTANCE instance = sus_malloc(sizeof(SUS_MESH_INSTANCE_STRUCT));
 	if (!instance) return NULL;
 	instance->sample = base;
+	instance->attributes = attributes;
 	base->refc++;
 	glGenVertexArrays(1, &instance->vao);
-	instance->instanceData = susNewGpuVector((DWORD)susCalculateInstanceStride(CurrentRenderer->context.currentShader->format.iFormat));
-	susRendererMeshInstanceInit(instance, CurrentRenderer->context.currentShader->format.iFormat, CurrentRenderer->context.currentShader->format.vFormat);
+	instance->instanceData = susNewGpuVector((DWORD)susCalculateInstanceStride(attributes));
+	susRendererMeshInstanceInit(instance, attributes, base->format);
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		SUS_PRINTDE("OpenGL error loading the mesh: %d", error);
@@ -1214,23 +1237,23 @@ VOID SUSAPI susRendererDrawMeshInstance(_In_ SUS_MESH_INSTANCE instance)
 // -----------------------------------------------
 
 // Extract data from attributes\param output is dynamic data
-static LPBYTE SUSAPI susExtractInstanceAttributeData(sus_va_list list)
+static LPBYTE SUSAPI susExtractInstanceAttributeData(_In_ SUS_MESH_INSTANCE instance, _In_ sus_va_list list)
 {
-	SUS_ASSERT(CurrentRenderer && list);
-	LPBYTE buffer = (LPBYTE)sus_malloc(susCalculateInstanceStride(CurrentRenderer->context.currentShader->format.iFormat));
+	SUS_ASSERT(instance && list);
+	LPBYTE buffer = (LPBYTE)sus_malloc(susCalculateInstanceStride(instance->attributes));
 	if (!buffer) return NULL;
 	SUS_LPMAT4 model = sus_va_arg(list, SUS_LPMAT4);
 	SUS_ASSERT(model);
 	sus_memcpy(buffer, (LPBYTE)model, sizeof(*model));
 	LPBYTE curr = buffer;
 	curr += sizeof(*model);
-	if (CurrentRenderer->context.currentShader->format.iFormat & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) {
+	if (instance->attributes & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) {
 		SUS_LPVEC4 color = sus_va_arg(list, SUS_LPVEC4);
 		SUS_ASSERT(color);
 		sus_memcpy(curr, (LPBYTE)color, sizeof(*color));
 		curr += sizeof(*color);
 	}
-	if (CurrentRenderer->context.currentShader->format.iFormat & SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET) {
+	if (instance->attributes & SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET) {
 		SUS_LPVEC2 uvoffset = sus_va_arg(list, SUS_LPVEC2);
 		SUS_ASSERT(uvoffset);
 		sus_memcpy(curr, (LPBYTE)uvoffset, sizeof(*uvoffset));
@@ -1245,7 +1268,7 @@ BOOL SUSAPIV susRendererMeshInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...)
 	SUS_ASSERT(instance && instance->vao);
 	sus_va_list list;
 	sus_va_start(list, instance);
-	LPBYTE data = susExtractInstanceAttributeData(list);
+	LPBYTE data = susExtractInstanceAttributeData(instance, list);
 	sus_va_end(list);
 	if (!data) goto error;
 	if (!susGpuVectorPush(&instance->instanceData, data)) { sus_free(data); goto error; }
@@ -1270,10 +1293,10 @@ error:
 BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
 {
 	SUS_PRINTDL("Applying changes after REALLOC in the bag");
-	SUS_ASSERT(CurrentRenderer && instance && instance->vao);
+	SUS_ASSERT(instance && instance->vao);
 	GLuint oldVao = instance->vao;
 	glGenVertexArrays(1, &instance->vao);
-	susRendererMeshInstanceInit(instance, CurrentRenderer->context.currentShader->format.iFormat, CurrentRenderer->context.currentShader->format.vFormat);
+	susRendererMeshInstanceInit(instance, instance->attributes, instance->sample->format);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Failed to apply changes to mesh instances", error);
 		if (instance->vao) glDeleteVertexArrays(1, &instance->vao);
@@ -1296,93 +1319,95 @@ BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
 
 // -----------------------------------------------
 
-//// Build a 2d square
-//static SUS_MESH susRendererPrimitivesBuild_Square() {
-//	static const SUS_VERTEX vertexes[] = {
-//		{.pos = { -0.5f, -0.5f }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 0, 0 } },
-//		{.pos = { 0.5f, -0.5f }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 1, 0 } },
-//		{.pos = { 0.5f, 0.5f }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 1, 1 } },
-//		{.pos = { -0.5f, 0.5f }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 0, 1 } },
-//	};
-//	static const SUS_INDEX indexes[] = { 0, 1, 2, 3, 0, 2 };
-//	SUS_MESH_BUILDER builder = { 0 };
-//	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
-//	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
-//	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
-//	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
-//	return susRendererBuildMesh(&builder);
-//}
-//// Build a 2d circle
-//static SUS_MESH susRendererPrimitivesBuild_Circle(sus_uint_t segments) {
-//	segments = sus_min(segments, 360); // Because the angles are integers
-//	SUS_LPVERTEX vertexes = sus_calloc(segments + 2, sizeof(SUS_VERTEX));
-//	if (!vertexes) return NULL;
-//	vertexes->pos = (SUS_VEC3){ 0.0f, 0.0f };
-//	vertexes->color = (SUS_VEC4){ 1.0f, 1.0f, 1.0f };
-//	vertexes->uv = (SUS_VEC2){ 0.5f, 0.5f };
-//	for (sus_uint_t i = 0; i <= segments; i++) {
-//		sus_int_t angle = sus_round((sus_float_t)i / (sus_float_t)segments * 360.0f);
-//		SUS_VEC3 pos = { sus_cos(angle), sus_sin(angle) };
-//		vertexes[i + 1].pos = pos;
-//		vertexes[i + 1].color = (SUS_VEC4){ 1.0f, 1.0f, 1.0f };
-//		vertexes[i + 1].uv = (SUS_VEC2){ 0.5f + 0.5f * pos.x, 0.5f - 0.5f * pos.y };
-//	}
-//	SUS_MESH_BUILDER builder = { 0 };
-//	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = (segments + 2) * sizeof(SUS_VERTEX) };
-//	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES_FAN;
-//	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
-//	SUS_MESH mesh = susRendererBuildMesh(&builder);
-//	sus_free(vertexes);
-//	return mesh;
-//}
-//// Build a 3d cube
-//static SUS_MESH susRendererPrimitivesBuild_Cube() {
-//	static const SUS_VERTEX vertexes[] = {
-//		{.pos = { -0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 0, 1} },
-//		{.pos = { 0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 0, 1} },
-//		{.pos = { 0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 0, 1} },
-//		{.pos = { -0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 0, 1} },
-//
-//		{.pos = { 0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 0, -1} },
-//		{.pos = { -0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 0, -1} },
-//		{.pos = { -0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 0, -1} },
-//		{.pos = { 0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 0, -1} },
-//
-//		{.pos = { -0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 1, 0} },
-//		{.pos = { 0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 1, 0} },
-//		{.pos = { 0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 1, 0} },
-//		{.pos = { -0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 1, 0} },
-//
-//		{.pos = { -0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, -1, 0} },
-//		{.pos = { 0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, -1, 0} },
-//		{.pos = { 0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, -1, 0} },
-//		{.pos = { -0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, -1, 0} },
-//
-//		{.pos = { 0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {1, 0, 0} },
-//		{.pos = { 0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {1, 0, 0} },
-//		{.pos = { 0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {1, 0, 0} },
-//		{.pos = { 0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {1, 0, 0} },
-//
-//		{.pos = { -0.5f, -0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {-1, 0, 0} },
-//		{.pos = { -0.5f, -0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {-1, 0, 0} },
-//		{.pos = { -0.5f, 0.5f, 0.5f }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {-1, 0, 0} },
-//		{.pos = { -0.5f, 0.5f, -0.5f }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {-1, 0, 0} },
-//	};
-//	static const SUS_INDEX indexes[] = {
-//		0, 1, 2, 0, 2, 3,
-//		4, 5, 6, 4, 6, 7,
-//		8, 9, 10, 8, 10, 11,
-//		12, 13, 14, 12, 14, 15,
-//		16, 17, 18, 16, 18, 19,
-//		20, 21, 22, 20, 22, 23
-//	};
-//	SUS_MESH_BUILDER builder = { 0 };
-//	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
-//	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
-//	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
-//	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
-//	return susRendererBuildMesh(&builder);
-//}
+// Build a 2d square
+SUS_MESH susRendererPrimitivesBuild_Square(_In_ SUS_VEC2 scale) {
+	scale = susVec2Scale(scale, 0.5f);
+	const SUS_VERTEX vertexes[] = {
+		{.pos = { -scale.x , -scale.y }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 0, 0 } },
+		{.pos = { scale.x, -scale.y }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 1, 0 } },
+		{.pos = { scale.x, scale.y }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 1, 1 } },
+		{.pos = { -scale.x, scale.y }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 0, 1 } },
+	};
+	static const SUS_INDEX indexes[] = { 0, 1, 2, 3, 0, 2 };
+	SUS_MESH_BUILDER builder = { .format = SUS_VERTEX_FORMAT_2D };
+	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
+	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
+	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
+	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
+	return susRendererBuildMesh(&builder);
+}
+// Build a 2d circle
+SUS_MESH susRendererPrimitivesBuild_Circle(_In_ sus_uint_t segments, _In_ sus_float_t radius) {
+	segments = sus_min(segments, 360);
+	SUS_LPVERTEX vertexes = sus_calloc(segments + 2, sizeof(SUS_VERTEX));
+	if (!vertexes) return NULL;
+	vertexes->pos = (SUS_VEC3){ 0.0f, 0.0f };
+	vertexes->color = (SUS_VEC4){ 1.0f, 1.0f, 1.0f };
+	vertexes->uv = (SUS_VEC2){ 0.5f, 0.5f };
+	for (sus_uint_t i = 0; i <= segments; i++) {
+		sus_int_t angle = sus_round((sus_float_t)i / (sus_float_t)segments * 360.0f);
+		SUS_VEC3 pos = { sus_cos(angle) * radius, sus_sin(angle) * radius };
+		vertexes[i + 1].pos = pos;
+		vertexes[i + 1].color = (SUS_VEC4){ 1.0f, 1.0f, 1.0f };
+		vertexes[i + 1].uv = (SUS_VEC2){ 0.5f + 0.5f * pos.x, 0.5f - 0.5f * pos.y };
+	}
+	SUS_MESH_BUILDER builder = { .format = SUS_VERTEX_FORMAT_2D };
+	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = (segments + 2) * sizeof(SUS_VERTEX) };
+	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES_FAN;
+	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
+	SUS_MESH mesh = susRendererBuildMesh(&builder);
+	sus_free(vertexes);
+	return mesh;
+}
+// Build a 3d cube
+SUS_MESH susRendererPrimitivesBuild_Cube(_In_ SUS_VEC3 scale) {
+	scale = susVec3Scale(scale, 0.5f);
+	const SUS_VERTEX vertexes[] = {
+		{.pos = { -scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 0, 1} },
+		{.pos = { scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 0, 1} },
+		{.pos = { scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 0, 1} },
+		{.pos = { -scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 0, 1} },
+
+		{.pos = { scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 0, -1} },
+		{.pos = { -scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 0, -1} },
+		{.pos = { -scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 0, -1} },
+		{.pos = { scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 0, -1} },
+
+		{.pos = { -scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, 1, 0} },
+		{.pos = { scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, 1, 0} },
+		{.pos = { scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, 1, 0} },
+		{.pos = { -scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, 1, 0} },
+
+		{.pos = { -scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {0, -1, 0} },
+		{.pos = { scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {0, -1, 0} },
+		{.pos = { scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {0, -1, 0} },
+		{.pos = { -scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {0, -1, 0} },
+
+		{.pos = { scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {1, 0, 0} },
+		{.pos = { scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {1, 0, 0} },
+		{.pos = { scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {1, 0, 0} },
+		{.pos = { scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {1, 0, 0} },
+
+		{.pos = { -scale.x, -scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 0}, .normal = {-1, 0, 0} },
+		{.pos = { -scale.x, -scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 0}, .normal = {-1, 0, 0} },
+		{.pos = { -scale.x, scale.y, scale.z }, .color = { 1, 1, 1 }, .uv = {1, 1}, .normal = {-1, 0, 0} },
+		{.pos = { -scale.x, scale.y, -scale.z }, .color = { 1, 1, 1 }, .uv = {0, 1}, .normal = {-1, 0, 0} },
+	};
+	static const SUS_INDEX indexes[] = {
+		0, 1, 2, 0, 2, 3,
+		4, 5, 6, 4, 6, 7,
+		8, 9, 10, 8, 10, 11,
+		12, 13, 14, 12, 14, 15,
+		16, 17, 18, 16, 18, 19,
+		20, 21, 22, 20, 22, 23
+	};
+	SUS_MESH_BUILDER builder = { .format = (SUS_VERTEX_FORMAT) {.type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } };
+	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
+	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
+	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
+	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
+	return susRendererBuildMesh(&builder);
+}
 
 // -----------------------------------------------
 
@@ -1583,6 +1608,7 @@ VOID SUSAPI susRendererEndFrame() {
 	sus_timer_update(&CurrentRenderer->frameTimer);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError()) {
 		SUS_PRINTDE("OpenGL error: %d", error);
+		susErrorPush(SUS_ERROR_API_ERROR, SUS_ERROR_TYPE_SYSTEM);
 	}
 }
 
