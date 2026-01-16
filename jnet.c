@@ -33,7 +33,7 @@ static LRESULT SUSAPI susJnetDataHandler(_In_ SUS_LPSOCKET sock, _In_ LPCSTR dat
 	SUS_ASSERT(sock && data);
 	SUS_JNET jNetSock = (SUS_JNET)susSocketGetProperty(sock, SUS_JNET_PROPERTY);
 	SUS_ASSERT(jNetSock);
-	SUS_JSON json = susJsonParse(data, NULL);
+	SUS_JSON json = susJsonParse(data);
 	if (json.type != SUS_JSON_TYPE_OBJECT) goto incorrect_data;
 	SUS_LPJSON headers = susJsonObjectGet(json, "headers");
 	SUS_LPJSON body = susJsonObjectGet(json, "body");

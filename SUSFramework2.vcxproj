@@ -29,6 +29,7 @@
     <ClInclude Include="include\susfwk\debug.h" />
     <ClInclude Include="include\susfwk\deftypes.h" />
     <ClInclude Include="include\susfwk\ecs.h" />
+    <ClInclude Include="include\susfwk\error.h" />
     <ClInclude Include="include\susfwk\fileio.h" />
     <ClInclude Include="include\susfwk\filemap.h" />
     <ClInclude Include="include\susfwk\format.h" />

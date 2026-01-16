@@ -180,6 +180,9 @@
     <ClInclude Include="include\susfwk\time.h">
       <Filter>Файлы заголовков\system</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\error.h">
+      <Filter>Файлы заголовков\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="conio.c">

@@ -146,6 +146,7 @@ and when used, access it via super.
 #endif // !_WIN32
 
 #include "debug.h"
+#include "error.h"
 #include "string.h"
 #include "memory.h"
 #include "format.h"
