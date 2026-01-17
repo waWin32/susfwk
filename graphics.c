@@ -41,7 +41,7 @@ BOOL SUSAPI susGraphicsSetDoubleBuffer(_In_ HWND hWnd, _Inout_ SUS_LPGRAPHICS_CO
 // Remove double buffering
 VOID SUSAPI susGraphicsRemoveDoubleBuffer(_Inout_ SUS_LPGRAPHICS_CONTEXT context)
 {
-	SUS_ASSERT(context && !context->backBuffer.hdcMem);
+	SUS_ASSERT(context && context->backBuffer.hdcMem);
 	SelectObject(context->backBuffer.hdcMem, context->backBuffer.hbmOld);
 	DeleteObject(context->backBuffer.hbmMem);
 	DeleteDC(context->backBuffer.hdcMem);

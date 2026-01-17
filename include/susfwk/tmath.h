@@ -138,10 +138,10 @@ SUS_INLINE SUS_VEC3 SUSAPI susVec3Cross(_In_ const SUS_VEC3 a, _In_ const SUS_VE
 }
 // Convert Euler angles to a forward vector
 SUS_INLINE SUS_VEC3 SUSAPI susVec3ToForward(_In_ const SUS_VEC3 v) {
-	return (SUS_VEC3) { 
-		sus_cos((sus_int_t)v.y) * sus_cos((sus_int_t)v.x),
+	return (SUS_VEC3) {
+		sus_sin((sus_int_t)v.y)* sus_cos((sus_int_t)v.x),
 		sus_sin((sus_int_t)v.x),
-		sus_sin((sus_int_t)v.y) * sus_cos((sus_int_t)v.x)
+		sus_cos((sus_int_t)v.y)* sus_cos((sus_int_t)v.x)
 	};
 }
 // Convert a 4d vector to a öd vector

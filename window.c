@@ -846,6 +846,12 @@ SUS_WINDOW SUSAPI susWindowGetParent(_In_ SUS_WINDOW window) {
 	SUS_ASSERT(parent);
 	return parent;
 }
+// Set the window background color
+VOID SUSAPI susWindowSetBackground(_In_ SUS_WINDOW window, _In_ SUS_COLOR color) {
+	SUS_ASSERT(susWindowIsValid(window));
+	if (window->type == SUS_WINDOW_SIGNATURE_TYPE_FRAME) susRendererSetBackground((SUS_VEC3) { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f });
+	else susGraphicsSetClear(&((SUS_WIDGET)window)->graphics.context, color);
+}
 
 // -------------------------------------------------
 
@@ -997,11 +1003,11 @@ VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size) {
 	susWindowSetMaximumSize(window, size);
 }
 // Install a renderer for an OpenGL-based window
-BOOL SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable) {
+SUS_RENDERER SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable) {
 	SUS_ASSERT(window);
 	if (window->graphics) susRendererCleanup(window->graphics);
-	if (enable) return (window->graphics = susRendererSetup(window->super)) != NULL;
-	return TRUE;
+	if (enable) return window->graphics = susRendererSetup(window->super);
+	return NULL;
 }
 // Get a window renderer
 SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window) {
@@ -1075,6 +1081,7 @@ LRESULT WINAPI susWidgetSystemHandler(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARA
 		} return 0;
 		case WM_SIZE: {
 			susGraphicsResize(window->super, &window->graphics.context);
+			susWindowRepaint(window);
 		} break;
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORMSGBOX:
@@ -1157,11 +1164,6 @@ BOOL SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WIDGET window, _In_ BOOL enable
 	if (window->graphics.context.backBuffer.hdcMem) susGraphicsRemoveDoubleBuffer(&window->graphics.context);
 	if (enabled) return susGraphicsSetDoubleBuffer(window->super, &window->graphics.context);
 	return TRUE;
-}
-// Set the window background color
-VOID SUSAPI susWindowSetBackground(_In_ SUS_WIDGET window, _In_ SUS_COLOR color) {
-	SUS_ASSERT(susWindowIsWidget(window));
-	susGraphicsSetClear(&window->graphics.context, color);
 }
 
 // -------------------------------------------------

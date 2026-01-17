@@ -268,6 +268,8 @@ VOID SUSAPI susRendererSetCamera(_In_ SUS_CAMERA camera);
 
 // Set the camera position
 VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 pos);
+// Move the camera
+SUS_INLINE VOID SUSAPI susRendererCameraMove(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 move) { susRendererCameraSetPosition(camera, susVec3Sum(camera->position, move)); }
 // Set the camera rotation
 VOID SUSAPI susRendererCameraSetRotation(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation);
 // Apply camera changes if camera is dirty
@@ -376,7 +378,7 @@ static const CHAR* SUSBuiltinInstancedShaderVS =
 // Shader Module
 typedef struct sus_renderer_shader_module { GLuint shader; } SUS_RENDERER_SHADER_MODULE, * SUS_LPRENDERER_SHADER_MODULE;
 // Load a shader from a file
-GLuint SUSAPI susRendererLoadShaderModule(_In_ LPCSTR path);
+SUS_RENDERER_SHADER_MODULE SUSAPI susRendererLoadShaderModule(_In_ LPCSTR path);
 
 // -----------------------------------------------
 
@@ -435,61 +437,61 @@ VOID SUSAPI susRendererFrameFlush(sus_float_t time, sus_float_t delta);
 
 // The type of texture stretching
 typedef enum sus_renderer_texture_wrap {
-	SUS_RENDERER_TEXTURE_WRAP_REPEAT,	// Duplicate the texture
-	SUS_RENDERER_TEXTURE_WRAP_MIRROR,	// Repeat with reflection
-	SUS_RENDERER_TEXTURE_WRAP_CLAMP		// Stretch the texture
-} SUS_RENDERER_TEXTURE_WRAP;
+	SUS_TEXTURE_WRAP_REPEAT,	// Duplicate the texture
+	SUS_TEXTURE_WRAP_MIRROR,	// Repeat with reflection
+	SUS_TEXTURE_WRAP_CLAMP		// Stretch the texture
+} SUS_TEXTURE_WRAP;
 // Smoothing level
 typedef enum sus_renderer_texture_smoothing {
-	SUS_RENDERER_TEXTURE_SMOOTHING_NONE,
-	SUS_RENDERER_TEXTURE_SMOOTHING_LOW,
-	SUS_RENDERER_TEXTURE_SMOOTHING_MEDIUM,
-	SUS_RENDERER_TEXTURE_SMOOTHING_HIGH,
-} SUS_RENDERER_TEXTURE_SMOOTHING;
+	SUS_TEXTURE_SMOOTHING_NONE,
+	SUS_TEXTURE_SMOOTHING_LOW,
+	SUS_TEXTURE_SMOOTHING_MEDIUM,
+	SUS_TEXTURE_SMOOTHING_HIGH,
+} SUS_TEXTURE_SMOOTHING;
 // Texture format
-typedef struct sus_renderer_texture_format {
-	SUS_RENDERER_TEXTURE_WRAP		wrapX, wrapY;	// The type of texture stretching
-	SUS_RENDERER_TEXTURE_SMOOTHING	smoothing;		// Smoothing level
-	BOOL							mipmap;			// Create mipmap for a texture in 3D
-} SUS_RENDERER_TEXTURE_FORMAT;
+typedef struct sus_texture_format {
+	SUS_TEXTURE_WRAP		wrapX, wrapY;	// The type of texture stretching
+	SUS_TEXTURE_SMOOTHING	smoothing;		// Smoothing level
+	BOOL					mipmap;			// Create mipmap for a texture in 3D
+} SUS_TEXTURE_FORMAT;
 // Texture Builder
-typedef struct sus_renderer_texture_builder {
+typedef struct sus_texture_builder {
 	UINT						channels;	// Number of channels per pixel
 	SUS_SIZE					size;		// Image Size
 	SUS_LPMEMORY				data;		// Image Data
-	SUS_RENDERER_TEXTURE_FORMAT format;		// Image Format
-} SUS_RENDERER_TEXTURE_BUILDER, * SUS_LPRENDERER_TEXTURE_BUILDER;
+	SUS_TEXTURE_FORMAT format;		// Image Format
+} SUS_TEXTURE_BUILDER, * SUS_LPTEXTURE_BUILDER;
 // Texture
-typedef struct sus_renderer_texture {
+typedef struct sus_texture {
 	GLuint _PARENT_;	// Texture
 	SUS_SIZE size;		// Texture size in pixels
-} SUS_RENDERER_TEXTURE_STRUCT, * SUS_RENDERER_TEXTURE;
+} SUS_TEXTURE_STRUCT, *SUS_TEXTURE;
 
 // Create a 2d texture
-SUS_RENDERER_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPRENDERER_TEXTURE_BUILDER builder);
+SUS_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPTEXTURE_BUILDER builder);
 // Destroy the texture
-VOID SUSAPI susRendererTextureDestroy(_In_ SUS_RENDERER_TEXTURE texture);
+VOID SUSAPI susRendererTextureDestroy(_In_ SUS_TEXTURE texture);
 // Load a texture from a file
-SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTexture(_In_ LPCWSTR path, _In_ SUS_RENDERER_TEXTURE_FORMAT format);
+SUS_TEXTURE SUSAPI susRendererLoadTexture(_In_ LPCWSTR path, _In_ SUS_TEXTURE_FORMAT format);
 // Load an image from resources by type - TEXTURE
-SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceName, _In_ SUS_RENDERER_TEXTURE_FORMAT format);
+SUS_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceName, _In_ SUS_TEXTURE_FORMAT format);
 // Load the texture into the GPU slot
-VOID SUSAPI susRendererTextureBind(_In_ SUS_RENDERER_TEXTURE texture, _In_ sus_uint_t slot);
+VOID SUSAPI susRendererTextureBind(_In_ SUS_TEXTURE texture, _In_ sus_uint_t slot);
 // Set the texture as the current one for the slot
 VOID SUSAPI susRendererSetTexture(_In_ sus_uint_t slot);
 // Load and activate the texture on slot 0
-VOID SUSAPI susRendererTextureActive(_In_ SUS_RENDERER_TEXTURE texture);
+VOID SUSAPI susRendererTextureActive(_In_ SUS_TEXTURE texture);
 
 // -----------------------------------------------
 
 // Texture template - 2D Sprite
-#define SUS_RENDERER_TEXTURE_FORMAT_SPRITE2D (SUS_RENDERER_TEXTURE_FORMAT) { .mipmap = FALSE, .smoothing = SUS_RENDERER_TEXTURE_SMOOTHING_NONE, .wrapX = SUS_RENDERER_TEXTURE_WRAP_CLAMP, .wrapY = SUS_RENDERER_TEXTURE_WRAP_CLAMP }
+#define SUS_TEXTURE_FORMAT_SPRITE2D (SUS_TEXTURE_FORMAT) { .mipmap = FALSE, .smoothing = SUS_TEXTURE_SMOOTHING_NONE, .wrapX = SUS_TEXTURE_WRAP_CLAMP, .wrapY = SUS_TEXTURE_WRAP_CLAMP }
 // Texture template - 2D Texture
-#define SUS_RENDERER_TEXTURE_FORMAT_TEX2D (SUS_RENDERER_TEXTURE_FORMAT) { .mipmap = FALSE, .smoothing = SUS_RENDERER_TEXTURE_SMOOTHING_NONE, .wrapX = SUS_RENDERER_TEXTURE_WRAP_REPEAT, .wrapY = SUS_RENDERER_TEXTURE_WRAP_REPEAT }
+#define SUS_TEXTURE_FORMAT_TEX2D (SUS_TEXTURE_FORMAT) { .mipmap = FALSE, .smoothing = SUS_TEXTURE_SMOOTHING_NONE, .wrapX = SUS_TEXTURE_WRAP_REPEAT, .wrapY = SUS_TEXTURE_WRAP_REPEAT }
 // Texture Template - 3D Sprite
-#define SUS_RENDERER_TEXTURE_FORMAT_SPRITE3D (SUS_RENDERER_TEXTURE_FORMAT) { .mipmap = TRUE, .smoothing = SUS_RENDERER_TEXTURE_SMOOTHING_LOW, .wrapX = SUS_RENDERER_TEXTURE_WRAP_CLAMP, .wrapY = SUS_RENDERER_TEXTURE_WRAP_CLAMP }
+#define SUS_TEXTURE_FORMAT_SPRITE3D (SUS_TEXTURE_FORMAT) { .mipmap = TRUE, .smoothing = SUS_TEXTURE_SMOOTHING_LOW, .wrapX = SUS_TEXTURE_WRAP_CLAMP, .wrapY = SUS_TEXTURE_WRAP_CLAMP }
 // Texture template - 3D Texture
-#define SUS_RENDERER_TEXTURE_FORMAT_TEX3D (SUS_RENDERER_TEXTURE_FORMAT) { .mipmap = TRUE, .smoothing = SUS_RENDERER_TEXTURE_SMOOTHING_LOW, .wrapX = SUS_RENDERER_TEXTURE_WRAP_REPEAT, .wrapY = SUS_RENDERER_TEXTURE_WRAP_REPEAT }
+#define SUS_TEXTURE_FORMAT_TEX3D (SUS_TEXTURE_FORMAT) { .mipmap = TRUE, .smoothing = SUS_TEXTURE_SMOOTHING_LOW, .wrapX = SUS_TEXTURE_WRAP_REPEAT, .wrapY = SUS_TEXTURE_WRAP_REPEAT }
 
 // -----------------------------------------------
 
@@ -605,8 +607,8 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model);
 
 // The format of the instance variables
 typedef enum sus_mesh_instance_attribute {
-	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX		= 0,			// mat4 - default
-	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR		= 1 << 0,		// vec4
+	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX		= 0,		// mat4 - default
+	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR		= 1 << 0,	// vec4
 	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET	= 1 << 1	// vec2
 } SUS_MESH_INSTANCE_ATTRIBUTE;
 // A mesh instance
@@ -615,20 +617,20 @@ typedef struct sus_mesh_instance  SUS_MESH_INSTANCE_STRUCT, *SUS_MESH_INSTANCE;
 // -----------------------------------------------
 
 // Create an instance for meshes
-SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes);
+SUS_MESH_INSTANCE SUSAPI susRendererNewInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes);
 // Delete a mesh instance
-VOID SUSAPI susRendererMeshInstanceDestroy(_In_ SUS_MESH_INSTANCE instance);
+VOID SUSAPI susRendererInstanceDestroy(_In_ SUS_MESH_INSTANCE instance);
 // Draw mesh instances
-VOID SUSAPI susRendererDrawMeshInstance(_In_ SUS_MESH_INSTANCE instance);
+VOID SUSAPI susRendererDrawInstance(_In_ SUS_MESH_INSTANCE instance);
 
 // -----------------------------------------------
 
 // Add a new item to the instances\param parameters are passed in order
-BOOL SUSAPIV susRendererMeshInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...);
+BOOL SUSAPIV susRendererInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...);
 // Delete an object from an instance
-BOOL SUSAPIV susRendererMeshInstanceRemove(_Inout_ SUS_MESH_INSTANCE instance, _In_ UINT index);
+BOOL SUSAPIV susRendererInstanceRemove(_Inout_ SUS_MESH_INSTANCE instance, _In_ UINT index);
 // apply changes
-BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
+BOOL SUSAPI susRendererInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance);
 
 // -----------------------------------------------
 
@@ -689,9 +691,10 @@ typedef enum sus_renderer_resource_type {
 // The resource's destructor template
 typedef VOID(SUSAPI* SUS_RENDERER_RESOURCE_DESTRUCTOR)(_In_ SUS_OBJECT resource);
 // Resource Destructor table
-static const SUS_RENDERER_RESOURCE_DESTRUCTOR RendererResourceDestructorTable[SUS_RENDERER_RESOURCE_TYPE_COUNT] = { susRendererShaderDestroy, susRendererCameraDestroy, susRendererTextureDestroy, susRendererMeshDestroy, susRendererMeshInstanceDestroy };
-// Renderer Resource Manager
+static const SUS_RENDERER_RESOURCE_DESTRUCTOR RendererResourceDestructorTable[SUS_RENDERER_RESOURCE_TYPE_COUNT] = { susRendererShaderDestroy, susRendererCameraDestroy, susRendererTextureDestroy, susRendererMeshDestroy, susRendererInstanceDestroy };
+// Renderer Resource pool
 typedef struct sus_renderer_resource_pool {
+	UINT id; // Id of pool in manager
 	SUS_HASHSET pool[SUS_RENDERER_RESOURCE_TYPE_COUNT];
 } SUS_RENDERER_RESOURCE_POOL, * SUS_LPRENDERER_RESOURCE_POOL;
 // Renderer Resource Manager
@@ -707,9 +710,9 @@ typedef struct sus_renderer_resource_manager {
 // -----------------------------------------------
 
 // Initialize the resource manager
-VOID SUSAPI susRendererResourcePoolInit(_Out_ SUS_LPRENDERER_RESOURCE_POOL pool);
+VOID SUSAPI susRendererResourcePoolInit(_Out_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ UINT id);
 // Destroy the renderer's resource manager
-VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_POOL pool);
+VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_LPRENDERER_RESOURCE_POOL pool);
 
 // -----------------------------------------------
 
@@ -777,12 +780,25 @@ typedef struct sus_renderer {
 
 // Initialize the graphics for the window and set current
 SUS_RENDERER SUSAPI susRendererSetup(_In_ HWND hWnd);
+// Set optimization for 3D graphics
+VOID SUSAPI susRendererSet3D();
+// Set the background color
+VOID SUSAPI susRendererSetBackground(SUS_VEC3 color);
 // Set the renderer as the current one
 VOID SUSAPI susRendererSetCurrent(_In_opt_ SUS_RENDERER renderer);
 // Remove the graphical context
 VOID SUSAPI susRendererCleanup(_In_ SUS_RENDERER renderer);
 // Update the context output area
 VOID SUSAPI susRendererSize();
+
+// -----------------------------------------------
+
+// Get the current renderer
+SUS_RENDERER SUSAPI susGetRenderer();
+// Get the current camera
+SUS_CAMERA SUSAPI susRendererGetCamera(_In_ SUS_RENDERER renderer);
+// Get the current shader
+SUS_RENDERER_SHADER SUSAPI susRendererGetShader(_In_ SUS_RENDERER renderer);
 
 // -----------------------------------------------
 

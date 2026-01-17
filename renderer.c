@@ -542,16 +542,8 @@ BOOL SUSAPI susGpuVectorSwapErase(_In_ SUS_LPGPU_VECTOR vector, _In_ sus_uint_t 
 // ************************************************************************************************* //
 // ================================================================================================= //
 
-////////////////////////////////////////////////////////////////////////////////
-
-// -----------------------------------------------
-
 // Global rendering context
-static SUS_RENDERER CurrentRenderer = NULL;
-
-// -----------------------------------------------
-
-////////////////////////////////////////////////////////////////////////////////
+static SUS_RENDERER SUSCurrentRenderer = NULL;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //							  The structure of working with the camera    						  //
@@ -564,13 +556,14 @@ static SUS_RENDERER CurrentRenderer = NULL;
 // Create a general camera
 SUS_CAMERA SUSAPI susRendererNewCamera(_In_ SUS_CAMERA_TYPE type) {
 	SUS_PRINTDL("Creating a %s camera", type == SUS_CAMERA_TYPE_3D ? "3D" : "2D");
-	SUS_ASSERT(CurrentRenderer);
+	SUS_ASSERT(SUSCurrentRenderer);
 	SUS_CAMERA camera = sus_malloc(type == SUS_CAMERA_TYPE_3D ? sizeof(SUS_CAMERA3D_STRUCT) : sizeof(SUS_CAMERA2D_STRUCT));
 	if (!camera) return NULL;
 	camera->dirty = TRUE;
 	camera->type = type;
 	camera->view = camera->proj = camera->projview = susMat4Identity();
-	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_CAMERA, camera);
+	susRendererCameraSetRotation(camera, (SUS_VEC3) { 0.0f, 0.0f, 0.0f });
+	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_CAMERA, camera);
 	return camera;
 }
 // Create a 2d camera
@@ -590,14 +583,14 @@ SUS_CAMERA3D SUSAPI susRendererNewCamera3D(_In_ sus_uint_t fov, _In_ sus_float_t
 // Destroy the camera
 VOID SUSAPI susRendererCameraDestroy(_In_ SUS_CAMERA camera) {
 	SUS_PRINTDL("Destroying the camera");
-	SUS_ASSERT(camera && CurrentRenderer);
-	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_CAMERA, camera);
+	SUS_ASSERT(camera && SUSCurrentRenderer);
+	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_CAMERA, camera);
 	sus_free(camera);
 }
 // Set the current camera
 VOID SUSAPI susRendererSetCamera(_In_ SUS_CAMERA camera) {
-	SUS_ASSERT(CurrentRenderer);
-	CurrentRenderer->context.currentCamera = camera;
+	SUS_ASSERT(SUSCurrentRenderer);
+	SUSCurrentRenderer->context.currentCamera = camera;
 }
 
 // -----------------------------------------------
@@ -728,7 +721,7 @@ VOID SUSAPI susRendererCameraUpdate(_Inout_ SUS_CAMERA camera) {
 // -----------------------------------------------
 
 // Load a shader from a file
-GLuint SUSAPI susRendererLoadShaderModule(_In_ LPCSTR path)
+SUS_RENDERER_SHADER_MODULE SUSAPI susRendererLoadShaderModule(_In_ LPCSTR path)
 {
 	SUS_PRINTDL("Loading a shader from a file");
 	SUS_ASSERT(path);
@@ -754,10 +747,10 @@ GLuint SUSAPI susRendererLoadShaderModule(_In_ LPCSTR path)
 	if (!source.data) goto error;
 	GLuint shader = susRendererDirectLoadShader(type, (LPCSTR)source.data);
 	susDataDestroy(source);
-	return shader;
+	return (SUS_RENDERER_SHADER_MODULE) { shader };
 error:
 	SUS_PRINTDL("Couldn't load shader from file");
-	return 0;
+	return (SUS_RENDERER_SHADER_MODULE) { 0 };
 }
 
 // -----------------------------------------------
@@ -766,7 +759,7 @@ error:
 SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPRENDERER_SHADER_MODULE modules)
 {
 	SUS_PRINTDL("Loading the shader");
-	SUS_ASSERT(count && modules && CurrentRenderer);
+	SUS_ASSERT(count && modules && SUSCurrentRenderer);
 	SUS_RENDERER_SHADER shader = sus_malloc(sizeof(SUS_RENDERER_SHADER_STRUCT));
 	if (!shader) return NULL;
 	shader->program = susRendererDirectLinkProgram(count, (GLuint*)modules, TRUE);
@@ -782,24 +775,24 @@ SUS_RENDERER_SHADER SUSAPI susRendererNewShader(_In_ UINT count, _In_ SUS_LPREND
 	for (UINT i = 0; i < SUS_RENDERER_BASE_UNIFORM_COUNT; i++) {
 		shader->uniforms[i] = glGetUniformLocation(shader->program, uniformNames[i]);
 	}
-	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&(CurrentRenderer->resources)), SUS_RENDERER_RESOURCE_TYPE_SHADER, shader);
+	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&(SUSCurrentRenderer->resources)), SUS_RENDERER_RESOURCE_TYPE_SHADER, shader);
 	return shader;
 }
 // Destroy the shader
 VOID SUSAPI susRendererShaderDestroy(_In_ SUS_RENDERER_SHADER shader)
 {
 	SUS_PRINTDL("Destroying the shader");
-	SUS_ASSERT(shader && CurrentRenderer);
+	SUS_ASSERT(shader && SUSCurrentRenderer);
 	susRendererDirectProgramCleanup(shader->program);
-	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&(CurrentRenderer->resources)), SUS_RENDERER_RESOURCE_TYPE_SHADER, shader);
+	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&(SUSCurrentRenderer->resources)), SUS_RENDERER_RESOURCE_TYPE_SHADER, shader);
 	sus_free(shader);
 }
 // Set the shader as the current one
 VOID SUSAPI susRendererSetShader(_In_ SUS_RENDERER_SHADER shader) 
 { 
-	SUS_ASSERT(CurrentRenderer && shader);
+	SUS_ASSERT(SUSCurrentRenderer && shader);
 	glUseProgram(shader->program);
-	CurrentRenderer->context.currentShader = shader;
+	SUSCurrentRenderer->context.currentShader = shader;
 }
 
 // -----------------------------------------------
@@ -807,19 +800,19 @@ VOID SUSAPI susRendererSetShader(_In_ SUS_RENDERER_SHADER shader)
 
 // Transfer transformation data to graphics
 VOID SUSAPI susRendererMatrixFlush(_In_ SUS_MAT4 model) {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentShader && CurrentRenderer->context.currentCamera);
-	SUS_MAT4 mvp = susMat4Mult(CurrentRenderer->context.currentCamera->projview, model);
-	glUniformMatrix4fv(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_MVP], 1, GL_FALSE, (GLfloat*)&mvp);
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentShader && SUSCurrentRenderer->context.currentCamera);
+	SUS_MAT4 mvp = susMat4Mult(SUSCurrentRenderer->context.currentCamera->projview, model);
+	glUniformMatrix4fv(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_MVP], 1, GL_FALSE, (GLfloat*)&mvp);
 }
 // Send frame data to GPU
 VOID SUSAPI susRendererFrameFlush(sus_float_t time, sus_float_t delta) {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentCamera);
-	glUniformMatrix4fv(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_PROJVIEW], 1, GL_FALSE, (GLfloat*)&CurrentRenderer->context.currentCamera->projview);
-	glUniform1f(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_TIME], time);
-	glUniform1f(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_DELTA], delta);
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentCamera);
+	glUniformMatrix4fv(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_PROJVIEW], 1, GL_FALSE, (GLfloat*)&SUSCurrentRenderer->context.currentCamera->projview);
+	glUniform1f(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_TIME], time);
+	glUniform1f(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_DELTA], delta);
 	time *= 360.0f;
-	glUniform1f(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_COSTIME], sus_cos((sus_int_t)time));
-	glUniform1f(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_SINTIME], sus_sin((sus_int_t)time));
+	glUniform1f(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_COSTIME], sus_cos((sus_int_t)time));
+	glUniform1f(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_SINTIME], sus_sin((sus_int_t)time));
 }
 
 // -----------------------------------------------
@@ -835,14 +828,14 @@ VOID SUSAPI susRendererFrameFlush(sus_float_t time, sus_float_t delta) {
 // -----------------------------------------------
 
 // Set the wrapper functions for the texture
-static VOID SUSAPI susRendererTextureSetWrap(_In_ GLenum target, _In_ SUS_RENDERER_TEXTURE_WRAP wrapX, _In_ SUS_RENDERER_TEXTURE_WRAP wrapY) {
+static VOID SUSAPI susRendererTextureSetWrap(_In_ GLenum target, _In_ SUS_TEXTURE_WRAP wrapX, _In_ SUS_TEXTURE_WRAP wrapY) {
 	glTexParameteri(target, GL_TEXTURE_WRAP_S,
-		wrapX == SUS_RENDERER_TEXTURE_WRAP_REPEAT ? GL_REPEAT :
-		wrapX == SUS_RENDERER_TEXTURE_WRAP_MIRROR ? GL_MIRRORED_REPEAT : GL_CLAMP_TO_EDGE
+		wrapX == SUS_TEXTURE_WRAP_REPEAT ? GL_REPEAT :
+		wrapX == SUS_TEXTURE_WRAP_MIRROR ? GL_MIRRORED_REPEAT : GL_CLAMP_TO_EDGE
 	);
 	glTexParameteri(target, GL_TEXTURE_WRAP_T,
-		wrapY == SUS_RENDERER_TEXTURE_WRAP_REPEAT ? GL_REPEAT :
-		wrapY == SUS_RENDERER_TEXTURE_WRAP_MIRROR ? GL_MIRRORED_REPEAT : GL_CLAMP_TO_EDGE
+		wrapY == SUS_TEXTURE_WRAP_REPEAT ? GL_REPEAT :
+		wrapY == SUS_TEXTURE_WRAP_MIRROR ? GL_MIRRORED_REPEAT : GL_CLAMP_TO_EDGE
 	);
 }
 _Success_(return != FALSE)
@@ -860,29 +853,29 @@ static BOOL SUSAPI susRendererGetTextureFormat(_In_ UINT channels, _Out_ GLenum 
 	}
 }
 // Set filters on the texture
-static VOID SUSAPI susRendererTextureSetFilters(_In_ GLenum target, _In_ BOOL mipmap, _In_ SUS_RENDERER_TEXTURE_SMOOTHING smoothing) {
+static VOID SUSAPI susRendererTextureSetFilters(_In_ GLenum target, _In_ BOOL mipmap, _In_ SUS_TEXTURE_SMOOTHING smoothing) {
 	if (mipmap) {
 		glGenerateMipmap(target);
 		GLint level = 0;
 		switch (smoothing)
 		{
-		case SUS_RENDERER_TEXTURE_SMOOTHING_NONE: level = GL_NEAREST_MIPMAP_NEAREST; break;
-		case SUS_RENDERER_TEXTURE_SMOOTHING_LOW: level = GL_LINEAR_MIPMAP_NEAREST; break;
-		case SUS_RENDERER_TEXTURE_SMOOTHING_MEDIUM: level = GL_NEAREST_MIPMAP_LINEAR; break;
-		case SUS_RENDERER_TEXTURE_SMOOTHING_HIGH: level = GL_LINEAR_MIPMAP_LINEAR; break;
+		case SUS_TEXTURE_SMOOTHING_NONE: level = GL_NEAREST_MIPMAP_NEAREST; break;
+		case SUS_TEXTURE_SMOOTHING_LOW: level = GL_LINEAR_MIPMAP_NEAREST; break;
+		case SUS_TEXTURE_SMOOTHING_MEDIUM: level = GL_NEAREST_MIPMAP_LINEAR; break;
+		case SUS_TEXTURE_SMOOTHING_HIGH: level = GL_LINEAR_MIPMAP_LINEAR; break;
 		}
 		SUS_ASSERT(level);
 		glTexParameteri(target, GL_TEXTURE_MIN_FILTER, level);
 	}
-	else glTexParameteri(target, GL_TEXTURE_MIN_FILTER, smoothing >= SUS_RENDERER_TEXTURE_SMOOTHING_MEDIUM ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, smoothing >= SUS_RENDERER_TEXTURE_SMOOTHING_MEDIUM ? GL_LINEAR : GL_NEAREST);
+	else glTexParameteri(target, GL_TEXTURE_MIN_FILTER, smoothing >= SUS_TEXTURE_SMOOTHING_MEDIUM ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, smoothing >= SUS_TEXTURE_SMOOTHING_MEDIUM ? GL_LINEAR : GL_NEAREST);
 }
 // Create a texture
-SUS_RENDERER_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPRENDERER_TEXTURE_BUILDER builder)
+SUS_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPTEXTURE_BUILDER builder)
 {
 	SUS_PRINTDL("Creating a texture");
-	SUS_ASSERT(builder && CurrentRenderer);
-	SUS_RENDERER_TEXTURE texture = sus_malloc(sizeof(SUS_RENDERER_TEXTURE_STRUCT));
+	SUS_ASSERT(builder && SUSCurrentRenderer);
+	SUS_TEXTURE texture = sus_malloc(sizeof(SUS_TEXTURE_STRUCT));
 	if (!texture) goto error;
 	glGenTextures(1, &texture->super);
 	glBindTexture(GL_TEXTURE_2D, texture->super);
@@ -900,7 +893,7 @@ SUS_RENDERER_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPRENDERER_TEXT
 		goto error;
 	}
 	texture->size = builder->size;
-	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_TEXTURE, texture);
+	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_TEXTURE, texture);
 	return texture;
 error:
 	SUS_PRINTDE("Couldn't create texture");
@@ -908,49 +901,49 @@ error:
 	return NULL;
 }
 // Destroy the texture
-VOID SUSAPI susRendererTextureDestroy(_In_ SUS_RENDERER_TEXTURE texture)
+VOID SUSAPI susRendererTextureDestroy(_In_ SUS_TEXTURE texture)
 {
 	SUS_PRINTDL("2d Texture Destruction");
 	SUS_ASSERT(texture && texture->super);
 	glDeleteTextures(1, &texture->super);
-	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_TEXTURE, texture);
+	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_TEXTURE, texture);
 	sus_free(texture);
 }
 // Load a texture from a file
-SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTexture(_In_ LPCWSTR path, _In_ SUS_RENDERER_TEXTURE_FORMAT format)
+SUS_TEXTURE SUSAPI susRendererLoadTexture(_In_ LPCWSTR path, _In_ SUS_TEXTURE_FORMAT format)
 {
-	SUS_RENDERER_TEXTURE_BUILDER builder = { .format = format };
+	SUS_TEXTURE_BUILDER builder = { .format = format };
 	builder.data = susLoadImageW(path, TRUE, &builder.size, (sus_pint_t)&builder.channels);
 	if (!builder.data) return NULL;
-	SUS_RENDERER_TEXTURE texture = susRendererNewTexture(&builder);
+	SUS_TEXTURE texture = susRendererNewTexture(&builder);
 	sus_free(builder.data);
 	return texture;
 }
 // Load an image from resources by type - TEXTURE
-SUS_RENDERER_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceName, _In_ SUS_RENDERER_TEXTURE_FORMAT format)
+SUS_TEXTURE SUSAPI susRendererLoadTextureResource(_In_ LPCSTR resourceName, _In_ SUS_TEXTURE_FORMAT format)
 {
-	SUS_RENDERER_TEXTURE_BUILDER builder = { .format = format };
+	SUS_TEXTURE_BUILDER builder = { .format = format };
 	SUS_DATAVIEW imageData = { 0 };
 	imageData.data = susLoadResourceA(resourceName, "TEXTURE", (DWORD*)&imageData.size, NULL);
 	builder.data = susLoadImageFromMemory(imageData, TRUE, &builder.size, (sus_pint_t)&builder.channels);
 	if (!builder.data) return NULL;
-	SUS_RENDERER_TEXTURE texture = susRendererNewTexture(&builder);
+	SUS_TEXTURE texture = susRendererNewTexture(&builder);
 	sus_free(builder.data);
 	return texture;
 }
 // Load the texture into the GPU slot
-VOID SUSAPI susRendererTextureBind(_In_ SUS_RENDERER_TEXTURE texture, _In_ sus_uint_t slot) {
+VOID SUSAPI susRendererTextureBind(_In_ SUS_TEXTURE texture, _In_ sus_uint_t slot) {
 	SUS_ASSERT(texture && slot <= 64);
 	glActiveTexture(GL_TEXTURE0 + slot);
 	glBindTexture(GL_TEXTURE_2D, texture->super);
 }
 // Set the texture as the current one for the slot
 VOID SUSAPI susRendererSetTexture(_In_ sus_uint_t slot) {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentShader && slot <= 64);
-	glUniform1i(CurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_TEXTURE], slot);
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentShader && slot <= 64);
+	glUniform1i(SUSCurrentRenderer->context.currentShader->uniforms[SUS_RENDERER_BASE_UNIFORM_TEXTURE], slot);
 }
 // Load and activate the texture on slot 0
-VOID SUSAPI susRendererTextureActive(_In_ SUS_RENDERER_TEXTURE texture) {
+VOID SUSAPI susRendererTextureActive(_In_ SUS_TEXTURE texture) {
 	SUS_ASSERT(texture);
 	susRendererTextureBind(texture, 0);
 	susRendererSetTexture(0);
@@ -992,7 +985,6 @@ struct sus_mesh {
 	GLuint				ibo;	// Index Buffer Object
 	UINT				count;	// The number of indexes in the mesh
 	GLuint				type;	// The type of feature of the mesh
-	sus_int32_t			refc;	// The link counter for this mesh
 	SUS_VERTEX_FORMAT	format;	// Mesh Attributes
 };
 
@@ -1023,7 +1015,7 @@ static VOID SUSAPI susRendererMeshSetAttributes(_In_ SUS_VERTEX_FORMAT format)
 static VOID SUSAPI susRendererMeshInit(_Inout_ SUS_MESH mesh, _In_ SUS_LPMESH_BUILDER builder)
 {
 	SUS_PRINTDL("Initializing the GPU mesh");
-	SUS_ASSERT(CurrentRenderer && mesh && builder->geometry.vertexes.size);
+	SUS_ASSERT(SUSCurrentRenderer && mesh && builder->geometry.vertexes.size);
 	mesh->type = builder->primitiveType;
 	mesh->count = (UINT)(builder->geometry.indexes.size ? builder->geometry.indexes.size / sizeof(SUS_INDEX) : builder->geometry.vertexes.size / sizeof(SUS_VERTEX));
 	glBindVertexArray(mesh->vao);
@@ -1040,11 +1032,10 @@ static VOID SUSAPI susRendererMeshInit(_Inout_ SUS_MESH mesh, _In_ SUS_LPMESH_BU
 // Build a mesh
 SUS_MESH SUSAPI susRendererBuildMesh(_In_ const SUS_LPMESH_BUILDER builder)
 {
-	SUS_ASSERT(CurrentRenderer && builder->geometry.vertexes.size && CurrentRenderer->context.currentShader);
+	SUS_ASSERT(SUSCurrentRenderer && builder->geometry.vertexes.size && SUSCurrentRenderer->context.currentShader);
 	SUS_PRINTDL("Building the mesh");
 	SUS_MESH mesh = sus_malloc(sizeof(SUS_MESH_STRUCT));
 	if (!mesh) return NULL;
-	mesh->refc = 0;
 	mesh->format = builder->format;
 	glGenVertexArrays(1, &mesh->vao);
 	glGenBuffers(1, &mesh->vbo);
@@ -1056,7 +1047,7 @@ SUS_MESH SUSAPI susRendererBuildMesh(_In_ const SUS_LPMESH_BUILDER builder)
 		SUS_PRINTDE("OpenGL error loading the mesh: %d", error);
 		return NULL;
 	}
-	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_MESH, mesh);
+	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_MESH, mesh);
 	SUS_PRINTDL("The mesh has been successfully loaded into the GPU");
 	return mesh;
 }
@@ -1065,12 +1056,10 @@ VOID SUSAPI susRendererMeshDestroy(_Inout_ SUS_MESH mesh)
 {
 	SUS_PRINTDL("Freeing up resources from the GPU");
 	SUS_ASSERT(mesh);
-	if (mesh->refc > 0) { mesh->refc--; return; }
-	SUS_ASSERT(mesh->refc >= 0);
 	if (mesh->ibo) glDeleteBuffers(1, &mesh->ibo);
 	if (mesh->vbo) glDeleteBuffers(1, &mesh->vbo);
 	if (mesh->vao) glDeleteVertexArrays(1, &mesh->vao);
-	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_MESH, mesh);
+	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_MESH, mesh);
 	sus_free(mesh);
 }
 // Set new vertices
@@ -1136,7 +1125,7 @@ static sus_size_t SUSAPI susCalculateInstanceStride(_In_ SUS_MESH_INSTANCE_ATTRI
 	return stride;
 }
 // Set attributes for a mesh instance
-static VOID SUSAPI susRendererMeshInstanceSetAttributes(SUS_MESH_INSTANCE_ATTRIBUTE attributes) {
+static VOID SUSAPI susRendererInstanceSetAttributes(SUS_MESH_INSTANCE_ATTRIBUTE attributes) {
 	sus_size_t offset = 0, stride = susCalculateInstanceStride(attributes);
 	UINT location = SUS_VERTEX_ATTRIBUT_COUNT;
 	// Set model matrix
@@ -1162,51 +1151,49 @@ static VOID SUSAPI susRendererMeshInstanceSetAttributes(SUS_MESH_INSTANCE_ATTRIB
 	}
 }
 // Initialize arrays in the mesh instance
-static VOID SUSAPI susRendererMeshInstanceInit(_In_ SUS_MESH_INSTANCE instance, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes, _In_ SUS_VERTEX_FORMAT format) {
+static VOID SUSAPI susRendererInstanceInit(_In_ SUS_MESH_INSTANCE instance, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes, _In_ SUS_VERTEX_FORMAT format) {
 	glBindVertexArray(instance->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, instance->sample->vbo);
 	susRendererMeshSetAttributes(format);
 	glBindBuffer(GL_ARRAY_BUFFER, instance->instanceData.vbo);
-	susRendererMeshInstanceSetAttributes(attributes);
+	susRendererInstanceSetAttributes(attributes);
 	if (instance->sample->ibo) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instance->sample->ibo);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 // Create an instance for meshes
-SUS_MESH_INSTANCE SUSAPI susRendererNewMeshInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes)
+SUS_MESH_INSTANCE SUSAPI susRendererNewInstance(_In_ SUS_MESH base, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes)
 {
 	SUS_PRINTDL("Creating a Mesh instance");
-	SUS_ASSERT(CurrentRenderer && base && base->vbo && CurrentRenderer->context.currentShader);
+	SUS_ASSERT(SUSCurrentRenderer && base && base->vbo && SUSCurrentRenderer->context.currentShader);
 	SUS_MESH_INSTANCE instance = sus_malloc(sizeof(SUS_MESH_INSTANCE_STRUCT));
 	if (!instance) return NULL;
 	instance->sample = base;
 	instance->attributes = attributes;
-	base->refc++;
 	glGenVertexArrays(1, &instance->vao);
 	instance->instanceData = susNewGpuVector((DWORD)susCalculateInstanceStride(attributes));
-	susRendererMeshInstanceInit(instance, attributes, base->format);
+	susRendererInstanceInit(instance, attributes, base->format);
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		SUS_PRINTDE("OpenGL error loading the mesh: %d", error);
-		susRendererMeshInstanceDestroy(instance);
+		susRendererInstanceDestroy(instance);
 		return NULL;
 	}
-	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_INSTANCE, instance);
+	susRendererResourcePoolRegister(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_INSTANCE, instance);
 	return instance;
 }
 // Delete a mesh instance
-VOID SUSAPI susRendererMeshInstanceDestroy(_In_ SUS_MESH_INSTANCE instance)
+VOID SUSAPI susRendererInstanceDestroy(_In_ SUS_MESH_INSTANCE instance)
 {
 	SUS_PRINTDL("Deleting a Mesh instance");
 	SUS_ASSERT(instance && instance->vao);
 	susGpuVectorDestroy(&instance->instanceData);
 	glDeleteVertexArrays(1, &instance->vao);
-	susRendererMeshDestroy(instance->sample);
-	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&CurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_INSTANCE, instance);
+	susRendererResourcePoolRemove(susRendererResourceManagerCurrent(&SUSCurrentRenderer->resources), SUS_RENDERER_RESOURCE_TYPE_INSTANCE, instance);
 	sus_free(instance);
 }
 // Draw mesh instances
-VOID SUSAPI susRendererDrawMeshInstance(_In_ SUS_MESH_INSTANCE instance)
+VOID SUSAPI susRendererDrawInstance(_In_ SUS_MESH_INSTANCE instance)
 {
 	SUS_ASSERT(instance && instance->vao);
 	glBindVertexArray(instance->vao);
@@ -1262,7 +1249,7 @@ static LPBYTE SUSAPI susExtractInstanceAttributeData(_In_ SUS_MESH_INSTANCE inst
 	return buffer;
 }
 // Add a new item to the instances\param parameters are passed in order
-BOOL SUSAPIV susRendererMeshInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...)
+BOOL SUSAPIV susRendererInstanceAdd(_Inout_ SUS_MESH_INSTANCE instance, ...)
 {
 	SUS_PRINTDL("Adding a new object to mesh instances");
 	SUS_ASSERT(instance && instance->vao);
@@ -1279,7 +1266,7 @@ error:
 	return FALSE;
 }
 // Delete an object from an instance
-BOOL SUSAPIV susRendererMeshInstanceRemove(_Inout_ SUS_MESH_INSTANCE instance, _In_ UINT index)
+BOOL SUSAPIV susRendererInstanceRemove(_Inout_ SUS_MESH_INSTANCE instance, _In_ UINT index)
 {
 	SUS_PRINTDL("Removing an item from instances");
 	SUS_ASSERT(instance && instance->vao);
@@ -1290,13 +1277,13 @@ error:
 	return FALSE;
 }
 // apply changes
-BOOL SUSAPI susRendererMeshInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
+BOOL SUSAPI susRendererInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
 {
 	SUS_PRINTDL("Applying changes after REALLOC in the bag");
 	SUS_ASSERT(instance && instance->vao);
 	GLuint oldVao = instance->vao;
 	glGenVertexArrays(1, &instance->vao);
-	susRendererMeshInstanceInit(instance, instance->attributes, instance->sample->format);
+	susRendererInstanceInit(instance, instance->attributes, instance->sample->format);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Failed to apply changes to mesh instances", error);
 		if (instance->vao) glDeleteVertexArrays(1, &instance->vao);
@@ -1422,17 +1409,20 @@ SUS_MESH susRendererPrimitivesBuild_Cube(_In_ SUS_VEC3 scale) {
 // -----------------------------------------------
 
 // Initialize the resource pool
-VOID SUSAPI susRendererResourcePoolInit(_Out_ SUS_LPRENDERER_RESOURCE_POOL pool) {
+VOID SUSAPI susRendererResourcePoolInit(_Out_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ UINT id) {
 	SUS_PRINTDL("Initializing the Resource pool");
 	SUS_ASSERT(pool);
+	pool->id = id;
 	for (UINT i = 0; i < SUS_RENDERER_RESOURCE_TYPE_COUNT; i++) {
 		pool->pool[i] = susNewSet(SUS_OBJECT);
 	}
 }
 // Destroy the renderer's resource pool
-VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_POOL pool) {
+VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAGER manager, _In_ SUS_LPRENDERER_RESOURCE_POOL pool) {
 	SUS_PRINTDL("Cleaning up all resources");
 	SUS_ASSERT(pool);
+	UINT old = manager->current;
+	susRendererResourceManagerSetCurrent(manager, pool->id);
 	for (UINT i = 0; i < SUS_RENDERER_RESOURCE_TYPE_COUNT; i++) {
 		susMapForeach(pool->pool[i], j) {
 			SUS_OBJECT resource = *(SUS_OBJECT*)susMapIterKey(j);
@@ -1440,6 +1430,7 @@ VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_POOL poo
 		}
 		susSetDestroy(pool->pool[i]);
 	}
+	susRendererResourceManagerSetCurrent(manager, old);
 }
 
 // -----------------------------------------------
@@ -1447,19 +1438,19 @@ VOID SUSAPI susRendererResourcePoolCleanup(_In_ SUS_LPRENDERER_RESOURCE_POOL poo
 // Get a resource
 BOOL SUSAPI susRendererResourcePoolContains(_In_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource) {
 	SUS_PRINTDL("Getting a resource");
-	SUS_ASSERT(CurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT);
+	SUS_ASSERT(SUSCurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT);
 	return susSetContains(pool->pool[type], &resource);
 }
 // Register a resource
 VOID SUSAPI susRendererResourcePoolRegister(_Inout_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource) {
 	SUS_PRINTDL("Registering a resource");
-	SUS_ASSERT(CurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && !susRendererResourcePoolContains(pool, type, resource));
+	SUS_ASSERT(SUSCurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && !susRendererResourcePoolContains(pool, type, resource));
 	susSetAdd(&pool->pool[type], &resource);
 }
 // Delete a resource
 VOID SUSAPI susRendererResourcePoolRemove(_In_ SUS_LPRENDERER_RESOURCE_POOL pool, _In_ SUS_RENDERER_RESOURCE_TYPE type, _In_ SUS_OBJECT resource) {
 	SUS_PRINTDL("Deleting a resource");
-	SUS_ASSERT(CurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && susRendererResourcePoolContains(pool, type, resource));
+	SUS_ASSERT(SUSCurrentRenderer && pool && (UINT)type < (UINT)SUS_RENDERER_RESOURCE_TYPE_COUNT && susRendererResourcePoolContains(pool, type, resource));
 	susSetRemove(&pool->pool[type], &resource);
 }
 
@@ -1484,7 +1475,7 @@ VOID SUSAPI susRendererResourceManagerCleanup(_In_ SUS_LPRENDERER_RESOURCE_MANAG
 	SUS_ASSERT(manager);
 	susMapForeach(manager->level, i) {
 		SUS_LPRENDERER_RESOURCE_POOL pool = (SUS_LPRENDERER_RESOURCE_POOL)susMapIterValue(i);
-		susRendererResourcePoolCleanup(pool);
+		susRendererResourcePoolCleanup(manager, pool);
 	}
 	susMapDestroy(manager->level);
 }
@@ -1516,7 +1507,7 @@ SUS_LPRENDERER_RESOURCE_POOL SUSAPI susRendererResourceManagerAddPool(_In_ SUS_L
 	SUS_ASSERT(manager && !susRendererResourceManagerGet(manager, pool));
 	SUS_LPRENDERER_RESOURCE_POOL resource = (SUS_LPRENDERER_RESOURCE_POOL)susMapAdd(&manager->level, &pool, NULL);
 	if (!resource) return NULL;
-	susRendererResourcePoolInit(resource);
+	susRendererResourcePoolInit(resource, pool);
 	return resource;
 }
 // Delete a pool from the resource manager
@@ -1524,7 +1515,7 @@ VOID SUSAPI susRendererResourceManagerRemovePool(_In_ SUS_LPRENDERER_RESOURCE_MA
 	SUS_PRINTDL("Destroy the graphics resource pool with id %d", pool);
 	SUS_ASSERT(manager && susRendererResourceManagerGet(manager, pool));
 	SUS_LPRENDERER_RESOURCE_POOL resource = susRendererResourceManagerGet(manager, pool);
-	susRendererResourcePoolCleanup(resource);
+	susRendererResourcePoolCleanup(manager, resource);
 	susMapRemove(&manager->level, &pool);
 }
 
@@ -1557,12 +1548,23 @@ error:
 	SUS_PRINTDE("Failed to initialize rendering on the window");
 	return NULL;
 }
+// Set optimization for 3D graphics
+VOID SUSAPI susRendererSet3D() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
+}
+// Set the background color
+VOID SUSAPI susRendererSetBackground(SUS_VEC3 color) { glClearColor(color.r, color.g, color.b, 0.0f); }
 // Set the renderer as the current one
 VOID SUSAPI susRendererSetCurrent(_In_opt_ SUS_RENDERER renderer) {
 	SUS_PRINTDL("Setting the context as the current one");
 	if (renderer) wglMakeCurrent(renderer->super.hdc, renderer->super.hGlrc);
 	else wglMakeCurrent(NULL, NULL);
-	CurrentRenderer = renderer;
+	SUSCurrentRenderer = renderer;
 }
 // Remove the graphical context
 VOID SUSAPI susRendererCleanup(_In_ SUS_RENDERER renderer) {
@@ -1570,18 +1572,35 @@ VOID SUSAPI susRendererCleanup(_In_ SUS_RENDERER renderer) {
 	SUS_ASSERT(renderer);
 	susRendererResourceManagerCleanup(&renderer->resources);
 	susRendererDirectCleanup(renderer->hWnd, renderer->super);
-	if (CurrentRenderer == renderer) susRendererSetCurrent(0);
+	if (SUSCurrentRenderer == renderer) susRendererSetCurrent(0);
 	sus_timer_stop(&renderer->frameTimer);
 	sus_free(renderer);
 }
 // Update the context output area
 VOID SUSAPI susRendererSize() {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentCamera);
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentCamera);
 	RECT rect = { 0 };
-	GetClientRect(CurrentRenderer->hWnd, &rect);
+	GetClientRect(SUSCurrentRenderer->hWnd, &rect);
 	sus_float_t aspect = (sus_float_t)rect.right / (sus_float_t)rect.bottom;
-	susRendererCameraSize(CurrentRenderer->context.currentCamera, aspect);
+	susRendererCameraSize(SUSCurrentRenderer->context.currentCamera, aspect);
 	glViewport(rect.left, rect.top, rect.right, rect.bottom);
+}
+
+// -----------------------------------------------
+
+// Get the current renderer
+SUS_RENDERER SUSAPI susGetRenderer() {
+	return SUSCurrentRenderer;
+}
+// Get the current camera
+SUS_CAMERA SUSAPI susRendererGetCamera(_In_ SUS_RENDERER renderer) {
+	SUS_ASSERT(renderer);
+	return renderer->context.currentCamera;
+}
+// Get the current shader
+SUS_RENDERER_SHADER SUSAPI susRendererGetShader(_In_ SUS_RENDERER renderer) {
+	SUS_ASSERT(renderer);
+	return renderer->context.currentShader;
 }
 
 // -----------------------------------------------
@@ -1592,20 +1611,20 @@ VOID SUSAPI susRendererSize() {
 
 // Start rendering the frame
 VOID SUSAPI susRendererBeginFrame() {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentShader && CurrentRenderer->context.currentCamera);
-	susRendererCameraUpdate(CurrentRenderer->context.currentCamera);
-	susRendererFrameFlush(sus_timef(), CurrentRenderer->frameTimer.state.delta);
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentShader && SUSCurrentRenderer->context.currentCamera);
+	susRendererCameraUpdate(SUSCurrentRenderer->context.currentCamera);
+	susRendererFrameFlush(sus_timef(), SUSCurrentRenderer->frameTimer.state.delta);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 // Finish painting the frame
 VOID SUSAPI susRendererEndFrame() {
-	SUS_ASSERT(CurrentRenderer && CurrentRenderer->context.currentShader && CurrentRenderer->context.currentCamera);
-	if (!SwapBuffers(CurrentRenderer->super.hdc)) {
+	SUS_ASSERT(SUSCurrentRenderer && SUSCurrentRenderer->context.currentShader && SUSCurrentRenderer->context.currentCamera);
+	if (!SwapBuffers(SUSCurrentRenderer->super.hdc)) {
 		SUS_PRINTDE("Failed to apply buffer transfer for the frame");
 		SUS_PRINTDC(GetLastError());
 		return;
 	}
-	sus_timer_update(&CurrentRenderer->frameTimer);
+	sus_timer_update(&SUSCurrentRenderer->frameTimer);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError()) {
 		SUS_PRINTDE("OpenGL error: %d", error);
 		susErrorPush(SUS_ERROR_API_ERROR, SUS_ERROR_TYPE_SYSTEM);

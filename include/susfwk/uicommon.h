@@ -69,6 +69,7 @@ SUS_INLINE SUS_RECT SUSAPI susBoundsToRect(_In_ const SUS_BOUNDS bounds) {
 
 #define SUS_RGBA(red, green, blue, alpha) (SUS_COLOR) { .r = red, .g = green, .b = blue, .a = 255 - alpha }
 #define SUS_RGB(red, green, blue) SUS_RGBA(red, green, blue, 255)
+#define SUS_COLOR32_TO_COLOR64(color32) (SUS_COLOR64) { color32.r << 8, color32.g << 8, color32.b << 8 }
 
 #define SUS_COLOR_RED		SUS_RGB(255, 0, 0)
 #define SUS_COLOR_GREEN		SUS_RGB(0, 255, 0)

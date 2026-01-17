@@ -4,8 +4,33 @@
 #define _SUS_WINDOW_
 
 #include "graphics.h"
+#include "renderer.h"
 #pragma warning(push)
 #pragma warning(disable: 4201)
+
+// Window - Working with the UI
+// v2.1
+/*
+* Window - api for working with windows and widgets
+* It is closely related to graphical modules
+* and provides a convenient interface for working with them
+* 
+* How to create a window?
+* To create a window, you need to:
+* 1. Create a frame
+* 2. Configure it
+* Then, decide which render type you want to use
+* 1. Just GDI ->
+* - Create a panel on the frame
+* - Install widgets
+* 2. Modern graphics ->
+* - Install renderer on the frame
+* - In main, create an uninterruptible loop - render
+* - Do not install widgets!
+* 
+* Code examples at the end of the file.
+* For more documentation, just study the code.
+*/
 
 // ================================================================================================= //
 // ************************************************************************************************* //
@@ -17,6 +42,19 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 //									Window Structures									//
 //////////////////////////////////////////////////////////////////////////////////////////
+
+// How does the window system work?
+/*
+* The window system is based on the principle of inheritance
+* SUS_WINDOW - general window structure, does not have specific functions
+* SUS_WIDGET - extension of SUS_WINDOW and contains the GDi Graphics and Layout components
+* SUS_FRAME is an extension of SUS_WINDOW that contains GPU graphics components and additional window functions
+* 
+* The inheritance system - 
+* SUS_FRAME or SUS_WIDGET can be cast to the SUS_WINDOW type as pointers
+* If you are sure that SUS_WINDOW is SUS_FRAME or SUS_WIDGET,
+* you can simply cast the types.
+*/
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -127,6 +165,15 @@ BOOL SUSAPI susWindowIsFrame(_In_ SUS_FRAME window);
 /*								Processing system operations with a window							 */
 // ************************************************************************************************* //
 // ================================================================================================= //
+
+// How does the listener system work?
+/*
+* Listeners are a way to receive information from the system
+* Listeners cannot replace the default functionality.
+* Listeners != handler
+* All listeners are flexible and can be installed or not installed (optimally).
+* Listeners can be installed on any SUS_WINDOW structure descendant.
+*/
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //								Window message processing								//
@@ -298,7 +345,7 @@ typedef enum sus_keyboard_message {
 	SUS_KEYBOARD_MESSAGE_UNKNOWN,	// Unknown message from the keyboard
 	SUS_KEYBOARD_MESSAGE_PRESS,		// The key is pressed
 	SUS_KEYBOARD_MESSAGE_RELEASE,	// The key is released
-	SUS_KEYBOARD_MESSAGE_CHAR,		// Character input
+	SUS_KEYBOARD_MESSAGE_CHAR		// Character input
 } SUS_KEYBOARD_MESSAGE;
 // The kerboard listener
 typedef VOID(SUSAPI* SUS_KEYBOARD_LISTENER)(SUS_WINDOW window, SUS_KEYBOARD_MESSAGE msg, SUS_KEYBOARD_EVENT event);
@@ -316,6 +363,14 @@ VOID SUSAPI susWindowSetKeyboardListener(_Inout_ SUS_WINDOW window, _In_ SUS_KEY
 /*								 Building and configuring the window frame							 */
 // ************************************************************************************************* //
 // ================================================================================================= //
+
+// How do I create a window?
+/*
+* There are two ways to create a window in susfwk -
+* 1. Simple - through the susNewX function
+* 2. Detailed - use window builders
+* In most cases, it is better to always use the simple option.
+*/
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //									 Builder functions									//
@@ -640,6 +695,8 @@ HWND SUSAPI susWindowGetSuper(_In_ SUS_WINDOW window);
 LPCWSTR SUSAPI susWindowGetClassName(_In_ SUS_WINDOW window);
 // Get the parent's window
 SUS_WINDOW SUSAPI susWindowGetParent(_In_ SUS_WINDOW window);
+// Set the window background color
+VOID SUSAPI susWindowSetBackground(_In_ SUS_WINDOW window, _In_ SUS_COLOR color);
 
 // -------------------------------------------------
 
@@ -711,7 +768,7 @@ VOID SUSAPI susWindowSetMaximumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE maxSize
 // Set a fixed size for the window
 VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size);
 // Install a renderer for an OpenGL-based window
-BOOL SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable);
+SUS_RENDERER SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable);
 // Get a window renderer
 SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window);
 
@@ -811,8 +868,6 @@ VOID SUSAPI susWindowDefBackgroundComponentImage(_In_ SUS_WIDGET window, _In_ SU
 
 // Install a double buffering system
 BOOL SUSAPI susWindowSetDoubleBuffer(_Inout_ SUS_WIDGET window, _In_ BOOL enabled);
-// Set the window background color
-VOID SUSAPI susWindowSetBackground(_In_ SUS_WIDGET window, _In_ SUS_COLOR color);
 
 // -------------------------------------------------
 
