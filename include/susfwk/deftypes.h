@@ -43,6 +43,7 @@ typedef sus_u64_t sus_size_t;
 #else
 typedef sus_u32_t sus_size_t;
 #endif // !_WIN64
+typedef sus_size_t *sus_psize_t;
 
 typedef unsigned char sus_ubyte_t, *sus_lpubyte_t;
 typedef char sus_byte_t, *sus_lpbyte_t;
