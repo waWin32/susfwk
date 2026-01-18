@@ -43,11 +43,11 @@ SUS_MAT4 SUSAPI susMat4Mult(_In_ SUS_MAT4 a, _In_ SUS_MAT4 b)
 // Matrix multiplication
 SUS_VEC4 SUSAPI susMat4MultVec4(_In_ SUS_MAT4 m, _In_ SUS_VEC4 v)
 {
-	return (SUS_VEC4) {
-        m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z + m.m[0][3] * v.w,
-        m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z + m.m[1][3] * v.w,
-        m.m[2][0] * v.x + m.m[2][1] * v.y + m.m[2][2] * v.z + m.m[2][3] * v.w,
-        m.m[3][0] * v.x + m.m[3][1] * v.y + m.m[3][2] * v.z + m.m[3][3] * v.w
+    return (SUS_VEC4) {
+        m.m[0][0] * v.x + m.m[1][0] * v.y + m.m[2][0] * v.z + m.m[3][0] * v.w,
+        m.m[0][1] * v.x + m.m[1][1] * v.y + m.m[2][1] * v.z + m.m[3][1] * v.w,
+        m.m[0][2] * v.x + m.m[1][2] * v.y + m.m[2][2] * v.z + m.m[3][2] * v.w,
+        m.m[0][3] * v.x + m.m[1][3] * v.y + m.m[2][3] * v.z + m.m[3][3] * v.w
     };
 }
 // Rotating the matrix around the X axis

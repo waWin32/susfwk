@@ -150,7 +150,7 @@ SUS_INLINE SUS_VEC4 SUSAPI susVec3ToVec4(_In_ const SUS_VEC3 v, _In_ const sus_f
 }
 // Convert a 4d vector to a 3d vector
 SUS_INLINE SUS_VEC3 SUSAPI susVec4ToVec3(_In_ const SUS_VEC4 v) {
-	return sus_fabs(v.w) > SUS_EPSILON && v.w != 1.0f ? (SUS_VEC3) { v.x / v.w, v.y / v.w, v.z / v.w } : (SUS_VEC3) { v.x, v.y, v.z };
+	return v.w != 0.0f && v.w != 1.0f ? (SUS_VEC3) { v.x / v.w, v.y / v.w, v.z / v.w } : (SUS_VEC3) { v.x, v.y, v.z };
 }
 
 // -----------------------------------------------
