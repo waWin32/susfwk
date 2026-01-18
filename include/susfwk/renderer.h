@@ -229,6 +229,7 @@ typedef struct sus_camera {
 	SUS_MAT4					proj;			// Projection matrix
 	SUS_MAT4					projview;		// Cached view and projection matrix
 	SUS_VEC3					position;		// The camera position
+	SUS_VEC3					rotation;		// The camera rotation
 	UINT						type : 8;		// Camera type
 	BOOL						dirty : 8;		// A redesign of the projview matrix is required
 	BOOL						viewDirty : 8;	// The view matrix needs to be rebuilt
@@ -237,7 +238,6 @@ typedef struct sus_camera {
 // 2d camera
 typedef struct sus_camera2d {
 	SUS_CAMERA_STRUCT;
-	sus_float_t rotation;
 	sus_float_t	zoom;
 } SUS_CAMERA2D_STRUCT, * SUS_CAMERA2D;
 // 3d camera
@@ -272,6 +272,8 @@ VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC
 SUS_INLINE VOID SUSAPI susRendererCameraMove(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 move) { susRendererCameraSetPosition(camera, susVec3Sum(camera->position, move)); }
 // Set the camera rotation
 VOID SUSAPI susRendererCameraSetRotation(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation);
+// Rotate the camera by an angle
+SUS_INLINE VOID SUSAPI susRendererCameraRotate(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation) { susRendererCameraSetRotation(camera, susVec3Sum(camera->rotation, rotation)); }
 // Apply camera changes if camera is dirty
 VOID SUSAPI susRendererCameraUpdate(_Inout_ SUS_CAMERA camera);
 // Set a new size for the render
@@ -520,33 +522,17 @@ VOID SUSAPI susVertexUVTransform(_Inout_ SUS_DATAVIEW vertexes, _In_ SUS_VEC2 of
 
 // -----------------------------------------------
 
-// Vertex type
-typedef enum sus_vertext_type {
-	SUS_VERTEX_TYPE_2D = 2,
-	SUS_VERTEX_TYPE_3D = 3,
-} SUS_VERTEX_TYPE, * SUS_LPVERTEX_TYPE;
 // Vertex Attributes
 typedef enum sus_vertex_attribute {
 	SUS_VERTEX_ATTRIBUT_NONE = 0,
 	SUS_VERTEX_ATTRIBUT_POSITION = 1 << 0,
-	SUS_VERTEX_ATTRIBUT_ALPHA_COLOR = 1 << 1,
-	SUS_VERTEX_ATTRIBUT_COLOR = 1 << 2,
-	SUS_VERTEX_ATTRIBUT_TEXTURE = 1 << 3,
-	SUS_VERTEX_ATTRIBUT_NORMAL = 1 << 4,
+	SUS_VERTEX_ATTRIBUT_COLOR = 1 << 1,
+	SUS_VERTEX_ATTRIBUT_TEXTURE = 1 << 2,
+	SUS_VERTEX_ATTRIBUT_NORMAL = 1 << 3,
 	SUS_VERTEX_ATTRIBUT_COUNT = 4,
 	SUS_VERTEX_ATTRIBUT_BASE = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE,
 	SUS_VERTEX_ATTRIBUT_FULL = SUS_VERTEX_ATTRIBUT_POSITION | SUS_VERTEX_ATTRIBUT_COLOR | SUS_VERTEX_ATTRIBUT_TEXTURE | SUS_VERTEX_ATTRIBUT_NORMAL
 } SUS_VERTEX_ATTRIBUT;
-// The format for mesh vertices
-__declspec(align(1)) typedef struct sus_vertex_format {
-	SUS_VERTEX_TYPE		type : 16;
-	SUS_VERTEX_ATTRIBUT attributes : 16;
-} SUS_VERTEX_FORMAT;
-
-// Vertex format template - 2d vertices
-#define SUS_VERTEX_FORMAT_2D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_2D, .attributes = SUS_VERTEX_ATTRIBUT_BASE }
-// Vertex format template - 3d vertices
-#define SUS_VERTEX_FORMAT_3D (SUS_VERTEX_FORMAT) { .type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_FULL }
 
 // -----------------------------------------------
 
@@ -569,13 +555,14 @@ typedef enum sus_mesh_update_type {
 typedef struct sus_mesh_geometry {
 	SUS_DATAVIEW			vertexes;		// An array of vertices
 	SUS_DATAVIEW			indexes;		// Array of indexes
+	BOOL					isInterleaved;	// The geometry is already formatted
 } SUS_MESH_GEOMETRY;
 // The Mesh Builder
 typedef struct sus_mesh_builder {
 	SUS_MESH_GEOMETRY			geometry;		// Mesh geometry
 	SUS_MESH_PRIMITIVE_TYPE		primitiveType;	// Type of primitive
 	SUS_MESH_UPDATE_TYPE		updateType;		// The type of mesh update in drawing
-	SUS_VERTEX_FORMAT			format;			// Mesh format
+	SUS_VERTEX_ATTRIBUT			attributes;		// Mesh format
 } SUS_MESH_BUILDER, * SUS_LPMESH_BUILDER;
 // Mesh structure
 typedef struct sus_mesh SUS_MESH_STRUCT, * SUS_MESH;
@@ -587,11 +574,21 @@ SUS_MESH SUSAPI susRendererBuildMesh(_In_ const SUS_LPMESH_BUILDER builder);
 // Clear the cache from the gpu
 VOID SUSAPI susRendererMeshDestroy(_Inout_ SUS_MESH mesh);
 // Set new vertices
-VOID SUSAPI susRendererMeshSetVertices(_In_ SUS_MESH mesh, _In_ SUS_DATAVIEW vertexes);
+VOID SUSAPI susRendererMeshSetVertices(_In_ SUS_MESH mesh, _In_ sus_uint_t start, _In_ sus_uint_t count, _In_ SUS_LPVERTEX vertexes);
 // Set new vertex indexes
-VOID SUSAPI susRendererMeshSetIndexes(_In_ SUS_MESH mesh, _In_ SUS_DATAVIEW indexes);
+VOID SUSAPI susRendererMeshSetIndexes(_In_ SUS_MESH mesh, _In_ SUS_LPINDEX indexes);
 // Draw mesh
 VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model);
+
+// -----------------------------------------------
+
+// Entering data to create a mesh package
+typedef struct sus_batch_entry {
+	SUS_MESH mesh;
+	SUS_MAT4 model;
+} SUS_BATCH_ENTRY, * SUS_LPBATCH_ENTRY;
+// Glue all the meshes into one
+SUS_MESH SUSAPI susRendererMeshBatch(_In_ sus_uint_t count, _In_ SUS_LPBATCH_ENTRY entry);
 
 // -----------------------------------------------
 
@@ -607,10 +604,13 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model);
 
 // The format of the instance variables
 typedef enum sus_mesh_instance_attribute {
-	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX		= 0,		// mat4 - default
-	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR		= 1 << 0,	// vec4
-	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET	= 1 << 1	// vec2
+	SUS_MESH_INSTANCE_ATTRIBUTE_NONE		= 0,		// mat4 - default
+	SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX		= (1 << 0) + (1 << 1) + (1 << 2) + (1 << 3),	// mat4 - default
+	SUS_MESH_INSTANCE_ATTRIBUTE_COLOR		= 1 << 4,	// vec4
+	SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET	= 1 << 5,	// vec2
+	SUS_MESH_INSTANCE_ATTRIBUTE_COUNT		= 6			// count
 } SUS_MESH_INSTANCE_ATTRIBUTE;
+
 // A mesh instance
 typedef struct sus_mesh_instance  SUS_MESH_INSTANCE_STRUCT, *SUS_MESH_INSTANCE;
 
@@ -796,9 +796,9 @@ VOID SUSAPI susRendererSize();
 // Get the current renderer
 SUS_RENDERER SUSAPI susGetRenderer();
 // Get the current camera
-SUS_CAMERA SUSAPI susRendererGetCamera(_In_ SUS_RENDERER renderer);
+SUS_CAMERA SUSAPI susRendererGetCamera();
 // Get the current shader
-SUS_RENDERER_SHADER SUSAPI susRendererGetShader(_In_ SUS_RENDERER renderer);
+SUS_RENDERER_SHADER SUSAPI susRendererGetShader();
 
 // -----------------------------------------------
 

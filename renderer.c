@@ -671,15 +671,8 @@ VOID SUSAPI susRendererCameraSetPosition(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC
 // Set the camera rotation
 VOID SUSAPI susRendererCameraSetRotation(_Inout_ SUS_CAMERA camera, _In_ SUS_VEC3 rotation) {
 	SUS_ASSERT(camera && camera->type);
-	if (camera->type == SUS_CAMERA_TYPE_3D) {
-		SUS_VEC3 forward = susVec3ToForward(rotation);
-		if (sus_memcmp((LPBYTE)&((SUS_CAMERA3D)camera)->forward, (LPBYTE)&forward, sizeof(forward))) return;
-		((SUS_CAMERA3D)camera)->forward = forward;
-	}
-	else {
-		if (sus_memcmp((LPBYTE)&((SUS_CAMERA2D)camera)->rotation, (LPBYTE)&rotation, sizeof(rotation))) return;
-		((SUS_CAMERA2D)camera)->rotation = rotation.z;
-	}
+	camera->rotation = rotation;
+	if (camera->type == SUS_CAMERA_TYPE_3D) ((SUS_CAMERA3D)camera)->forward = susVec3ToForward(rotation);
 	camera->viewDirty = TRUE;
 }
 // Set the view matrix for the camera
@@ -694,7 +687,7 @@ static VOID SUSAPI susRendererCameraFlushView(_Inout_ SUS_CAMERA camera) {
 	}
 	else {
 		SUS_CAMERA2D c2d = (SUS_CAMERA2D)camera;
-		camera->view = susMat4Mult(susMat4Translate((SUS_VEC3) { -c2d->position.x, -c2d->position.y, -c2d->position.z }), susMat4RotateZ((sus_int16_t)-c2d->rotation));
+		camera->view = susMat4Mult(susMat4Translate((SUS_VEC3) { -c2d->position.x, -c2d->position.y, -c2d->position.z }), susMat4RotateZ((sus_int16_t)-c2d->rotation.z));
 	}
 	camera->viewDirty = FALSE;
 	camera->dirty = TRUE;
@@ -882,7 +875,7 @@ SUS_TEXTURE SUSAPI susRendererNewTexture(_In_ const SUS_LPTEXTURE_BUILDER builde
 	susRendererTextureSetWrap(GL_TEXTURE_2D, builder->format.wrapX, builder->format.wrapY);
 	GLenum internalFormat = GL_RGB, format = GL_RGB;
 	susRendererGetTextureFormat(builder->channels, &internalFormat, &format);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, builder->size.cx, builder->size.cy, 0, format, GL_UNSIGNED_BYTE, builder->data);
 	susRendererTextureSetFilters(GL_TEXTURE_2D, builder->format.mipmap, builder->format.smoothing);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -966,12 +959,12 @@ VOID SUSAPI susVertexUVTransform(_Inout_ SUS_DATAVIEW vertexes, _In_ SUS_VEC2 of
 {
 	SUS_ASSERT(vertexes.data && !(vertexes.size % sizeof(SUS_VERTEX)));
 	if (scale.x == 1.0f && scale.y == 1.0f) {
-		for (INT i = (INT)(vertexes.size / sizeof(SUS_VERTEX)) - 1; i >= 0; i--) {
+		for (sus_int_t i = (sus_int_t)(vertexes.size / sizeof(SUS_VERTEX)) - 1; i >= 0; i--) {
 			((SUS_LPVERTEX)vertexes.data)[i].uv = susVec2Sum(((SUS_LPVERTEX)vertexes.data)[i].uv, offset);
 		}
 		return;
 	}
-	for (INT i = (INT)(vertexes.size / sizeof(SUS_VERTEX)) - 1; i >= 0; i--) {
+	for (sus_int_t i = (sus_int_t)(vertexes.size / sizeof(SUS_VERTEX)) - 1; i >= 0; i--) {
 		((SUS_LPVERTEX)vertexes.data)[i].uv = susVec2Sum(susVec2Mult(((SUS_LPVERTEX)vertexes.data)[i].uv, scale), offset);
 	}
 }
@@ -980,35 +973,70 @@ VOID SUSAPI susVertexUVTransform(_Inout_ SUS_DATAVIEW vertexes, _In_ SUS_VEC2 of
 
 // Mesh structure
 struct sus_mesh {
-	GLuint				vao;	// Vertex Array Objext
-	GLuint				vbo;	// Vertex Buffer Object
-	GLuint				ibo;	// Index Buffer Object
-	UINT				count;	// The number of indexes in the mesh
-	GLuint				type;	// The type of feature of the mesh
-	SUS_VERTEX_FORMAT	format;	// Mesh Attributes
+	GLuint				vao;		// Vertex Array Objext
+	GLuint				vbo;		// Vertex Buffer Object
+	GLuint				ibo;		// Index Buffer Object
+	USHORT				icount;		// The number of indexes in the mesh
+	USHORT				vcount;		// The number of vertexes in the mesh
+	GLuint				type;		// The type of the mesh primitive
+	SUS_VERTEX_ATTRIBUT	attributes;	// Mesh Attributes
 };
 
 // -----------------------------------------------
 
+// Table of vertex attribute elements
+typedef struct sus_vertex_attribute_entry {
+	sus_size_t	size;		// Attribute size in bytes
+	sus_uint_t	ecount;		// The number of simple elements in an attribute
+	sus_size_t	offset;		// Confusion regarding structure
+	sus_uint_t	type;		// The simple type is OpenGL
+	BOOL		normalized;	// Normalize
+} SUS_VERTEX_ATTRIBUTE_ENTRY;
+// The attribute table of mesh vertices
+static const SUS_VERTEX_ATTRIBUTE_ENTRY MeshVertexAttributeTable[] = {
+	{ sizeof(SUS_VEC3), 3, SUS_OFFSET_OF(SUS_VERTEX, pos), GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC4), 4, SUS_OFFSET_OF(SUS_VERTEX, color), GL_FLOAT, TRUE },
+	{ sizeof(SUS_VEC2), 2, SUS_OFFSET_OF(SUS_VERTEX, uv), GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC3), 3, SUS_OFFSET_OF(SUS_VERTEX, normal), GL_FLOAT, FALSE },
+};
+// Get the step size from the vertex format
+static sus_size_t SUSAPI susVertexFormatGetStride(_In_ SUS_VERTEX_ATTRIBUT attributes) {
+	sus_size_t stride = 0;
+	for (sus_uint_t type = 0; type < SUS_VERTEX_ATTRIBUT_COUNT; type++)
+		if (attributes & (1 << type)) stride += MeshVertexAttributeTable[type].size;
+	return stride;
+}
+// Convert the vertices by applying the format to them
+static SUS_DATAVIEW SUSAPI susGeometryConvertFormat(_In_ SUS_LPVERTEX vertexes, _In_ sus_uint_t count, _In_ SUS_VERTEX_ATTRIBUT attributes) {
+	SUS_ASSERT(vertexes && count);
+	sus_size_t stride = susVertexFormatGetStride(attributes);
+	SUS_DATAVIEW fvertexes = susNewData(stride * count);
+	if (!fvertexes.data) return fvertexes;
+	if (attributes == SUS_VERTEX_ATTRIBUT_FULL) {
+		sus_memcpy(fvertexes.data, (LPBYTE)vertexes, fvertexes.size); return fvertexes;
+	}
+	sus_lpubyte_t curr = (sus_lpubyte_t)fvertexes.data;
+	for (sus_uint_t i = 0; i < count; i++, curr += stride) {
+		for (sus_uint_t type = 0, offset = 0; type < SUS_VERTEX_ATTRIBUT_COUNT; type++) {
+			if (attributes & (1 << type)) {
+				sus_memcpy((LPBYTE)(curr + offset), ((LPBYTE)&vertexes[i] + MeshVertexAttributeTable[type].offset), MeshVertexAttributeTable[type].size);
+				offset += (sus_uint_t)MeshVertexAttributeTable[type].size;
+			}
+		}
+	}
+	return fvertexes;
+}
 // Set attributes for the mesh
-static VOID SUSAPI susRendererMeshSetAttributes(_In_ SUS_VERTEX_FORMAT format)
+static VOID SUSAPI susRendererMeshSetAttributes(_In_ SUS_VERTEX_ATTRIBUT attributes)
 {
 	SUS_PRINTDL("Setting attributes for a mesh");
-	if (format.attributes & SUS_VERTEX_ATTRIBUT_POSITION) {
-		glVertexAttribPointer(0, format.type, GL_FLOAT, GL_FALSE, sizeof(SUS_VERTEX), (void*)0);
-		glEnableVertexAttribArray(0);
-	}
-	if (format.attributes & SUS_VERTEX_ATTRIBUT_COLOR) {
-		glVertexAttribPointer(1, format.attributes & SUS_VERTEX_ATTRIBUT_ALPHA_COLOR ? 4 : 3, GL_FLOAT, GL_TRUE, sizeof(SUS_VERTEX), (void*)SUS_OFFSET_OF(SUS_VERTEX, color));
-		glEnableVertexAttribArray(1);
-	}
-	if (format.attributes & SUS_VERTEX_ATTRIBUT_TEXTURE) {
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(SUS_VERTEX), (void*)SUS_OFFSET_OF(SUS_VERTEX, uv));
-		glEnableVertexAttribArray(2);
-	}
-	if (format.attributes & SUS_VERTEX_ATTRIBUT_NORMAL) {
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_TRUE, sizeof(SUS_VERTEX), (void*)SUS_OFFSET_OF(SUS_VERTEX, normal));
-		glEnableVertexAttribArray(3);
+	sus_size_t stride = susVertexFormatGetStride(attributes);
+	for (sus_uint_t type = 0, offset = 0; type < SUS_VERTEX_ATTRIBUT_COUNT; type++) {
+		if (attributes & (1 << type)) {
+			glVertexAttribPointer(type, MeshVertexAttributeTable[type].ecount, MeshVertexAttributeTable[type].type, (GLboolean)MeshVertexAttributeTable[type].normalized, (GLsizei)stride, (void*)((sus_size_t)offset));
+			glEnableVertexAttribArray(type);
+			offset += (sus_uint_t)MeshVertexAttributeTable[type].size;
+		}
 	}
 }
 // Initialize the GPU mesh
@@ -1017,11 +1045,18 @@ static VOID SUSAPI susRendererMeshInit(_Inout_ SUS_MESH mesh, _In_ SUS_LPMESH_BU
 	SUS_PRINTDL("Initializing the GPU mesh");
 	SUS_ASSERT(SUSCurrentRenderer && mesh && builder->geometry.vertexes.size);
 	mesh->type = builder->primitiveType;
-	mesh->count = (UINT)(builder->geometry.indexes.size ? builder->geometry.indexes.size / sizeof(SUS_INDEX) : builder->geometry.vertexes.size / sizeof(SUS_VERTEX));
+	mesh->vcount = (USHORT)((!builder->geometry.isInterleaved) ? (builder->geometry.vertexes.size / sizeof(SUS_VERTEX)) : (builder->geometry.vertexes.size / susVertexFormatGetStride(builder->attributes)));
+	mesh->icount = (USHORT)(builder->geometry.indexes.size / sizeof(SUS_INDEX));
+	SUS_DATAVIEW vertexes = builder->geometry.vertexes;
+	if (!builder->geometry.isInterleaved) {
+		vertexes = susGeometryConvertFormat((SUS_LPVERTEX)builder->geometry.vertexes.data, mesh->vcount, builder->attributes);
+	}
+	if (!vertexes.data) return;
 	glBindVertexArray(mesh->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-	glBufferData(GL_ARRAY_BUFFER, builder->geometry.vertexes.size, builder->geometry.vertexes.data, builder->updateType);
-	susRendererMeshSetAttributes(builder->format);
+	glBufferData(GL_ARRAY_BUFFER, vertexes.size, vertexes.data, builder->updateType);
+	if (!builder->geometry.isInterleaved) susDataDestroy(vertexes);
+	susRendererMeshSetAttributes(builder->attributes);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	if (builder->geometry.indexes.size) {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
@@ -1036,7 +1071,7 @@ SUS_MESH SUSAPI susRendererBuildMesh(_In_ const SUS_LPMESH_BUILDER builder)
 	SUS_PRINTDL("Building the mesh");
 	SUS_MESH mesh = sus_malloc(sizeof(SUS_MESH_STRUCT));
 	if (!mesh) return NULL;
-	mesh->format = builder->format;
+	mesh->attributes = builder->attributes;
 	glGenVertexArrays(1, &mesh->vao);
 	glGenBuffers(1, &mesh->vbo);
 	if (builder->geometry.indexes.size) glGenBuffers(1, &mesh->ibo);
@@ -1063,25 +1098,26 @@ VOID SUSAPI susRendererMeshDestroy(_Inout_ SUS_MESH mesh)
 	sus_free(mesh);
 }
 // Set new vertices
-VOID SUSAPI susRendererMeshSetVertices(_In_ SUS_MESH mesh, _In_ SUS_DATAVIEW vertexes)
+VOID SUSAPI susRendererMeshSetVertices(_In_ SUS_MESH mesh, _In_ sus_uint_t start, _In_ sus_uint_t count, _In_ SUS_LPVERTEX vertexes)
 {
-	SUS_ASSERT(mesh && mesh->vao && mesh->vbo && vertexes.data && vertexes.size);
+	SUS_ASSERT(mesh && mesh->vao && mesh->vbo && vertexes);
+	SUS_DATAVIEW fvertexes = susGeometryConvertFormat(vertexes, count, mesh->attributes);
+	if (!fvertexes.data) return;
 	glBindVertexArray(mesh->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertexes.size, vertexes.data);
+	glBufferSubData(GL_ARRAY_BUFFER, start * susVertexFormatGetStride(mesh->attributes), fvertexes.size, fvertexes.data);
+	susDataDestroy(fvertexes);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	if (!mesh->ibo) mesh->count = (UINT)(vertexes.size / sizeof(SUS_VERTEX));
 }
 // Set new vertex indexes
-VOID SUSAPI susRendererMeshSetIndexes(_In_ SUS_MESH mesh, _In_ SUS_DATAVIEW indexes)
+VOID SUSAPI susRendererMeshSetIndexes(_In_ SUS_MESH mesh, _In_ SUS_LPINDEX indexes)
 {
-	SUS_ASSERT(mesh && mesh->vao && mesh->ibo && indexes.data && indexes.size);
+	SUS_ASSERT(mesh && mesh->vao && mesh->ibo && indexes);
 	glBindVertexArray(mesh->vao);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexes.size, indexes.data);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh->icount * sizeof(SUS_INDEX), indexes);
 	glBindVertexArray(0);
-	mesh->count = (UINT)(indexes.size / sizeof(SUS_INDEX));
 }
 // Draw mesh
 VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model)
@@ -1089,9 +1125,72 @@ VOID SUSAPI susRendererDrawMesh(_In_ SUS_MESH mesh, _In_ SUS_MAT4 model)
 	SUS_ASSERT(mesh && mesh->vao && mesh->vbo);
 	susRendererMatrixFlush(model);
 	glBindVertexArray(mesh->vao);
-	if (mesh->ibo) glDrawElements(mesh->type, mesh->count, GL_UNSIGNED_SHORT, NULL);
-	else glDrawArrays(mesh->type, 0, mesh->count);
+	if (mesh->ibo) glDrawElements(mesh->type, mesh->icount, GL_UNSIGNED_SHORT, NULL);
+	else glDrawArrays(mesh->type, 0, mesh->vcount);
 	glBindVertexArray(0);
+}
+
+// -----------------------------------------------
+
+// Get the size of the batch data
+static VOID SUSAPI susRendererBatchGetSize(_In_ sus_uint_t count, _In_ SUS_LPBATCH_ENTRY entry, _Out_ sus_psize_t vsize, _Out_ sus_psize_t isize) {
+	*vsize = *isize = 0;
+	sus_size_t stride = susVertexFormatGetStride(entry->mesh->attributes);
+	for (sus_uint_t i = 0; i < count; i++) {
+		*vsize += entry[i].mesh->vcount * stride;
+		*isize += entry[i].mesh->icount * sizeof(SUS_INDEX);
+	}
+}
+// Fill the package with data
+static VOID SUSAPI susRendererBatchFill(_In_ sus_uint_t count, _In_ SUS_LPBATCH_ENTRY entry, _Out_ sus_lpbyte_t vertexes, _Out_ sus_lpbyte_t indexes) {
+	SUS_ASSERT(count && vertexes && indexes);
+	sus_size_t stride = susVertexFormatGetStride(entry->mesh->attributes);
+	SUS_INDEX ioffset = 0;
+	for (sus_uint_t i = 0; i < count; i++) {
+		SUS_MESH mesh = entry[i].mesh;
+		sus_size_t mvsize = mesh->vcount * stride, misize = mesh->icount * sizeof(SUS_INDEX);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+		glGetBufferSubData(GL_ARRAY_BUFFER, (GLintptr)0, (GLintptr)mvsize, vertexes);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+		glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLintptr)0, (GLintptr)misize, indexes);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		for (sus_uint_t j = 0; j < mesh->vcount; j++, vertexes += stride) {
+			*((SUS_VEC3*)vertexes) = susVec4ToVec3(susMat4MultVec4(entry[i].model, susVec3ToVec4(*((SUS_VEC3*)vertexes), 1.0f)));
+			SUS_VEC3 pos = *((SUS_VEC3*)vertexes);
+			sus_printf("%d, %d, %d\n", (int)(pos.x * 100.0f), (int)(pos.y * 100.0f), (int)(pos.z * 100.0f));
+		}
+		for (sus_uint_t j = 0; j < mesh->icount; j++, indexes += sizeof(SUS_INDEX)) {
+			*((SUS_INDEX*)indexes) += ioffset;
+		}
+		ioffset += mesh->vcount;
+	}
+}
+// Glue all the meshes into one
+SUS_MESH SUSAPI susRendererMeshBatch(_In_ sus_uint_t count, _In_ SUS_LPBATCH_ENTRY entry)
+{
+	SUS_PRINTDL("Group meshes into one");
+	SUS_ASSERT(count && entry);
+	sus_size_t vsize, isize; susRendererBatchGetSize(count, entry, &vsize, &isize);
+	sus_lpbyte_t vertexes = sus_malloc(vsize);
+	if (!vertexes) return NULL;
+	sus_lpbyte_t indexes = sus_malloc(isize);
+	if (!indexes) { sus_free(vertexes); return NULL; }
+	susRendererBatchFill(count, entry, vertexes, indexes);
+	SUS_MESH_BUILDER builder = {
+		.attributes = entry->mesh->attributes,
+		.geometry = {
+			.vertexes = (SUS_DATAVIEW) {.data = (LPBYTE)vertexes, .size = vsize },
+			.indexes = (SUS_DATAVIEW) {.data = (LPBYTE)indexes, .size = isize },
+			.isInterleaved = TRUE
+		},
+		.primitiveType = entry->mesh->type,
+		.updateType = SUS_MESH_UPDATE_TYPE_STATIC
+	};
+	SUS_MESH mesh = susRendererBuildMesh(&builder);
+	sus_free(indexes);
+	sus_free(vertexes);
+	return mesh;
 }
 
 // -----------------------------------------------
@@ -1114,49 +1213,44 @@ struct sus_mesh_instance {
 	SUS_MESH_INSTANCE_ATTRIBUTE attributes;		// Attributes for instances
 };
 
+// Table of attributes for instancing vertices
+static const SUS_VERTEX_ATTRIBUTE_ENTRY InstanceVertexAttributeTable[] = {
+	{ sizeof(SUS_VEC4), 4, 0, GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC4), 4, 16, GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC4), 4, 32, GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC4), 4, 48, GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC4), 4, 64, GL_FLOAT, FALSE },
+	{ sizeof(SUS_VEC2), 2, 80, GL_FLOAT, FALSE },
+};
+
 // -----------------------------------------------
 
 // Calculate the size of the instance
 static sus_size_t SUSAPI susCalculateInstanceStride(_In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes) {
-	sus_size_t stride = sizeof(SUS_MAT4);
-	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) stride += sizeof(SUS_VEC4);
-	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET) stride += sizeof(SUS_VEC2);
-	stride = SUS_ALIGN(stride, 16);
+	sus_size_t stride = 0;
+	for (sus_uint_t type = 0; type < SUS_MESH_INSTANCE_ATTRIBUTE_COUNT;  type++)
+		if (attributes & (1 << type)) stride += InstanceVertexAttributeTable[type].size;
 	return stride;
 }
 // Set attributes for a mesh instance
 static VOID SUSAPI susRendererInstanceSetAttributes(SUS_MESH_INSTANCE_ATTRIBUTE attributes) {
 	sus_size_t offset = 0, stride = susCalculateInstanceStride(attributes);
-	UINT location = SUS_VERTEX_ATTRIBUT_COUNT;
-	// Set model matrix
-	for (int i = 0; i < 4; i++) {
-		glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, (GLsizei)stride, (void*)offset);
-		glEnableVertexAttribArray(location);
-		glVertexAttribDivisor(location++, 1);
-		offset += sizeof(SUS_VEC4);
-	}
-	// Set color attribute
-	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) {
-		glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, (GLsizei)stride, (void*)offset);
-		glEnableVertexAttribArray(location);
-		glVertexAttribDivisor(location++, 1);
-		offset += sizeof(SUS_VEC4);
-	}
-	// Set uv offset attribute
-	if (attributes & SUS_MESH_INSTANCE_ATTRIBUTE_UVOFFSET) {
-		glVertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, (GLsizei)stride, (void*)offset);
-		glEnableVertexAttribArray(location);
-		glVertexAttribDivisor(location++, 1);
-		offset += sizeof(SUS_VEC2);
+	for (sus_uint_t type = 0; type < SUS_MESH_INSTANCE_ATTRIBUTE_COUNT; type++) {
+		if (attributes & (1 << type)) {
+			glVertexAttribPointer(type + SUS_VERTEX_ATTRIBUT_COUNT, InstanceVertexAttributeTable[type].ecount, InstanceVertexAttributeTable[type].type, (GLboolean)InstanceVertexAttributeTable[type].normalized, (GLsizei)stride, (void*)offset);
+			glEnableVertexAttribArray(type + SUS_VERTEX_ATTRIBUT_COUNT);
+			glVertexAttribDivisor(type + SUS_VERTEX_ATTRIBUT_COUNT, 1);
+			offset += InstanceVertexAttributeTable[type].size;
+		}
 	}
 }
 // Initialize arrays in the mesh instance
-static VOID SUSAPI susRendererInstanceInit(_In_ SUS_MESH_INSTANCE instance, _In_ SUS_MESH_INSTANCE_ATTRIBUTE attributes, _In_ SUS_VERTEX_FORMAT format) {
+static VOID SUSAPI susRendererInstanceInit(_In_ SUS_MESH_INSTANCE instance, _In_ SUS_MESH_INSTANCE_ATTRIBUTE iattributes, _In_ SUS_VERTEX_ATTRIBUT vattributes) {
 	glBindVertexArray(instance->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, instance->sample->vbo);
-	susRendererMeshSetAttributes(format);
+	susRendererMeshSetAttributes(vattributes);
 	glBindBuffer(GL_ARRAY_BUFFER, instance->instanceData.vbo);
-	susRendererInstanceSetAttributes(attributes);
+	susRendererInstanceSetAttributes(iattributes);
 	if (instance->sample->ibo) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instance->sample->ibo);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -1172,7 +1266,7 @@ SUS_MESH_INSTANCE SUSAPI susRendererNewInstance(_In_ SUS_MESH base, _In_ SUS_MES
 	instance->attributes = attributes;
 	glGenVertexArrays(1, &instance->vao);
 	instance->instanceData = susNewGpuVector((DWORD)susCalculateInstanceStride(attributes));
-	susRendererInstanceInit(instance, attributes, base->format);
+	susRendererInstanceInit(instance, attributes, base->attributes);
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		SUS_PRINTDE("OpenGL error loading the mesh: %d", error);
@@ -1200,7 +1294,7 @@ VOID SUSAPI susRendererDrawInstance(_In_ SUS_MESH_INSTANCE instance)
 	if (instance->sample->ibo) {
 		glDrawElementsInstanced(
 			instance->sample->type,
-			(GLsizei)instance->sample->count,
+			(GLsizei)instance->sample->icount,
 			GL_UNSIGNED_SHORT,
 			NULL,
 			(GLsizei)instance->instanceData.length
@@ -1210,7 +1304,7 @@ VOID SUSAPI susRendererDrawInstance(_In_ SUS_MESH_INSTANCE instance)
 		glDrawArraysInstanced(
 			instance->sample->type,
 			(GLsizei)0,
-			(GLsizei)instance->sample->count,
+			(GLsizei)instance->sample->vcount,
 			(GLsizei)instance->instanceData.length
 		);
 	}
@@ -1229,11 +1323,13 @@ static LPBYTE SUSAPI susExtractInstanceAttributeData(_In_ SUS_MESH_INSTANCE inst
 	SUS_ASSERT(instance && list);
 	LPBYTE buffer = (LPBYTE)sus_malloc(susCalculateInstanceStride(instance->attributes));
 	if (!buffer) return NULL;
-	SUS_LPMAT4 model = sus_va_arg(list, SUS_LPMAT4);
-	SUS_ASSERT(model);
-	sus_memcpy(buffer, (LPBYTE)model, sizeof(*model));
 	LPBYTE curr = buffer;
-	curr += sizeof(*model);
+	if (instance->attributes & SUS_MESH_INSTANCE_ATTRIBUTE_MATRIX) {
+		SUS_LPMAT4 model = sus_va_arg(list, SUS_LPMAT4);
+		SUS_ASSERT(model);
+		sus_memcpy(buffer, (LPBYTE)model, sizeof(*model));
+		curr += sizeof(*model);
+	}
 	if (instance->attributes & SUS_MESH_INSTANCE_ATTRIBUTE_COLOR) {
 		SUS_LPVEC4 color = sus_va_arg(list, SUS_LPVEC4);
 		SUS_ASSERT(color);
@@ -1283,7 +1379,7 @@ BOOL SUSAPI susRendererInstanceFlush(_Inout_ SUS_MESH_INSTANCE instance)
 	SUS_ASSERT(instance && instance->vao);
 	GLuint oldVao = instance->vao;
 	glGenVertexArrays(1, &instance->vao);
-	susRendererInstanceInit(instance, instance->attributes, instance->sample->format);
+	susRendererInstanceInit(instance, instance->attributes, instance->sample->attributes);
 	for (GLenum error = glGetError(); error != GL_NO_ERROR;) {
 		SUS_PRINTDE("OpenGL error %d: Failed to apply changes to mesh instances", error);
 		if (instance->vao) glDeleteVertexArrays(1, &instance->vao);
@@ -1316,7 +1412,7 @@ SUS_MESH susRendererPrimitivesBuild_Square(_In_ SUS_VEC2 scale) {
 		{.pos = { -scale.x, scale.y }, .color = { 1.0f, 1.0f, 1.0f }, .uv = { 0, 1 } },
 	};
 	static const SUS_INDEX indexes[] = { 0, 1, 2, 3, 0, 2 };
-	SUS_MESH_BUILDER builder = { .format = SUS_VERTEX_FORMAT_2D };
+	SUS_MESH_BUILDER builder = { .attributes = SUS_VERTEX_ATTRIBUT_BASE };
 	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
 	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
 	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
@@ -1338,7 +1434,7 @@ SUS_MESH susRendererPrimitivesBuild_Circle(_In_ sus_uint_t segments, _In_ sus_fl
 		vertexes[i + 1].color = (SUS_VEC4){ 1.0f, 1.0f, 1.0f };
 		vertexes[i + 1].uv = (SUS_VEC2){ 0.5f + 0.5f * pos.x, 0.5f - 0.5f * pos.y };
 	}
-	SUS_MESH_BUILDER builder = { .format = SUS_VERTEX_FORMAT_2D };
+	SUS_MESH_BUILDER builder = { .attributes = SUS_VERTEX_ATTRIBUT_BASE };
 	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = (segments + 2) * sizeof(SUS_VERTEX) };
 	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES_FAN;
 	builder.updateType = SUS_MESH_UPDATE_TYPE_STATIC;
@@ -1388,7 +1484,7 @@ SUS_MESH susRendererPrimitivesBuild_Cube(_In_ SUS_VEC3 scale) {
 		16, 17, 18, 16, 18, 19,
 		20, 21, 22, 20, 22, 23
 	};
-	SUS_MESH_BUILDER builder = { .format = (SUS_VERTEX_FORMAT) {.type = SUS_VERTEX_TYPE_3D, .attributes = SUS_VERTEX_ATTRIBUT_BASE } };
+	SUS_MESH_BUILDER builder = { .attributes = SUS_VERTEX_ATTRIBUT_BASE };
 	builder.geometry.vertexes = (SUS_DATAVIEW){ .data = (LPBYTE)vertexes, .size = sizeof(vertexes) };
 	builder.geometry.indexes = (SUS_DATAVIEW){ .data = (LPBYTE)indexes, .size = sizeof(indexes) };
 	builder.primitiveType = SUS_MESH_PRIMITIVE_TYPE_TRIANGLES;
@@ -1593,14 +1689,14 @@ SUS_RENDERER SUSAPI susGetRenderer() {
 	return SUSCurrentRenderer;
 }
 // Get the current camera
-SUS_CAMERA SUSAPI susRendererGetCamera(_In_ SUS_RENDERER renderer) {
-	SUS_ASSERT(renderer);
-	return renderer->context.currentCamera;
+SUS_CAMERA SUSAPI susRendererGetCamera() {
+	SUS_ASSERT(SUSCurrentRenderer);
+	return SUSCurrentRenderer->context.currentCamera;
 }
 // Get the current shader
-SUS_RENDERER_SHADER SUSAPI susRendererGetShader(_In_ SUS_RENDERER renderer) {
-	SUS_ASSERT(renderer);
-	return renderer->context.currentShader;
+SUS_RENDERER_SHADER SUSAPI susRendererGetShader() {
+	SUS_ASSERT(SUSCurrentRenderer);
+	return SUSCurrentRenderer->context.currentShader;
 }
 
 // -----------------------------------------------
