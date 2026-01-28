@@ -62,7 +62,7 @@ SUS_LPMEMORY SUSAPI sus_newmem(_In_ SIZE_T size, _In_opt_ SUS_OBJECT value)
 {
 	SUS_ASSERT(size);
 	SUS_LPMEMORY obj = sus_malloc(size);
-	if (value) sus_memcpy(obj, (LPBYTE)value, size);
+	if (value) sus_memcpy(obj, (sus_lpbyte_t)value, size);
 	else sus_zeromem(obj, size);
 	return obj;
 }

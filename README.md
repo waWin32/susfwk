@@ -1,10 +1,12 @@
 ﻿# SUSFramework2 (susfwk)
 **A lightweight C Framework for creating applications with minimal dependencies.**
 
+**Status:** Final release v2.0. No longer maintained. Continued in [SUSFramework3](https://github.com/waWin32/SUSFramework3).
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078d7.svg)](https://learn.microsoft.com/en-us/windows/embedded/)
-[![Status](https://img.shields.io/badge/Status-Stable%20v1.0.0-brightgreen.svg)](https://github.com/waWin32/susfwk/releases)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-brightgreen.svg)](https://github.com/waWin32/susfwk/releases/latest)
+[![Status](https://img.shields.io/badge/Status-Stable%20v2.0.0-brightgreen.svg)](https://github.com/waWin32/susfwk/releases)
+[![Release](https://img.shields.io/badge/Release-v2.0.0-brightgreen.svg)](https://github.com/waWin32/susfwk/releases/latest)
 
 > **Why susfwk?** Dramatically reduce development time in C without sacrificing performance or bloating your project with dependencies. Get a rich, modular library and high-level APIs while keeping full control.
 

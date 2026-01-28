@@ -4,8 +4,7 @@
 #define _SUS_WINDOW_
 
 #include "graphics.h"
-#include "renderer.h"
-#pragma warning(push)
+
 #pragma warning(disable: 4201)
 
 // Window - Working with the UI
@@ -27,6 +26,7 @@
 * - Install renderer on the frame
 * - In main, create an uninterruptible loop - render
 * - Do not install widgets!
+* ! The modern graphics have been removed from the project, and the information is no longer current
 * 
 * Code examples at the end of the file.
 * For more documentation, just study the code.
@@ -38,6 +38,21 @@
 /*									Basic definitions of structures									 */
 // ************************************************************************************************* //
 // ================================================================================================= //
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//										Error codes										//
+//////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+// -------------------------------------------------
+
+#define SUS_WINDOW_ERROR_WINCLASS_FAILE 101
+#define SUS_WINDOW_ERROR_CREATE_FAILE 102
+
+// -------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //									Window Structures									//
@@ -767,10 +782,6 @@ VOID SUSAPI susWindowSetMinimumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE minSize
 VOID SUSAPI susWindowSetMaximumSize(_In_ SUS_FRAME window, _In_ SUS_SIZE maxSize);
 // Set a fixed size for the window
 VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size);
-// Install a renderer for an OpenGL-based window
-SUS_RENDERER SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable);
-// Get a window renderer
-SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window);
 
 // -------------------------------------------------
 
@@ -792,10 +803,10 @@ SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window);
 // -------------------------------------------------
 
 // Layout data cache
-typedef union sus_layout_cache {
+typedef union sus_layout {
 	struct {
-		sus_float_t x, y;		// Relative window position, ranging from 0 to 1.
-		sus_float_t cx, cy;	// Relative window size, ranging from 0 to 1.
+		sus_float_t left, top;		// Relative window position 1, ranging from 0 to 1.
+		sus_float_t right, bottom;	// Relative window position 2, ranging from 0 to 1.
 	};
 	sus_float_t arr[4]; // Value 0 - ignoring the parameter
 } SUS_LAYOUT;
@@ -946,7 +957,5 @@ SUS_RESULT SUSAPI PanelHandler(SUS_WIDGET panel, SUS_WINMSG msg, SUS_PARAM param
 	}
 }
 */
-
-#pragma warning(pop)
 
 #endif /* !_SUS_WINDOW_ */

@@ -164,7 +164,7 @@ static int get_exts(void) {
 
 			char* local_str = (char*)sus_malloc((len + 1) * sizeof(char));
 			if (local_str != NULL) {
-				sus_memcpy((LPBYTE)local_str, (LPBYTE)gl_str_tmp, (len + 1) * sizeof(char));
+				sus_memcpy((sus_lpbyte_t)local_str, (sus_lpbyte_t)gl_str_tmp, (len + 1) * sizeof(char));
 			}
 			exts_i[index] = local_str;
 		}
@@ -1748,7 +1748,7 @@ static void find_coreGL(void) {
 
 	for (i = 0; prefixes[i]; i++) {
 		const size_t length = sus_strlen(prefixes[i]);
-		if (sus_memcmp((LPBYTE)version, (LPBYTE)prefixes[i], length)) {
+		if (sus_memcmp((sus_lpbyte_t)version, (sus_lpbyte_t)prefixes[i], length)) {
 			version += length;
 			break;
 		}

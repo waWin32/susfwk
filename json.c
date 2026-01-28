@@ -3,6 +3,7 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/memory.h"
+#include "include/susfwk/buffer.h"
 #include "include/susfwk/vector.h"
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/math.h"
@@ -23,7 +24,7 @@ VOID SUSAPI susJsonDestroy(_Inout_ SUS_LPJSON json) {
 	} break;
 	case SUS_JSON_TYPE_ARRAY: {
 		susVecForeach(i, json->value.array) {
-			susJsonDestroy((SUS_LPJSON)susVectorGet(json->value.array, i));
+			susJsonDestroy((SUS_LPJSON)susVectorAt(json->value.array, i));
 		}
 		susVectorDestroy(json->value.array);
 	} break;
@@ -52,7 +53,7 @@ SUS_JSON SUSAPI susJsonCopy(_In_ SUS_JSON json)
 	case SUS_JSON_TYPE_ARRAY: {
 		jsonCopy = susJsonArray();
 		susVecForeach(i, json.value.array) {
-			SUS_LPJSON obj = susVectorGet(json.value.array, i);
+			SUS_LPJSON obj = (SUS_LPJSON)susVectorAt(json.value.array, i);
 			if (!obj) continue;
 			susJsonArrayPush(&jsonCopy, susJsonCopy(*obj));
 		}
@@ -75,12 +76,12 @@ SUS_JSON SUSAPI susJsonCopy(_In_ SUS_JSON json)
 // Convert json string to string
 static VOID SUSAPI susJsonStringStringify(_In_ LPCSTR str, _Inout_ SUS_LPBUFFER pBuffer) {
 	SUS_ASSERT(pBuffer && *pBuffer);
-	susBufferAppend(pBuffer, (LPBYTE)"\"", 1);
-	LPSTR buff = sus_malloc((SIZE_T)sus_escapeA(NULL, str) * sizeof(CHAR) + sizeof("\"\""));
+	susBufferPush(pBuffer, (sus_lpbyte_t)"\"", 1);
+	LPSTR buff = sus_malloc((sus_size_t)sus_escapeA(NULL, str) * sizeof(CHAR) + sizeof("\"\""));
 	if (!buff) return;
 	sus_escapeA(buff, str);
-	susBufferAppend(pBuffer, (LPBYTE)buff, lstrlenA(buff) * sizeof(CHAR));
-	susBufferAppend(pBuffer, (LPBYTE)"\"", 1);
+	susBufferPush(pBuffer, (sus_lpbyte_t)buff, lstrlenA(buff) * sizeof(CHAR));
+	susBufferPush(pBuffer, (sus_lpbyte_t)"\"", 1);
 	sus_free(buff);
 }
 // Convert Json to a string recursively
@@ -96,35 +97,35 @@ static VOID SUSAPI susJsonStringifyRecursively(_In_ SUS_LPJSON json, _Inout_ SUS
 	case SUS_JSON_TYPE_NUMBER: {
 		CHAR buff[32];
 		sus_ftoa(buff, json->value.number, 6);
-		susBufferAppend(pBuffer, (LPBYTE)buff, lstrlenA(buff) * sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)buff, lstrlenA(buff) * sizeof(CHAR));
 	} break;
 	case SUS_JSON_TYPE_BOOLEAN: {
-		if (json->value.boolean) susBufferAppend(pBuffer, (LPBYTE)"true", 4);
-		else susBufferAppend(pBuffer, (LPBYTE)"false", 5);
+		if (json->value.boolean) susBufferPush(pBuffer, (sus_lpbyte_t)"true", 4);
+		else susBufferPush(pBuffer, (sus_lpbyte_t)"false", 5);
 	} break;
 	case SUS_JSON_TYPE_ARRAY: {
-		susBufferAppend(pBuffer, (LPBYTE)"[", sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)"[", sizeof(CHAR));
 		susVecForeach(i, json->value.array) {
-			SUS_LPJSON obj = susVectorGet(json->value.array, i);
+			SUS_LPJSON obj = (SUS_LPJSON)susVectorAt(json->value.array, i);
 			if (!obj) continue;
 			susJsonStringifyRecursively(obj, pBuffer);
-			if (i < json->value.array->length - 1) susBufferAppend(pBuffer, (LPBYTE)", ", 2);
+			if (i < json->value.array->length - 1) susBufferPush(pBuffer, (sus_lpbyte_t)", ", 2);
 		}
-		susBufferAppend(pBuffer, (LPBYTE)"]", sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)"]", sizeof(CHAR));
 	} break;
 	case SUS_JSON_TYPE_OBJECT: {
-		susBufferAppend(pBuffer, (LPBYTE)"{", sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)"{", sizeof(CHAR));
 		susMapForeach(json->value.object, i) {
 			susJsonStringStringify(*(LPSTR*)susMapIterKey(i), pBuffer);
-			susBufferAppend(pBuffer, (LPBYTE)": ", 2);
+			susBufferPush(pBuffer, (sus_lpbyte_t)": ", 2);
 			SUS_LPJSON obj = susMapIterValue(i);
 			susJsonStringifyRecursively(obj, pBuffer);
-			if (i.count < json->value.object->count - 1) susBufferAppend(pBuffer, (LPBYTE)", ", 2);
+			if (i.count < json->value.object->count - 1) susBufferPush(pBuffer, (sus_lpbyte_t)", ", 2);
 		}
-		susBufferAppend(pBuffer, (LPBYTE)"}", sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)"}", sizeof(CHAR));
 	} break;
 	default: {
-		susBufferAppend(pBuffer, (LPBYTE)"null", sizeof("null") - sizeof(CHAR));
+		susBufferPush(pBuffer, (sus_lpbyte_t)"null", sizeof("null") - sizeof(CHAR));
 	} break;
 	}
 }
@@ -135,7 +136,7 @@ LPSTR SUSAPI susJsonStringify(_In_ SUS_JSON json)
 	SUS_BUFFER buffer = susNewBuffer(256);
 	if (!buffer) return NULL;
 	susJsonStringifyRecursively(&json, &buffer);
-	susBufferAppend(&buffer, (LPBYTE)"\0", sizeof(CHAR));
+	susBufferPush(&buffer, (sus_lpbyte_t)"\0", sizeof(CHAR));
 	LPSTR stringify = sus_strdup((LPSTR)buffer->data);
 	susBufferDestroy(buffer);
 	return stringify;
@@ -151,7 +152,7 @@ static LPSTR SUSAPI susJsonStringParse(_Inout_ LPSTR* text) {
 		return NULL;
 	}
 	*end = '\0';
-	LPSTR buff = sus_malloc((SIZE_T)sus_unescapeA(NULL, *text) + 1);
+	LPSTR buff = sus_malloc((sus_size_t)sus_unescapeA(NULL, *text) + 1);
 	if (!buff) {
 		*end = '"';
 		susErrorPush(SUS_ERROR_SYNTAX_ERROR, SUS_ERROR_TYPE_PARSER);
@@ -178,12 +179,12 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 	} break;
 	case 't':
 	case 'f': {
-		if (sus_memcmp((LPBYTE)*text, (LPBYTE)"true", 4)) {
+		if (sus_memcmp((sus_lpbyte_t)*text, (sus_lpbyte_t)"true", 4)) {
 			*text += 4;
 			json = susJsonBoolean(TRUE);
 		}
 		else {
-			if (!sus_memcmp((LPBYTE)*text, (LPBYTE)"false", 5)) {
+			if (!sus_memcmp((sus_lpbyte_t)*text, (sus_lpbyte_t)"false", 5)) {
 				susErrorPush(SUS_ERROR_SYNTAX_ERROR, SUS_ERROR_TYPE_PARSER);
 				return susJsonNull();
 			}
@@ -247,7 +248,7 @@ static SUS_JSON SUSAPI susParseJsonValue(_In_ LPSTR* text)
 		(*text)++;
 	} break;
 	case 'n': {
-		if (!sus_memcmp((LPBYTE)*text, (LPBYTE)"null", 4)) {
+		if (!sus_memcmp((sus_lpbyte_t)*text, (sus_lpbyte_t)"null", 4)) {
 			SUS_PRINTDE("Does not match the json format");
 			susErrorPush(SUS_ERROR_SYNTAX_ERROR, SUS_ERROR_TYPE_PARSER);
 			break;

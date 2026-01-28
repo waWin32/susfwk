@@ -39,7 +39,7 @@ SUS_LIST_NODE SUSAPI susListNodeErase(_Inout_ SUS_LIST_NODE node)
 // -------------------------------------------------------------------
 
 // Create a list structure
-SUS_LIST SUSAPI susListSetupEx(_In_ SIZE_T typeSize)
+SUS_LIST SUSAPI susListSetupEx(_In_ sus_size32_t typeSize)
 {
 	SUS_PRINTDL("Creating a list structure");
 	SUS_LIST list = { 0 };

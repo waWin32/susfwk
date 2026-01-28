@@ -21,7 +21,7 @@ SUS_HASHMAP SUSAPI susNewMapEx(_In_ SIZE_T keySize, _In_ SIZE_T valueSize, _In_o
 	map->keySize = (DWORD)keySize;
 	map->getHash = getHash ? getHash : (keySize <= 4 ? susDefGetHashInt : susDefGetHash);
 	map->cmpKeys = cmpKeys ? cmpKeys : susDefCmpKeys;
-	for (DWORD i = 0; i < map->capacity; i++) map->buckets[i] = susNewVectorSized(keySize + valueSize);
+	for (DWORD i = 0; i < map->capacity; i++) map->buckets[i] = susNewVectorEx(keySize + valueSize);
 	return map;
 }
 // Change the size of the hash table
@@ -67,7 +67,7 @@ SUS_OBJECT SUSAPI susMapGetEntry(_In_ SUS_HASHMAP map, _In_bytecount_(map->value
 	SUS_ASSERT(map && key);
 	SUS_VECTOR bucket = map->buckets[susMapGetIndex(map, key)];
 	susVecForeach(i, bucket) {
-		LPBYTE entry = (LPBYTE)susVectorGet(bucket, i);
+		LPBYTE entry = (LPBYTE)susVectorAt(bucket, i);
 		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
 			return entry;
 		}
@@ -82,7 +82,7 @@ SUS_OBJECT SUSAPI susMapAdd(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)
 	susMapReserve(lpMap);
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
-	LPBYTE entry = susVectorPushBack(bucket, NULL);
+	sus_lpbyte_t entry = susVectorPush(bucket, NULL);
 	if (!entry) return NULL;
 	sus_memcpy(susMapKey(map, entry), key, map->keySize);
 	if (value) sus_memcpy(susMapValue(map, entry), value, map->valueSize);
@@ -107,7 +107,7 @@ VOID SUSAPI susMapRemove(_Inout_ SUS_LPHASHMAP lpMap, _In_bytecount_((*lpMap)->k
 	SUS_HASHMAP map = *lpMap;
 	SUS_LPVECTOR bucket = &map->buckets[susMapGetIndex(map, key)];
 	susVecForeach(i, *bucket) {
-		LPBYTE entry = (LPBYTE)susVectorGet(*bucket, i);
+		LPBYTE entry = (LPBYTE)susVectorAt(*bucket, i);
 		if (map->cmpKeys(susMapKey(map, entry), key, map->keySize)) {
 			susVectorErase(bucket, i);
 			map->count--;
@@ -132,7 +132,7 @@ SUS_MAP_ITER SUSAPI susMapIterBegin(_In_ SUS_HASHMAP map)
 {
 	SUS_ASSERT(map);
 	SUS_MAP_ITER iter = { .map = map, .bucketIndex = 0, .entryIndex = 0 };
-	while (iter.bucketIndex < iter.map->capacity && !iter.map->buckets[iter.bucketIndex]->size) iter.bucketIndex++;
+	while (iter.bucketIndex < iter.map->capacity && !iter.map->buckets[iter.bucketIndex]->length) iter.bucketIndex++;
 	return iter;
 }
 // Go to the next element in the hash table
@@ -146,7 +146,7 @@ BOOL SUSAPI susMapIterNext(_Inout_ SUS_LPMAP_ITER iter)
 		return TRUE;
 	}
 	iter->entryIndex = 0;
-	do iter->bucketIndex++; while (iter->bucketIndex < iter->map->capacity && !iter->map->buckets[iter->bucketIndex]->size);
+	do iter->bucketIndex++; while (iter->bucketIndex < iter->map->capacity && !iter->map->buckets[iter->bucketIndex]->length);
 	return iter->bucketIndex < iter->map->capacity;
 }
 

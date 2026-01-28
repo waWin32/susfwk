@@ -228,7 +228,7 @@ SUS_INLINE SUS_OBJECT SUSAPI susEntityGetComponent(_Inout_ SUS_WORLD world, _In_
 	SUS_ASSERT(world && susEntityExists(world, entity));
 	SUS_ENTITY_LOCATION location = *(SUS_LPENTITY_LOCATION)susMapGet(world->entities, &entity);
 	SUS_LPVECTOR pool = (SUS_LPVECTOR)susMapGet(location.archetype->componentPools, &type);
-	return pool ? susVectorGet(*pool, location.index) : NULL;
+	return pool ? susVectorAt(*pool, location.index) : NULL;
 }
 // Get an entity mask
 SUS_INLINE SUS_COMPONENTMASK SUSAPI susEntityGetMask(_Inout_ SUS_WORLD world, _In_ SUS_ENTITY entity) {
@@ -290,7 +290,7 @@ VOID SUSAPI susSystemRun(
 // Get a system
 SUS_INLINE SUS_LPSYSTEM SUSAPI susWorldGetSystem(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {
 	SUS_ASSERT(world);
-	return (SUS_LPSYSTEM)susVectorGet(world->systems, index);
+	return (SUS_LPSYSTEM)susVectorAt(world->systems, index);
 }
 // Check the system for existence
 SUS_INLINE BOOL SUSAPI susSystemExists(_In_ SUS_WORLD world, _In_ SUS_SYSTEM_ID index) {

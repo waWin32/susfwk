@@ -188,17 +188,12 @@ SUS_INLINE DWORD SUSAPI susJsonArrayLength(_In_ SUS_JSON arr) {
 // Get a json array element
 SUS_INLINE SUS_LPJSON SUSAPI susJsonArrayGet(_In_ SUS_JSON arr, _In_ DWORD i) {
 	if (arr.type != SUS_JSON_TYPE_ARRAY || !arr.value.array) return NULL;
-	return (SUS_LPJSON)susVectorGet(arr.value.array, i);
-}
-// Get a json array element
-SUS_INLINE SUS_LPJSON SUSAPI susJsonArrayAt(_In_ SUS_JSON arr, _In_ INT i) {
-	if (arr.type != SUS_JSON_TYPE_ARRAY || !arr.value.array) return NULL;
 	return (SUS_LPJSON)susVectorAt(arr.value.array, i);
 }
 // Check if the element is contained
 SUS_INLINE BOOL SUSAPI susJsonArrayContains(_In_ SUS_JSON arr, _In_ DWORD i) {
 	if (arr.type != SUS_JSON_TYPE_ARRAY || !arr.value.array) return FALSE;
-	return (SUS_LPJSON)susVectorGet(arr.value.array, i) ? TRUE : FALSE;
+	return (SUS_LPJSON)susVectorAt(arr.value.array, i) ? TRUE : FALSE;
 }
 
 // -----------------------------------------------
@@ -208,13 +203,13 @@ SUS_INLINE SUS_LPJSON SUSAPI susJsonArrayPush(_Inout_ SUS_LPJSON arr, _In_ SUS_J
 	SUS_ASSERT(arr);
 	if (arr->type != SUS_JSON_TYPE_ARRAY || !arr->value.array) { susJsonDestroy(arr); *arr = susJsonArray(); }
 	SUS_JSON json = susJsonCopy(value);
-	return (SUS_LPJSON)susVectorPushBack(&arr->value.array, &json);
+	return (SUS_LPJSON)susVectorPush(&arr->value.array, &json);
 }
 // Delete a value from the end of a json array
 SUS_INLINE VOID SUSAPI susJsonArrayPop(_Inout_ SUS_LPJSON arr) {
 	SUS_ASSERT(arr && arr->type == SUS_JSON_TYPE_ARRAY && arr->value.array && arr->value.array->length);
-	susJsonDestroy((SUS_LPJSON)susVectorBack(arr->value.array));
-	susVectorPopBack(&arr->value.array);
+	susJsonDestroy((SUS_LPJSON)susVectorAt(arr->value.array, arr->value.array->length - 1));
+	susVectorPop(&arr->value.array);
 }
 
 // Add a value to the beginning of the json array
@@ -222,13 +217,13 @@ SUS_INLINE SUS_LPJSON SUSAPI susJsonArrayUnshift(_Inout_ SUS_LPJSON arr, _In_ SU
 	SUS_ASSERT(arr);
 	if (arr->type != SUS_JSON_TYPE_ARRAY || !arr->value.array) { susJsonDestroy(arr); *arr = susJsonArray(); }
 	SUS_JSON json = susJsonCopy(value);
-	return (SUS_LPJSON)susVectorPushFront(&arr->value.array, &json);
+	return (SUS_LPJSON)susVectorUnshift(&arr->value.array, &json);
 }
 // Delete a value from the beginning of a json array
 SUS_INLINE VOID SUSAPI susJsonArrayShift(_Inout_ SUS_LPJSON arr) {
 	SUS_ASSERT(arr && arr->type == SUS_JSON_TYPE_ARRAY && arr->value.array);
-	susJsonDestroy((SUS_LPJSON)susVectorFront(arr->value.array));
-	susVectorPopFront(&arr->value.array);
+	susJsonDestroy((SUS_LPJSON)susVectorAt(arr->value.array, 0));
+	susVectorShift(&arr->value.array);
 }
 
 // Insert json at an arbitrary location in an array
@@ -249,15 +244,14 @@ SUS_INLINE SUS_LPJSON SUSAPI susJsonArrayReplace(_Inout_ SUS_LPJSON arr, _In_ DW
 	SUS_ASSERT(arr && arr->type == SUS_JSON_TYPE_ARRAY && arr->value.array);
 	susJsonDestroy((SUS_LPJSON)susJsonArrayGet(*arr, i));
 	SUS_JSON json = susJsonCopy(value);
-	return (SUS_LPJSON)susVectorReplace(&arr->value.array, i, &json);
+	return (SUS_LPJSON)susVectorSet(&arr->value.array, i, &json);
 }
 
 // -----------------------------------------------
 
 // The function of comparing items in the search
-static BOOL SUSAPI susJsonElementsCompareCallBack(_In_ SUS_LPJSON obj, _In_ SUS_LPJSON sought, _In_ SIZE_T size) {
-	UNREFERENCED_PARAMETER(size);
-	return susJsonEquals(*obj, *sought);
+static BOOL SUSAPI susJsonElementsCompareCallBack(_In_ SUS_VECTOR vector, _In_ sus_uint_t current, _In_ SUS_OBJECT target) {
+	return susJsonEquals(susVectorGet(vector, current, SUS_JSON), *(SUS_JSON*)target);
 }
 // Find the first item you see
 SUS_INLINE INT SUSAPI susJsonArrayFind(_Inout_ SUS_JSON arr, _In_ SUS_JSON value) {

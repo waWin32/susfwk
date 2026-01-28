@@ -56,67 +56,67 @@ SUS_LPMEMORY SUSAPI sus_newmem(
 
 // Initialize a memory block
 SUS_INLINE VOID SUSAPI sus_memset(
-	_Out_writes_bytes_all_(size) LPBYTE data,
+	_Out_writes_bytes_all_(size) sus_lpbyte_t data,
 	_In_ BYTE value,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(data);
-	__stosb(data, value, size);
+	__stosb((LPBYTE)data, (BYTE)value, size);
 }
 // Initialize a memory block with zeros
 SUS_INLINE VOID SUSAPI sus_zeromem(
-	_Out_writes_bytes_all_(size) LPBYTE data,
+	_Out_writes_bytes_all_(size) sus_lpbyte_t data,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(data);
-	__stosb(data, 0, size);
+	__stosb((LPBYTE)data, 0, size);
 }
 // Comparing memory blocks
 SUS_INLINE BOOL SUSAPI sus_memcmp(
-	_In_bytecount_(size) LPBYTE lpBuf1,
-	_In_bytecount_(size) LPBYTE lpBuf2,
+	_In_bytecount_(size) sus_lpbyte_t lpBuf1,
+	_In_bytecount_(size) sus_lpbyte_t lpBuf2,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(lpBuf1 && lpBuf2);
-	return RtlCompareMemory(lpBuf1, lpBuf2, size) == size ? TRUE : FALSE;
+	return RtlCompareMemory((LPBYTE)lpBuf1, (LPBYTE)lpBuf2, size) == size ? TRUE : FALSE;
 }
 // Comparing memory blocks
 SUS_INLINE BOOL SUSAPI sus_memiszero(
-	_In_bytecount_(size) LPBYTE lpBuff,
+	_In_bytecount_(size) sus_lpbyte_t lpBuff,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(lpBuff && size);
-	return (BOOL)RtlIsZeroMemory(lpBuff, size);
+	return (BOOL)RtlIsZeroMemory((LPBYTE)lpBuff, size);
 }
 // Copy the memory
-SUS_INLINE LPBYTE SUSAPI sus_memcpy(
-	_Out_writes_bytes_all_(size) LPBYTE buff,
-	_In_reads_bytes_(size) CONST LPBYTE source,
+SUS_INLINE sus_lpbyte_t SUSAPI sus_memcpy(
+	_Out_writes_bytes_all_(size) sus_lpbyte_t buff,
+	_In_reads_bytes_(size) CONST sus_lpbyte_t source,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(buff && source && !(buff > source && buff < source + size));
-	__movsb(buff, source, size);
+	__movsb((LPBYTE)buff, (LPBYTE)source, size);
 	return buff;
 }
 // Copy the memory
-SUS_INLINE LPWORD SUSAPI sus_wmemcpy(
-	_Out_writes_all_(count) LPWORD buff,
-	_In_reads_(count) CONST LPWORD source,
+SUS_INLINE sus_lpword_t SUSAPI sus_wmemcpy(
+	_Out_writes_all_(count) sus_lpword_t buff,
+	_In_reads_(count) CONST sus_lpword_t source,
 	_In_ SIZE_T count)
 {
 	SUS_ASSERT(buff && source && !(buff > source && buff < source + count));
-	__movsw(buff, source, count);
+	__movsw((LPWORD)buff, (LPWORD)source, count);
 	return buff;
 }
 // Copy the memory
-SUS_INLINE LPBYTE SUSAPI sus_memmove(
-	_Out_writes_bytes_all_(size) LPBYTE buff,
-	_In_reads_bytes_(size) CONST LPBYTE source,
+SUS_INLINE sus_lpbyte_t SUSAPI sus_memmove(
+	_Out_writes_bytes_all_(size) sus_lpbyte_t buff,
+	_In_reads_bytes_(size) CONST sus_lpbyte_t source,
 	_In_ SIZE_T size)
 {
 	SUS_ASSERT(buff != NULL && source != NULL);
 	if (buff > source && buff < source + size) for (SIZE_T i = size; i > 0; --i) buff[i - 1] = source[i - 1];
-	else __movsb(buff, source, size);
+	else __movsb((LPBYTE)buff, (LPBYTE)source, size);
 	return buff;
 }
 
@@ -159,15 +159,15 @@ SUS_INLINE SUS_DATAVIEW SUSAPI susDataFromCWStr(_In_ LPCWSTR str) {
 SUS_INLINE LPSTR SUSAPI sus_strdup(_In_ LPCSTR str) {
 	SUS_ASSERT(str);
 	INT count = lstrlenA(str) + 1;
-	LPBYTE buff = sus_fmalloc(count * sizeof(CHAR));
-	return buff ? (LPSTR)sus_memcpy(buff, (LPBYTE)str, count) : NULL;
+	sus_lpbyte_t buff = sus_fmalloc(count * sizeof(CHAR));
+	return buff ? (LPSTR)sus_memcpy(buff, (sus_lpbyte_t)str, count) : NULL;
 }
 // Create a dynamic wide string
 SUS_INLINE LPWSTR SUSAPI sus_wcsdup(_In_ LPCWSTR str) {
 	SUS_ASSERT(str);
 	INT count = lstrlenW(str) + 1;
-	LPWORD buff = sus_fmalloc(count * sizeof(WCHAR));
-	return buff ? (LPWSTR)sus_wmemcpy(buff, (LPWORD)str, count) : NULL;
+	sus_lpword_t buff = sus_fmalloc(count * sizeof(WCHAR));
+	return buff ? (LPWSTR)sus_wmemcpy(buff, (sus_lpword_t)str, count) : NULL;
 }
 // Delete a dynamic string
 SUS_INLINE VOID SUSAPI sus_strfree(_In_ LPSTR str) {

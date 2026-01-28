@@ -23,9 +23,9 @@
     <ClInclude Include="include\susfwk.h" />
     <ClInclude Include="include\susfwk\appdata.h" />
     <ClInclude Include="include\susfwk\bitset.h" />
+    <ClInclude Include="include\susfwk\buffer.h" />
     <ClInclude Include="include\susfwk\conio.h" />
     <ClInclude Include="include\susfwk\core.h" />
-    <ClInclude Include="include\susfwk\crypto.h" />
     <ClInclude Include="include\susfwk\debug.h" />
     <ClInclude Include="include\susfwk\deftypes.h" />
     <ClInclude Include="include\susfwk\ecs.h" />
@@ -43,7 +43,6 @@
     <ClInclude Include="include\susfwk\memory.h" />
     <ClInclude Include="include\susfwk\network.h" />
     <ClInclude Include="include\susfwk\regapi.h" />
-    <ClInclude Include="include\susfwk\renderer.h" />
     <ClInclude Include="include\susfwk\resapi.h" />
     <ClInclude Include="include\susfwk\sus_image.h" />
     <ClInclude Include="include\susfwk\string.h" />
@@ -59,8 +58,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appdata.c" />
+    <ClCompile Include="buffer.c" />
     <ClCompile Include="conio.c" />
-    <ClCompile Include="crypto.c" />
     <ClCompile Include="ecs.c" />
     <ClCompile Include="fileio.c" />
     <ClCompile Include="filemap.c" />
@@ -75,7 +74,6 @@
     <ClCompile Include="memory.c" />
     <ClCompile Include="network.c" />
     <ClCompile Include="regapi.c" />
-    <ClCompile Include="renderer.c" />
     <ClCompile Include="resapi.c" />
     <ClCompile Include="string.c" />
     <ClCompile Include="json.c" />

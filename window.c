@@ -6,7 +6,6 @@
 #include "include/susfwk/tmath.h"
 #include "include/susfwk/vector.h"
 #include "include/susfwk/graphics.h"
-#include "include/susfwk/renderer.h"
 #include "include/susfwk/window.h"
 
 #pragma warning(push)
@@ -64,7 +63,6 @@ struct sus_frame {
 	SUS_WINDOW_FULLSCREEN		fullScreen;
 	SUS_WINDOW_CLOSE_OPERATION	closeOperation;
 	MINMAXINFO					minmaxinfo;
-	SUS_RENDERER				graphics;
 };
 
 // -------------------------------------------------
@@ -96,7 +94,7 @@ static BOOL SUSAPI susRegisterWindowClass(_In_ WNDCLASSEXW wcEx) {
 		if (!RegisterClassExW(&wcEx)) {
 			SUS_PRINTDE("Failed to register window class");
 			SUS_PRINTDC(GetLastError());
-			susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_SYSTEM);
+			susErrorPushCritical(SUS_WINDOW_ERROR_WINCLASS_FAILE, SUS_ERROR_TYPE_SYSTEM);
 			return FALSE;
 		}
 	}
@@ -124,7 +122,7 @@ static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW wi
 	if (!hWnd) {
 		SUS_PRINTDE("Couldn't create a window");
 		SUS_PRINTDC(GetLastError());
-		susErrorPushCritical(SUS_ERROR_SYSTEM_ERROR, SUS_ERROR_TYPE_RESOURCE);
+		susErrorPushCritical(SUS_WINDOW_ERROR_CREATE_FAILE, SUS_ERROR_TYPE_RESOURCE);
 		return NULL;
 	}
 	SUS_PRINTDL("The window has been successfully created");
@@ -145,7 +143,7 @@ static HWND SUSAPI susBuildWindow(_In_ CREATESTRUCTW wStruct, _In_ SUS_WINDOW wi
 
 // Check if the window is valid
 BOOL SUSAPI susWindowIsValid(_In_ SUS_WINDOW window) {
-	return (window && window->super && window->type);
+	return window && window->super && window->type;
 }
 // Check if the window is a valid widget
 BOOL SUSAPI susWindowIsWidget(_In_ SUS_WIDGET window) {
@@ -185,9 +183,9 @@ BOOL SUSAPI susWindowProcessing(_Out_ LPMSG msg)
 {
 	while (PeekMessageW(msg, NULL, 0, 0, PM_REMOVE))
 	{
-		if (msg->message == WM_QUIT) return FALSE;
 		TranslateMessage(msg);
 		DispatchMessageW(msg);
+		if (msg->message == WM_QUIT) return FALSE;
 	}
 	return TRUE;
 }
@@ -355,7 +353,7 @@ static VOID SUSAPI susWindowTrackMouseMotionEvent(_In_ SUS_WINDOW window, _In_ S
 	SUS_ASSERT(window && msg);
 	if (!window->listeners.mouseListener.motion) return;
 	static struct { HWND hWnd; } mouseTracked = { 0 };
-	if (msg == SUS_MOUSE_MOTION_MESSAGE_EXIT) sus_zeromem((LPBYTE)&mouseTracked, sizeof(mouseTracked));
+	if (msg == SUS_MOUSE_MOTION_MESSAGE_EXIT) sus_zeromem((sus_lpbyte_t)&mouseTracked, sizeof(mouseTracked));
 	else if (mouseTracked.hWnd != window->super) {
 		TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), .dwFlags = TME_LEAVE | TME_HOVER, .hwndTrack = window->super, .dwHoverTime = HOVER_DEFAULT };
 		TrackMouseEvent(&tme);
@@ -598,7 +596,7 @@ SUS_WIDGET SUSAPI susNewLabel(_In_ SUS_WINDOW parent, _In_opt_ LPCWSTR text, _In
 // Create a panel
 SUS_WIDGET SUSAPI susNewPanel(_In_ SUS_WINDOW parent, _In_opt_ SUS_WINDOW_LISTENER handler) {
 	SUS_WIDGET panel = susNewLabel(parent, NULL, handler, SUS_WIDGET_TEXT_ALIGN_NONE);
-	if (panel) susWidgetSetLayout(panel, (SUS_LAYOUT) { 0.0f, 0.0f, 1.0f, 1.0f });
+	if (panel) susWidgetSetLayout(panel, (SUS_LAYOUT) { 0.0f, 0.0f, 1.0f, 1.0f});
 	return panel;
 }
 // Create a text input field
@@ -849,8 +847,7 @@ SUS_WINDOW SUSAPI susWindowGetParent(_In_ SUS_WINDOW window) {
 // Set the window background color
 VOID SUSAPI susWindowSetBackground(_In_ SUS_WINDOW window, _In_ SUS_COLOR color) {
 	SUS_ASSERT(susWindowIsValid(window));
-	if (window->type == SUS_WINDOW_SIGNATURE_TYPE_FRAME) susRendererSetBackground((SUS_VEC3) { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f });
-	else susGraphicsSetClear(&((SUS_WIDGET)window)->graphics.context, color);
+	if(window->type == SUS_WINDOW_SIGNATURE_TYPE_WIDGET) susGraphicsSetClear(&((SUS_WIDGET)window)->graphics.context, color);
 }
 
 // -------------------------------------------------
@@ -896,16 +893,12 @@ LRESULT WINAPI susFrameSystemHandler(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM
 			if (window->minmaxinfo.ptMinTrackSize.x)
 				mmi->ptMinTrackSize = window->minmaxinfo.ptMinTrackSize;
 		} break;
-		case WM_SIZE: {
-			if (window->graphics) susRendererSize();
-		} break;
 		case WM_NCCREATE: {
 			window = (SUS_FRAME)susGetWindowParam(lParam);
 			susWindowWriteData(hWnd, (LONG_PTR)window);
 			window->super = hWnd;
 		} break;
 		case WM_NCDESTROY: {
-			susWindowSetRenderer(window, FALSE);
 			if (window->closeOperation == SUS_WINDOW_EXIT_ON_CLOSE) PostQuitMessage(0);
 			sus_free(window);
 		} break;
@@ -1002,18 +995,6 @@ VOID SUSAPI susWindowSetFixedSize(_In_ SUS_FRAME window, _In_ SUS_SIZE size) {
 	susWindowSetMinimumSize(window, size);
 	susWindowSetMaximumSize(window, size);
 }
-// Install a renderer for an OpenGL-based window
-SUS_RENDERER SUSAPI susWindowSetRenderer(_In_ SUS_FRAME window, _In_ BOOL enable) {
-	SUS_ASSERT(window);
-	if (window->graphics) susRendererCleanup(window->graphics);
-	if (enable) return window->graphics = susRendererSetup(window->super);
-	return NULL;
-}
-// Get a window renderer
-SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window) {
-	SUS_ASSERT(window);
-	return window->graphics;
-}
 
 // -------------------------------------------------
 
@@ -1038,12 +1019,15 @@ SUS_RENDERER SUSAPI susWindowGetRenderer(_In_ SUS_FRAME window) {
 VOID SUSAPI susWidgetUpdateLayout(_In_ SUS_WIDGET widget, _In_ SUS_SIZE newScreenSize)
 {
 	SUS_ASSERT(widget && widget->super);
-	if (sus_fabsf(widget->layout.x) > SUS_EPSILON && sus_fabsf(widget->layout.y) > SUS_EPSILON)
-		susWindowSetPosition((SUS_WINDOW)widget,
-			(SUS_POINT) { (sus_int_t)(widget->layout.x * (sus_float_t)newScreenSize.cx), (sus_int_t)(widget->layout.y * (sus_float_t)newScreenSize.cy) });
-	if (sus_fabsf(widget->layout.cx) > SUS_EPSILON && sus_fabsf(widget->layout.cy) > SUS_EPSILON)
-		susWindowSetSize((SUS_WINDOW)widget,
-			(SUS_SIZE) { (sus_uint_t)(widget->layout.cx * (sus_float_t)newScreenSize.cx), (sus_uint_t)(widget->layout.cy * (sus_float_t)newScreenSize.cy) });
+	SUS_LAYOUT zero = { 0 };
+	if (!sus_memcmp((sus_lpbyte_t)widget->layout.arr, (sus_lpbyte_t)zero.arr, sizeof(zero.arr))) {
+		SUS_POINT pos1 = (SUS_POINT){ (sus_int_t)(widget->layout.left * (sus_float_t)newScreenSize.cx), (sus_int_t)(widget->layout.top * (sus_float_t)newScreenSize.cy) };
+		SUS_POINT pos2 = (SUS_POINT){ (sus_int_t)(widget->layout.right * (sus_float_t)newScreenSize.cx), (sus_int_t)(widget->layout.bottom * (sus_float_t)newScreenSize.cy) };
+		susWindowSetBounds((SUS_WINDOW)widget, (SUS_BOUNDS) {
+			pos1.x, pos1.y,
+			pos2.x - pos1.x, pos2.y - pos1.y
+		});
+	}
 }
 
 // Set a new layout for the widget

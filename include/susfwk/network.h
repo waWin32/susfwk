@@ -4,6 +4,7 @@
 #define _SUS_NETWORK_CORE_
 
 #include "thrprocessapi.h"
+#include "buffer.h"
 #include "vector.h"
 #include "hashtable.h"
 
@@ -201,7 +202,7 @@ BOOL SUSAPI susSocketRead(
 	_Inout_ SUS_LPSOCKET sock
 );
 // Flushing the send buffer
-SIZE_T SUSAPI susSocketFlush(
+sus_size_t SUSAPI susSocketFlush(
 	_Inout_ SUS_LPSOCKET sock
 );
 
@@ -214,25 +215,25 @@ SUS_FORCEINLINE BOOL SUSAPI susSocketHasSendData(_Inout_ SUS_LPSOCKET sock)
 	return sock->buffers.writeBuffer->size ? TRUE : FALSE;
 }
 // Send data to the socket (_Null_terminated_)
-SUS_FORCEINLINE BOOL SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, _In_bytecount_(size) CONST LPBYTE data, _In_ SIZE_T size)
+SUS_FORCEINLINE BOOL SUSAPI susSocketWrite(_Inout_ SUS_LPSOCKET sock, _In_bytecount_(size) CONST sus_lpbyte_t data, _In_ sus_size_t size)
 {
 	SUS_PRINTDL("Socket write of %d bytes", size);
 	SUS_ASSERT(sock && sock->buffers.writeBuffer && data && size && size < SUS_SOCKET_MAX_MESSAGE_SIZE);
-	return susBufferAppend(&sock->buffers.writeBuffer, data, size) ? TRUE : FALSE;
+	return susBufferPush(&sock->buffers.writeBuffer, data, (sus_size32_t)size) ? TRUE : FALSE;
 }
 // Send text to the socket
 SUS_FORCEINLINE BOOL SUSAPI susSocketWriteText(_Inout_ SUS_LPSOCKET sock, _In_ LPCSTR text) {
-	SIZE_T size = sus_strlen(text) * sizeof(CHAR) + 2;
+	sus_size_t size = (sus_size_t)(sus_strlen(text) * sizeof(CHAR) + 2);
 	SUS_OBJECT tmp = sus_malloc(size);
 	if (!tmp) return FALSE;
-	sus_memcpy(tmp, (LPBYTE)text, size - 1);
+	sus_memcpy(tmp, (sus_lpbyte_t)text, size - 1);
 	BOOL res = susSocketWrite(sock, tmp, size);
 	sus_free(tmp);
 	return res;
 }
 // Send text to the socket
 SUS_FORCEINLINE BOOL SUSAPI susSocketWriteWText(_Inout_ SUS_LPSOCKET sock, _In_ LPCWSTR text) {
-	return susSocketWrite(sock, (LPBYTE)text, ((SIZE_T)sus_wcslen(text)) * sizeof(WCHAR) + 2);
+	return susSocketWrite(sock, (sus_lpbyte_t)text, ((sus_size_t)sus_wcslen(text)) * sizeof(WCHAR) + 2);
 }
 
 // -----------------------------------------------

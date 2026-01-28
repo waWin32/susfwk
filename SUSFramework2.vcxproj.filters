@@ -78,9 +78,6 @@
     <ClInclude Include="include\susfwk\core.h">
       <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\crypto.h">
-      <Filter>Файлы заголовков\strings</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\deftypes.h">
       <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
@@ -168,9 +165,6 @@
     <ClInclude Include="include\susgl\suswgl.h">
       <Filter>Файлы заголовков\susgl</Filter>
     </ClInclude>
-    <ClInclude Include="include\susfwk\renderer.h">
-      <Filter>Файлы заголовков\ui</Filter>
-    </ClInclude>
     <ClInclude Include="include\susfwk\uicommon.h">
       <Filter>Файлы заголовков\ui</Filter>
     </ClInclude>
@@ -183,13 +177,13 @@
     <ClInclude Include="include\susfwk\error.h">
       <Filter>Файлы заголовков\core</Filter>
     </ClInclude>
+    <ClInclude Include="include\susfwk\buffer.h">
+      <Filter>Файлы заголовков\collections</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="conio.c">
       <Filter>Исходные файлы\io</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto.c">
-      <Filter>Исходные файлы\strings</Filter>
     </ClCompile>
     <ClCompile Include="fileio.c">
       <Filter>Исходные файлы\io</Filter>
@@ -263,11 +257,11 @@
     <ClCompile Include="suswgl.c">
       <Filter>Исходные файлы\susgl</Filter>
     </ClCompile>
-    <ClCompile Include="renderer.c">
-      <Filter>Исходные файлы\ui</Filter>
-    </ClCompile>
     <ClCompile Include="time.c">
       <Filter>Исходные файлы\system</Filter>
+    </ClCompile>
+    <ClCompile Include="buffer.c">
+      <Filter>Исходные файлы\collections</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -292,7 +292,7 @@ LPSTR SUSAPI sus_strstr(_In_ LPCSTR str, _In_ LPCSTR substring)
 	DWORD size = lstrlenA(substring) * sizeof(CHAR);
 	for (; *str; str++) {
 		if (!(str = sus_strchr(str, *substring))) return NULL;
-		if (sus_memcmp((CONST LPBYTE)str, (CONST LPBYTE)substring, size)) return (LPSTR)str;
+		if (sus_memcmp((CONST sus_lpbyte_t)str, (CONST sus_lpbyte_t)substring, size)) return (LPSTR)str;
 	}
 	return NULL;
 }
@@ -303,7 +303,7 @@ LPWSTR SUSAPI sus_wcsstr(_In_ LPCWSTR str, _In_ LPCWSTR substring)
 	DWORD size = lstrlenW(substring) * sizeof(WCHAR);
 	for (; *str; str++) {
 		if (!(str = sus_wcschr(str, *substring))) return NULL;
-		if (sus_memcmp((CONST LPBYTE)str, (CONST LPBYTE)substring, size)) return (LPWSTR)str;
+		if (sus_memcmp((sus_lpbyte_t)str, (sus_lpbyte_t)substring, size)) return (LPWSTR)str;
 	}
 	return NULL;
 }
@@ -328,7 +328,7 @@ LPSTR SUSAPI sus_strrstr(_In_ LPCSTR str, _In_ LPCSTR substring)
 	if (!*substring) return (LPSTR)(str + lstrlenA(str));
 	DWORD size = lstrlenA(substring) * sizeof(CHAR);
 	for (LPSTR cur = (LPSTR)str + lstrlenA(str) - 1; cur >= str; cur--) {
-		if (*cur == *substring && sus_memcmp((CONST LPBYTE)cur, (CONST LPBYTE)substring, size)) return cur;
+		if (*cur == *substring && sus_memcmp((CONST sus_lpbyte_t)cur, (CONST sus_lpbyte_t)substring, size)) return cur;
 	}
 	return NULL;
 }
@@ -338,7 +338,7 @@ LPWSTR SUSAPI sus_wcsrstr(_In_ LPCWSTR str, _In_ LPCWSTR substring)
 	if (!*substring) return (LPWSTR)(str + lstrlenW(str));
 	DWORD size = lstrlenW(substring) * sizeof(WCHAR);
 	for (LPWSTR cur = (LPWSTR)str + lstrlenW(str) - 1; cur >= str; cur--) {
-		if (*cur == *substring && sus_memcmp((CONST LPBYTE)cur, (CONST LPBYTE)substring, size)) return cur;
+		if (*cur == *substring && sus_memcmp((CONST sus_lpbyte_t)cur, (CONST sus_lpbyte_t)substring, size)) return cur;
 	}
 	return NULL;
 }

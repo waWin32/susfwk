@@ -1,4 +1,3 @@
-
 /*++ BUILD Version: 0001    Increment this if a change has global effects
 
 Copyright (c) Archon. All rights reserved.
@@ -25,7 +24,6 @@ Abstract:
 * SUSNOTCONSOLEAPI
 * SUSNOTSTRING
 * SUSNOTECS
-* SUSNOTCRYPTO
 * SUSNOTTHRPROCESSAPI
 * SUSNOTNETWORK
 * SUSNOTHTTP
@@ -41,16 +39,13 @@ Abstract:
 #include "susfwk/iostream.h"
 
 #include "susfwk/memory.h"
+#include "susfwk/buffer.h"
 #include "susfwk/vector.h"
 #include "susfwk/linkedlist.h"
 #include "susfwk/hashtable.h"
 
 #ifndef SSUSINIMAL
     #include "susfwk/regapi.h"
-    #ifndef SUSNOTCRYPTO
-    #include <wincrypt.h>
-    #include "susfwk/crypto.h"
-    #endif // !SUSNOTCRYPTO
     #include "susfwk/resapi.h"
     #ifndef SUSNOTTHRPROCESSAPI
     #include "susfwk/thrprocessapi.h"

@@ -38,6 +38,7 @@ typedef long double sus_f80_t;
 
 typedef void* sus_ptr_t;
 typedef void* sus_pvoid_t;
+typedef sus_u32_t sus_size32_t;
 #ifdef _WIN64
 typedef sus_u64_t sus_size_t;
 #else
@@ -47,6 +48,7 @@ typedef sus_size_t *sus_psize_t;
 
 typedef unsigned char sus_ubyte_t, *sus_lpubyte_t;
 typedef char sus_byte_t, *sus_lpbyte_t;
+typedef unsigned short sus_word_t, * sus_lpword_t;
 typedef unsigned int sus_uint_t, * sus_puint_t;
 typedef unsigned char sus_uint8_t, * sus_puint8_t;
 typedef unsigned short sus_uint16_t, * sus_puint16_t;

@@ -169,7 +169,7 @@ HFONT SUSAPI susGraphicsNewFont(_In_ LPCWSTR font, SUS_GRAPHICS_GDI_FONT style, 
 	lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
 	lf.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
 	DWORD fontCharCount = sus_wcslen(font) + 1;
-	sus_memcpy((LPBYTE)lf.lfFaceName, (LPBYTE)font, min(fontCharCount, LF_FACESIZE) * sizeof(WCHAR));
+	sus_memcpy((sus_lpbyte_t)lf.lfFaceName, (sus_lpbyte_t)font, min(fontCharCount, LF_FACESIZE) * sizeof(WCHAR));
 	HFONT hFont = CreateFontIndirectW(&lf);
 	if (!hFont) {
 		SUS_PRINTDE("Couldn't create font");

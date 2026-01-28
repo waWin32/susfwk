@@ -3,6 +3,7 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/memory.h"
+#include "include/susfwk/buffer.h"
 #include "include/susfwk/vector.h"
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/httprequest.h"
@@ -40,18 +41,18 @@ static BOOL SUSAPI susHttpParseUrl(_In_ LPCWSTR textUrl, _Out_ SUS_LPHTTP_URL ur
 	if (uc.lpszHostName) {
 		SIZE_T maxChars = sizeof(url->host) / sizeof(WCHAR) - 1;
 		SIZE_T len = min(maxChars, uc.dwHostNameLength);
-		sus_memcpy((LPBYTE)url->host, (LPBYTE)uc.lpszHostName, len * sizeof(WCHAR));
+		sus_memcpy((sus_lpbyte_t)url->host, (sus_lpbyte_t)uc.lpszHostName, len * sizeof(WCHAR));
 		url->host[len] = L'\0';
 	}
 	else url->host[0] = L'\0';
 	if (uc.lpszUrlPath) {
 		SIZE_T maxChars = sizeof(url->path) / sizeof(WCHAR) - 1;
 		SIZE_T len = min(maxChars, uc.dwUrlPathLength);
-		sus_memcpy((LPBYTE)url->path, (LPBYTE)uc.lpszUrlPath, len * sizeof(WCHAR));
+		sus_memcpy((sus_lpbyte_t)url->path, (sus_lpbyte_t)uc.lpszUrlPath, len * sizeof(WCHAR));
 		if (uc.lpszExtraInfo) {
 			SIZE_T remaining = maxChars - len;
 			SIZE_T exlen = min(uc.dwExtraInfoLength, remaining);
-			sus_memcpy((LPBYTE)url->path + len * sizeof(WCHAR), (LPBYTE)uc.lpszExtraInfo, exlen * sizeof(WCHAR));
+			sus_memcpy((sus_lpbyte_t)url->path + len * sizeof(WCHAR), (sus_lpbyte_t)uc.lpszExtraInfo, exlen * sizeof(WCHAR));
 			url->path[len + exlen] = L'\0';
 		}
 		else url->path[len] = L'\0';
@@ -76,15 +77,15 @@ static BOOL SUSAPI susHttpParseHeaderLine(_Inout_ LPWSTR* pwszHeaders, _Inout_ S
 	if (!value) return FALSE;
 	SUS_LPBUFFER lpValueBuff = (SUS_BUFFER*)susMapGet(*map, keyBuff);
 	if (!lpValueBuff) {
-		SUS_BUFFER buff = susNewBuffer((lstrlenW(value) + 1) * sizeof(WCHAR));
+		SUS_BUFFER buff = susNewBuffer((sus_wcslen(value) + 1) * sizeof(WCHAR));
 		lpValueBuff = susMapAdd(map, keyBuff, &buff);
 		if (!lpValueBuff) {
 			susBufferDestroy(buff);
 			return FALSE;
 		}
 	}
-	else susBufferAppend(lpValueBuff, (LPBYTE)L"; ", 4);
-	return susBufferAppend(lpValueBuff, (LPBYTE)value, lstrlenW(value) * sizeof(WCHAR)) != NULL;
+	else susBufferPush(lpValueBuff, (sus_lpbyte_t)L"; ", 4);
+	return susBufferPush(lpValueBuff, (sus_lpbyte_t)value, sus_wcslen(value) * sizeof(WCHAR)) != NULL;
 }
 
 // ------------------------------------------------------------
@@ -108,7 +109,7 @@ static VOID SUSAPI susHttpQueryStatusMessage(_In_ HINTERNET hRequest, _Out_ LPWS
 		WINHTTP_HEADER_NAME_BY_INDEX, msg,
 		&size, WINHTTP_NO_HEADER_INDEX
 	);
-	*((LPWSTR)((LPBYTE)msg + size)) = L'\0';
+	*((LPWSTR)((sus_lpbyte_t)msg + size)) = L'\0';
 }
 // Request the time of the request
 static VOID SUSAPI susHttpQueryTime(_In_ HINTERNET hRequest, _Out_ LPSYSTEMTIME time) {
@@ -133,7 +134,7 @@ static SUS_HTTP_CONTENT_TYPE SUSAPI susHttpQueryContentType(_In_ HINTERNET hRequ
 		SUS_PRINTDW("Couldn't get the content type");
 		return SUS_HTTP_CONTENT_TYPE_TEXT;
 	}
-	*((LPWSTR)((LPBYTE)buff + size)) = L'\0';
+	*((LPWSTR)((sus_lpbyte_t)buff + size)) = L'\0';
 	for (DWORD i = 0; i < SUS_HTTP_CONTENT_TYPE_COUNT; i++) if (lstrcmpiW(buff, susHttpContentTypeToString[i]) == 0) return (SUS_HTTP_CONTENT_TYPE)i;
 	return SUS_HTTP_CONTENT_TYPE_TEXT;
 }
@@ -150,7 +151,7 @@ static SUS_HTTP_CONTENT_ENCODING SUSAPI susHttpQueryContentEncoding(_In_ HINTERN
 		SUS_PRINTDW("Couldn't get the encryption type");
 		return SUS_HTTP_CONTENT_ENCODING_DEFAULT;
 	}
-	*((LPWSTR)((LPBYTE)buff + size)) = L'\0';
+	*((LPWSTR)((sus_lpbyte_t)buff + size)) = L'\0';
 	for (DWORD i = 0; i < SUS_HTTP_CONTENT_ENCODING_COUNT; i++) if (lstrcmpiW(buff, susHttpContentEncodingToString[i]) == 0) return (SUS_HTTP_CONTENT_ENCODING)i;
 	return SUS_HTTP_CONTENT_ENCODING_DEFAULT;
 }
@@ -189,14 +190,14 @@ static BOOL SUSAPI susHttpQueryBody(_In_ HINTERNET hRequest, _Out_ SUS_LPDATAVIE
 	DWORD dwAvailable = 0;
 	while (WinHttpQueryDataAvailable(hRequest, &dwAvailable) && dwAvailable) {
 		DWORD read = 0;
-		if (!WinHttpReadData(hRequest, susBufferAppend(&buff, NULL, dwAvailable), dwAvailable, &read) || !read) {
+		if (!WinHttpReadData(hRequest, susBufferPush(&buff, NULL, dwAvailable), dwAvailable, &read) || !read) {
 			susBufferDestroy(buff);
 			SUS_PRINTDE("Couldn't read response body data");
 			return FALSE;
 		}
 	}
 	*body = susNewData(buff->size);
-	sus_memcpy(body->data, buff->data, buff->size);
+	sus_memcpy((sus_lpbyte_t)body->data, buff->data, buff->size);
 	susBufferDestroy(buff);
 	return TRUE;
 }

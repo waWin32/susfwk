@@ -3,6 +3,7 @@
 #include "coreframe.h"
 #include "include/susfwk/core.h"
 #include "include/susfwk/thrprocessapi.h"
+#include "include/susfwk/buffer.h"
 #include "include/susfwk/vector.h"
 #include "include/susfwk/hashtable.h"
 #include "include/susfwk/network.h"
@@ -340,7 +341,7 @@ SUS_USERDATA SUSAPI susSocketGetProperty(_In_ SUS_LPSOCKET sock, _In_ LPCSTR key
 // -----------------------------------------------
 
 // Find a pair of null characters
-static LPBYTE SUSAPI susFindDoubleNull(_In_ LPBYTE data, _In_ SIZE_T size) {
+static sus_lpbyte_t SUSAPI susFindDoubleNull(_In_ sus_lpbyte_t data, _In_ sus_size_t size) {
 	SUS_ASSERT(data && size);
 	for (; size > 1; data++, size--) if (!data[0] && !data[1]) return data;
 	return NULL;
@@ -352,7 +353,7 @@ static LPBYTE SUSAPI susFindDoubleNull(_In_ LPBYTE data, _In_ SIZE_T size) {
 BOOL SUSAPI susSocketRead(_Inout_ SUS_LPSOCKET sock)
 {
 	SUS_ASSERT(sock && sock->super != INVALID_SOCKET && sock->buffers.readBuffer);
-	BYTE chunkBuffer[SUS_SOCKET_CHUNK_BUFFER_SIZE] = { 0 };
+	sus_byte_t chunkBuffer[SUS_SOCKET_CHUNK_BUFFER_SIZE] = { 0 };
 	INT bytesRead;
 	do {
 		bytesRead = recv(sock->super, (PCHAR)chunkBuffer, (INT)sizeof(chunkBuffer), 0);
@@ -366,15 +367,15 @@ BOOL SUSAPI susSocketRead(_Inout_ SUS_LPSOCKET sock)
 			susSocketCallMessage(sock, SUS_SM_ERROR, (WPARAM)err, SUS_SOCKET_ERROR_FAILED_READ);
 			return FALSE;
 		}
-		susBufferAppend(&sock->buffers.readBuffer, chunkBuffer, bytesRead);
+		susBufferPush(&sock->buffers.readBuffer, chunkBuffer, bytesRead);
 		do {
-			LPBYTE endMsg = susFindDoubleNull(sock->buffers.readBuffer->data, sock->buffers.readBuffer->size);
+			sus_lpbyte_t endMsg = susFindDoubleNull(sock->buffers.readBuffer->data, sock->buffers.readBuffer->size);
 			if (!endMsg) break;
-			SIZE_T msgSize = (SIZE_T)(endMsg - sock->buffers.readBuffer->data);
+			sus_size_t msgSize = (sus_size_t)(endMsg - sock->buffers.readBuffer->data);
 			if (msgSize) susSocketCallMessage(sock, SUS_SM_DATA, (WPARAM)msgSize, (LPARAM)sock->buffers.readBuffer->data);
-			susBufferErase(&sock->buffers.readBuffer, 0, msgSize + 2);
+			susBufferErase(&sock->buffers.readBuffer, 0, (sus_size32_t)msgSize + 2);
 		} while (sock->buffers.readBuffer->size);
-		if (susBufferSize(sock->buffers.readBuffer) > SUS_SOCKET_MAX_MESSAGE_SIZE) if (sock->handler && !sock->handler(sock, SUS_SM_ERROR, (WPARAM)0, SUS_SOCKET_ERROR_BUFFER_OVERFLOW)) {
+		if (sock->buffers.readBuffer->size > SUS_SOCKET_MAX_MESSAGE_SIZE) if (sock->handler && !sock->handler(sock, SUS_SM_ERROR, (WPARAM)0, SUS_SOCKET_ERROR_BUFFER_OVERFLOW)) {
 			susSocketEnd(sock);
 			return FALSE;
 		}
@@ -382,7 +383,7 @@ BOOL SUSAPI susSocketRead(_Inout_ SUS_LPSOCKET sock)
 	return TRUE;
 }
 // Flushing the send buffer
-SIZE_T SUSAPI susSocketFlush(_Inout_ SUS_LPSOCKET sock)
+sus_size_t SUSAPI susSocketFlush(_Inout_ SUS_LPSOCKET sock)
 {
 	SUS_ASSERT(sock && sock->super != INVALID_SOCKET && sock->buffers.writeBuffer);
 	susSocketCallMessage(sock, SUS_SM_WRITE, 0, 0);
@@ -413,8 +414,8 @@ SUS_SERVER_SOCKET SUSAPI susServerSetup(_In_opt_ SUS_SOCKET_HANDLER serverHandle
 {
 	SUS_PRINTDL("Creating a server");
 	SUS_SERVER_SOCKET server = { susSocketSetup(serverHandler, userData), .clientHandler = clientHandler };
-	server.clientfds = susNewVector(WSAPOLLFD);
-	server.clients = susNewVector(SUS_SOCKET);
+	server.clientfds = susNewVector(sizeof(WSAPOLLFD));
+	server.clients = susNewVector(sizeof(SUS_SOCKET));
 	return server;
 }
 // Cleaning up server resources
@@ -422,7 +423,7 @@ static VOID SUSAPI susServerClose(_Inout_ SUS_LPSERVER_SOCKET server)
 {
 	SUS_ASSERT(server && server->clients && server->clientfds);
 	susSocketClose((SUS_LPSOCKET)server);
-	susVecForeach(i, server->clients) susSocketShutdown(&SUS_VECARRAY(server->clients, SUS_SOCKET)[i]);
+	susVecForeach(i, server->clients) susSocketShutdown((SUS_LPSOCKET)susVectorAt(server->clients, i));
 	susVectorDestroy(server->clientfds);
 	susVectorDestroy(server->clients);
 }
@@ -462,8 +463,8 @@ BOOL SUSAPI susServerListen(_Inout_ SUS_LPSERVER_SOCKET server, _In_ ADDRESS_FAM
 static BOOL SUSAPI susServerAddClient(_Inout_ SUS_LPSERVER_SOCKET server, _In_ SUS_LPSOCKET client) {
 	SUS_ASSERT(server && server->clientfds && server->clients && client);
 	WSAPOLLFD fd = { .fd = client->super, .events = POLLIN | POLLOUT, .revents = 0 };
-	if (!susVectorPushBack(&server->clientfds, &fd)) return FALSE;
-	if (!susVectorPushBack(&server->clients, client)) return FALSE;
+	if (!susVectorPush(&server->clientfds, &fd)) return FALSE;
+	if (!susVectorPush(&server->clients, client)) return FALSE;
 	susSocketCallMessage(client, SUS_SM_START, (WPARAM)0, (LPARAM)0);
 	return TRUE;
 }
@@ -489,7 +490,7 @@ static VOID SUSAPI susServerRemoveClient(_Inout_ SUS_LPSERVER_SOCKET server, _In
 // Process a disconnected client
 static VOID SUSAPI susServerClientError(_Inout_ SUS_LPSERVER_SOCKET server, _In_ UINT index) {
 	SUS_ASSERT(server);
-	SUS_LPSOCKET client = &SUS_VECARRAY(server->clients, SUS_SOCKET)[index];
+	SUS_LPSOCKET client = susVectorAt(server->clients, index);
 	susSocketClose(client);
 	susServerRemoveClient(server, index);
 	SUS_PRINTDL("Client %s caused a critical error", susSocketAddressToString(client->address));
@@ -497,7 +498,7 @@ static VOID SUSAPI susServerClientError(_Inout_ SUS_LPSERVER_SOCKET server, _In_
 // Process a disconnected client
 static VOID SUSAPI susServerClientClose(_Inout_ SUS_LPSERVER_SOCKET server, _In_ UINT index) {
 	SUS_ASSERT(server);
-	SUS_LPSOCKET client = &SUS_VECARRAY(server->clients, SUS_SOCKET)[index];
+	SUS_LPSOCKET client = susVectorAt(server->clients, index);
 	susSocketShutdown(client);
 	susServerRemoveClient(server, index);
 	SUS_PRINTDL("Client %s has disconnected from the server", susSocketAddressToString(client->address));
@@ -531,11 +532,11 @@ static BOOL SUSAPI susServerClientsUpdate(_In_ SUS_LPSERVER_SOCKET server)
 {
 	SUS_ASSERT(server && server->clientfds && server->clients);
 	if (!server->clients->length) return TRUE;
-	INT pollResult = WSAPoll(SUS_VECARRAY(server->clientfds, WSAPOLLFD), server->clientfds->length, SUS_SOCKET_POLL_TIMEOUT);
+	INT pollResult = WSAPoll((WSAPOLLFD*)server->clientfds->data, server->clientfds->length, SUS_SOCKET_POLL_TIMEOUT);
 	if (pollResult < 0) return pollResult == 0;
 	susVecForeachReverse(i, server->clients) {
-		SUS_LPSOCKET client = susVectorGet(server->clients, i);
-		LPWSAPOLLFD fd = susVectorGet(server->clientfds, i);
+		SUS_LPSOCKET client = susVectorAt(server->clients, i);
+		LPWSAPOLLFD fd = susVectorAt(server->clientfds, i);
 		if (!fd->revents) continue;
 		susServerClientPoll(server, i, client, fd->revents);
 	}

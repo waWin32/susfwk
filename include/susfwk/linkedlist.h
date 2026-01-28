@@ -20,15 +20,15 @@ typedef BOOL(SUSAPI* SUS_LIST_ELEMENTS_COMPARE)(_In_ SUS_OBJECT a, _In_ SUS_OBJE
 typedef struct sus_list_node{
 	struct sus_list_node*	next;	// The next node
 	struct sus_list_node*	prev;	// Previous node
-	BYTE					value[];// Node Data
+	sus_byte_t				value[];// Node Data
 } SUS_LIST_NODE_STRUCT, *SUS_LIST_NODE;
 
 // Two linked list
 typedef struct sus_list {
 	SUS_LIST_NODE	head;		// The first node of the list
 	SUS_LIST_NODE	tail;		// The last node in the list
-	SIZE_T			valueSize;	// Default value size
-	DWORD			count;		// Number of list items
+	sus_size32_t	valueSize;	// Default value size
+	sus_uint_t		count;		// Number of list items
 } SUS_LIST, *SUS_LPLIST;
 
 // -------------------------------------------------------------------
@@ -39,7 +39,7 @@ typedef struct sus_list {
 
 // Create a list structure
 SUS_LIST SUSAPI susListSetupEx(
-	_In_ SIZE_T typeSize
+	_In_ sus_size32_t typeSize
 );
 // Create a list structure
 #define susListSetup(type) susListSetupEx(sizeof(type))
@@ -114,7 +114,7 @@ BOOL SUSAPI susListContains(
 // -------------------------------------------------------------------
 
 // Change the type size for new values
-SUS_INLINE VOID SUSAPI susListSetValueSize(_Inout_ SUS_LPLIST list, _In_ SIZE_T	newValueSize) {
+SUS_INLINE VOID SUSAPI susListSetValueSize(_Inout_ SUS_LPLIST list, _In_ sus_size32_t	newValueSize) {
 	SUS_ASSERT(list);
 	list->valueSize = newValueSize;
 }
