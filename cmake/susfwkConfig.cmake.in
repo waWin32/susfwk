@@ -13,6 +13,7 @@ set(SUSFWK_VERSION_MINOR @PROJECT_VERSION_MINOR@)
 set(SUSFWK_VERSION_PATCH @PROJECT_VERSION_PATCH@)
 set(SUSFWK_CPU_DISPATCH @SUSFWK_CPU_DISPATCH@)
 
+include("${CMAKE_CURRENT_LIST_DIR}/susfwkTargets.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/susfwkHelpers.cmake")
 
 check_required_components(susfwk)
